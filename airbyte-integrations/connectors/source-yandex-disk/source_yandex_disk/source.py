@@ -13,6 +13,7 @@ from abc import ABC
 from datetime import datetime
 from functools import cache
 from typing import Any, Dict, Iterable, List, Literal, Mapping, MutableMapping, Optional, Tuple
+from airbyte_cdk.models import SyncMode
 
 import pandas as pd
 import requests
@@ -24,6 +25,7 @@ from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from source_yandex_disk.auth import CredentialsCraftAuthenticator
+from source_yandex_disk.utils import find_duplicates
 
 logger = logging.getLogger('airbyte')
 
@@ -207,7 +209,6 @@ class YandexDiskResource(HttpStream, ABC):
             offset += self.limit
         return available_resources
 
-    @cache
     def derive_fields_names_from_sample(self):
         sample_file = self.lookup_resources_for_pattern()[0]
         download_file_link = self.get_download_link_for_resource(sample_file)[
@@ -223,12 +224,28 @@ class YandexDiskResource(HttpStream, ABC):
         logger.info(f'Fields for stream {self.name}: {fields}')
         return fields
 
-    @cache
     def lookup_resources_for_pattern(self):
+        availabe_path_resources = self.get_path_resources()
         resources = []
-        for resource in filter(lambda r: r['type'] == 'file', self.get_path_resources()):
+        for resource in filter(lambda r: r['type'] == 'file', availabe_path_resources):
             if self.resources_filename_pattern.match(resource['name']):
                 resources.append(resource)
+        if not resources:
+            available_resource_names = list(
+                map(
+                    lambda r: '\'' + r.get('name', '<empty name>') + '\'',
+                    availabe_path_resources
+                )
+            )
+            raise Exception(
+                f'Resources for stream \'{self.name}\' with pattern '
+                f'\'{self.resources_filename_pattern.pattern}\' not found,'
+                ' so it\'s failed to derive field names from sample file.'
+                ' Specify \'user_specified_fields\' for this stream or check your'
+                f' path or pattern for stream \'{self.name}\'. Available'
+                f" resources with this stream \'path\': "
+                f"{', '.join(available_resource_names)}."
+            )
         logger.info(
             f'Stream {self.name}: found resources for pattern'
             f' {self.resources_filename_pattern}:'
@@ -265,11 +282,17 @@ class SourceYandexDisk(AbstractSource):
             json.loads(config.get("custom_constants_json", "{}"))
         except Exception as msg:
             return False, f"Invalid Custom Constants JSON: {msg}"
+        
+        stream_names = [stream_config['name'] for stream_config in config['streams']]
+        stream_name_duplicates = find_duplicates(stream_names)
+        if stream_name_duplicates:
+            return False, f'Each stream name must be unique. Stream names duplicates: {stream_name_duplicates}'
 
         for stream_config in config['streams']:
             if stream_config.get('no_header', False) and not stream_config.get('user_specified_fields'):
                 return False, f'"No Header" selected for stream {stream_config["name"]},' + \
-                    ' but no user_specified_fields specified.'
+                    ' but no user_specified_fields specified. Connector can\'t derive' + \
+                    ' fields from sample file sinse you turn on \'No header\''
 
         auth = self.get_auth(config)
         if isinstance(auth, CredentialsCraftAuthenticator):
@@ -277,19 +300,8 @@ class SourceYandexDisk(AbstractSource):
             if not cc_auth_check_result[0]:
                 return cc_auth_check_result
 
-        test_stream_config = config['streams'][0]
-        test_request = requests.get(
-            'https://cloud-api.yandex.net/v1/disk/resources',
-            headers=auth.get_auth_header(),
-            params={
-                'path': test_stream_config['path']
-            }
-        )
-        try:
-            test_request.raise_for_status()
-        except:
-            raise Exception(
-                f'Api Error {test_request.status_code}: {test_request.text}. URL {test_request.request.url}')
+        for stream in self.streams(config):
+            stream.get_json_schema()
 
         return True, None
 

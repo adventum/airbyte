@@ -5,7 +5,7 @@
 
 import json
 import socket
-from typing import Dict, Generator
+from typing import Dict, Generator, Mapping
 
 from airbyte_cdk.logger import AirbyteLogger
 from airbyte_cdk.models.airbyte_protocol import (
@@ -40,6 +40,7 @@ class GoogleSheetsSource(Source):
 
     def __init__(self):
         super().__init__()
+        self.field_name_map: dict[str, str] | None = None
 
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         # Check involves verifying that the specified spreadsheet is reachable with our credentials.
@@ -70,8 +71,10 @@ class GoogleSheetsSource(Source):
 
         duplicate_headers_in_sheet = {}
         for sheet_name in grid_sheets:
+            print(f"Это check {sheet_name}")
             try:
                 header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
+                print(f"Это check {header_row_data}")
                 _, duplicate_headers = Helpers.get_valid_headers_and_duplicates(header_row_data)
                 if duplicate_headers:
                     duplicate_headers_in_sheet[sheet_name] = duplicate_headers
@@ -102,6 +105,8 @@ class GoogleSheetsSource(Source):
         client = GoogleSheetsClient(self.get_credentials(config))
         spreadsheet_id = Helpers.get_spreadsheet_id(config["spreadsheet_id"])
         try:
+            self.field_name_map = self.get_field_name_map(config=config)
+
             logger.info(f"Running discovery on sheet {spreadsheet_id}")
             spreadsheet_metadata = Spreadsheet.parse_obj(client.get(spreadsheetId=spreadsheet_id, includeGridData=False))
             grid_sheets = Helpers.get_grid_sheets(spreadsheet_metadata)
@@ -109,6 +114,8 @@ class GoogleSheetsSource(Source):
             for sheet_name in grid_sheets:
                 try:
                     header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
+
+                    header_row_data = [self.field_name_map.get(col, col) for col in header_row_data]
                     stream = Helpers.headers_to_airbyte_stream(logger, sheet_name, header_row_data)
                     streams.append(stream)
                 except Exception as err:
@@ -129,18 +136,32 @@ class GoogleSheetsSource(Source):
     ) -> Generator[AirbyteMessage, None, None]:
         client = GoogleSheetsClient(self.get_credentials(config))
 
+        old_fields = self.get_field_name_map(config=config)
         sheet_to_column_name = Helpers.parse_sheet_and_column_names_from_catalog(catalog)
+        new_to_old_names = {new: old for old, new in old_fields.items()}
+
+        restored_sheet_to_column_name = {}
+        for sheet, columns in sheet_to_column_name.items():
+            restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
+            restored_sheet_to_column_name[sheet] = restored_columns
+
         spreadsheet_id = Helpers.get_spreadsheet_id(config["spreadsheet_id"])
 
         logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
         # For each sheet in the spreadsheet, get a batch of rows, and as long as there hasn't been
         # a blank row, emit the row batch
-        sheet_to_column_index_to_name = Helpers.get_available_sheets_to_column_index_to_name(client, spreadsheet_id, sheet_to_column_name)
+        sheet_to_column_index_to_name = Helpers.get_available_sheets_to_column_index_to_name(client, spreadsheet_id,
+                                                                                             restored_sheet_to_column_name)
         sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
         logger.info(f"Row counts: {sheet_row_counts}")
         for sheet in sheet_to_column_index_to_name.keys():
             logger.info(f"Syncing sheet {sheet}")
             column_index_to_name = sheet_to_column_index_to_name[sheet]
+
+            for key, value in column_index_to_name.items():
+                if value in old_fields.keys():
+                    column_index_to_name[key] = old_fields[value]
+
             row_cursor = 2  # we start syncing past the header row
             # For the loop, it is necessary that the initial row exists when we send a request to the API,
             # if the last row of the interval goes outside the sheet - this is normal, we will return
@@ -176,3 +197,12 @@ class GoogleSheetsSource(Source):
             return credentials
 
         return config.get("credentials")
+
+    @staticmethod
+    def get_field_name_map(config: Mapping[str, any]) -> dict[str, str]:
+        """Get values that needs to be replaced and their replacements"""
+        field_name_map: list[dict[str, str]] | None
+        if not (field_name_map := config.get("field_name_map")):
+            return {}
+        else:
+            return {item["old_value"]: item["new_value"] for item in field_name_map}

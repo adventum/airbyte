@@ -55,6 +55,7 @@ class YandexDiskResource(HttpStream, ABC):
         no_header: bool = False,
         date_from: datetime = None,
         date_to: datetime = None,
+        field_name_map: Optional[dict[str, str]] = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
         self.stream_name = stream_name
@@ -72,6 +73,7 @@ class YandexDiskResource(HttpStream, ABC):
         self.csv_delimiter = csv_delimiter
         self.no_header = no_header
         self.user_specified_fields = user_specified_fields
+        self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
 
     @property
     def name(self) -> str:
@@ -80,6 +82,7 @@ class YandexDiskResource(HttpStream, ABC):
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(package_name_from_class(
             self.__class__)).get_schema("yandex_disk_resource")
+        properties = schema["properties"]
 
         if self.user_specified_fields:
             fields = self.user_specified_fields
@@ -95,6 +98,22 @@ class YandexDiskResource(HttpStream, ABC):
         for key in extra_properties:
             schema["properties"][key] = {"type": ["null", "string"]}
 
+        # Replace properties keys
+        logger.info(self._field_name_map)
+        logger.info(self._field_name_map.items())
+        replacements = {}
+        for old_val, new_val in self._field_name_map.items():
+            if old_val in properties:
+                replacements[old_val] = new_val
+
+        for old_val, new_val in replacements.items():
+            properties[new_val] = properties.pop(old_val)
+
+        logger.info(schema)
+
+        # Replace required fields in list
+        # required = schema["required"]
+        # schema["required"] = [self._field_name_map.get(required_field, required_field) for required_field in required]
         return schema
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -136,6 +155,23 @@ class YandexDiskResource(HttpStream, ABC):
                         f'count - {len(values_line)}).'
                     )
             record = dict(zip(headers, values_line))
+
+            logger.info("HEADERS RECORD"*20)
+            logger.info(headers)
+            logger.info("HEADERS RECORD"*20)
+
+            logger.info("CSV RECORD"*20)
+            logger.info(record)
+            logger.info("CSV RECORD"*20)
+
+            for record_key in list(record.keys()):
+                if record_key in self._field_name_map:
+                    record[self._field_name_map[record_key]] = record.pop(record_key)
+
+            logger.info("CSV AFTER RECORD"*20)
+            logger.info(record)
+            logger.info("CSV AFTER RECORD"*20)
+
             if record:
                 yield self.add_constants_to_record(record)
 
@@ -153,7 +189,15 @@ class YandexDiskResource(HttpStream, ABC):
                     read_excel_kwargs['names'] = self.user_specified_fields
 
             df = pd.io.excel.read_excel(fh, **read_excel_kwargs)
+            logger.info(df.to_dict('records'))
             for record in df.to_dict('records'):
+                for record_key in list(record.keys()):
+                    if record_key in self._field_name_map:
+                        record[self._field_name_map[record_key]] = record.pop(record_key)
+
+                logger.info("RECORD###"*10)
+                logger.info(record)
+                logger.info("RECORD###"*10)
                 yield self.add_constants_to_record(record)
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -322,7 +366,33 @@ class SourceYandexDisk(AbstractSource):
             raise Exception(
                 "Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
 
+    @staticmethod
+    def get_field_name_map(config: Mapping[str, any]) -> dict[str, str]:
+        """Get values that needs to be replaced and their replacements"""
+        field_name_map: Optional[list[dict[str, str]]]
+        logger.info(config)
+        field_name_map = config.get("field_name_map")
+        logger.info("FIELD_NAME IN GET FIELD FUNC"*20)
+        logger.info(field_name_map)
+        if not field_name_map:
+            return {}
+        else:
+            return {item["old_value"]: item["new_value"] for item in field_name_map}
+
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        # logger.info("Before transform")
+        # logger.info(config["field_name_map"])
+        # transformed_field_name_map = []
+        # for rename_dict in config["field_name_map"]:
+        #     rename_dict = SourceYandexDisk.get_field_name_map(config)
+        #     logger.info("renamed_dict"*30)
+        #     logger.info(rename_dict)
+        #     transformed_field_name_map.append(rename_dict)
+        # config["field_name_map"] = transformed_field_name_map
+        # logger.info("after transform")
+        # logger.info(config["field_name_map"])
+        config["field_name_map"] = SourceYandexDisk.get_field_name_map(config)
+
         return config
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
@@ -346,6 +416,7 @@ class SourceYandexDisk(AbstractSource):
                     excel_sheet_name=stream_config.get('excel_sheet_name'),
                     client_name_constant=config['client_name_constant'],
                     product_name_constant=config['product_name_constant'],
+                    field_name_map=config.get("field_name_map"),
                     custom_constants=json.loads(
                         config.get('custom_constants_json', '{}')
                     ),

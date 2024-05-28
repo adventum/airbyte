@@ -118,6 +118,35 @@
           }
         }
       },
+      "field_name_map": {
+        "title": "Замена полей",
+        "description": "Этот параметр заменяет поля(столбцы) в итоговых записях. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
+        "type": "array",
+        "group": "replace",
+        "order": 2,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "old_value",
+            "new_value"
+          ],
+          "title": "Замена ключей",
+          "description": "Пара: старое и новое поле",
+          "properties": {
+            "old_value": {
+              "type": "string",
+              "title": "Старое поле",
+              "order": 0
+            },
+            "new_value": {
+              "type": "string",
+              "title": "Новое поле",
+              "order": 1
+            }
+          }
+        }
+      },
       "client_name_constant": {
         "title": "Client Name Constant",
         "description": "Constant that will be used in record __clientName property",

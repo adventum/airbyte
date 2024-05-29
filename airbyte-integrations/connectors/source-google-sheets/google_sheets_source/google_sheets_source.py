@@ -45,7 +45,6 @@ class GoogleSheetsSource(Source):
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         # Check involves verifying that the specified spreadsheet is reachable with our credentials.
         try:
-            logger.info(self.get_credentials(config))
             client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"Please use valid credentials json file. Error: {e}")
@@ -170,24 +169,6 @@ class GoogleSheetsSource(Source):
                         yield AirbyteMessage(type=Type.RECORD, record=Helpers.row_data_to_record_message(sheet, row, column_index_to_name))
         logger.info(f"Finished syncing spreadsheet {spreadsheet_id}")
 
-    # @staticmethod
-    # def get_credentials(config):
-    #     # backward compatible with old style config
-    #     if config.get("credentials_json"):
-    #         credentials = {"auth_type": "Service", "service_account_info": config.get("credentials_json")}
-    #         return credentials
-    #
-    #     credentials = config.get("credentials")
-    #     auth_type = credentials.get("auth_type")
-    #
-    #     if auth_type == "credentials_craft_auth":
-    #         return CredentialsCraftAuthenticator(
-    #             credentials_craft_host=credentials["credentials_craft_host"],
-    #             credentials_craft_token=credentials["credentials_craft_token"],
-    #             credentials_craft_token_id=credentials["credentials_craft_token_id"]
-    #         )
-    #
-    #     return credentials #config.get("credentials")
     @staticmethod
     def get_credentials(config):
         # backward compatible with old style config
@@ -204,7 +185,6 @@ class GoogleSheetsSource(Source):
                 credentials_craft_token=credentials["credentials_craft_token"],
                 credentials_craft_token_id=credentials["credentials_craft_token_id"]
             )
-            logger.info({"auth_type": "Client", "credentials": authenticator.token})
             return {"auth_type": "Client", "credentials": authenticator.token}
 
         return credentials

@@ -21,9 +21,10 @@ from apiclient import errors
 from requests.status_codes import codes as status_codes
 
 from .client import GoogleSheetsClient
-from .helpers import Helpers
+from .helpers import Helpers, logger
 from .models.spreadsheet import Spreadsheet
 from .models.spreadsheet_values import SpreadsheetValues
+from .auth import CredentialsCraftAuthenticator
 
 # set default batch read size
 ROW_BATCH_SIZE = 200
@@ -44,7 +45,8 @@ class GoogleSheetsSource(Source):
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         # Check involves verifying that the specified spreadsheet is reachable with our credentials.
         try:
-            client = GoogleSheetsClient(self.get_credentials(config))
+            logger.info(self.get_credentials(config))
+            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"Please use valid credentials json file. Error: {e}")
 
@@ -168,6 +170,24 @@ class GoogleSheetsSource(Source):
                         yield AirbyteMessage(type=Type.RECORD, record=Helpers.row_data_to_record_message(sheet, row, column_index_to_name))
         logger.info(f"Finished syncing spreadsheet {spreadsheet_id}")
 
+    # @staticmethod
+    # def get_credentials(config):
+    #     # backward compatible with old style config
+    #     if config.get("credentials_json"):
+    #         credentials = {"auth_type": "Service", "service_account_info": config.get("credentials_json")}
+    #         return credentials
+    #
+    #     credentials = config.get("credentials")
+    #     auth_type = credentials.get("auth_type")
+    #
+    #     if auth_type == "credentials_craft_auth":
+    #         return CredentialsCraftAuthenticator(
+    #             credentials_craft_host=credentials["credentials_craft_host"],
+    #             credentials_craft_token=credentials["credentials_craft_token"],
+    #             credentials_craft_token_id=credentials["credentials_craft_token_id"]
+    #         )
+    #
+    #     return credentials #config.get("credentials")
     @staticmethod
     def get_credentials(config):
         # backward compatible with old style config
@@ -175,4 +195,16 @@ class GoogleSheetsSource(Source):
             credentials = {"auth_type": "Service", "service_account_info": config.get("credentials_json")}
             return credentials
 
-        return config.get("credentials")
+        credentials = config.get("credentials")
+        auth_type = credentials.get("auth_type")
+
+        if auth_type == "credentials_craft_auth":
+            authenticator = CredentialsCraftAuthenticator(
+                credentials_craft_host=credentials["credentials_craft_host"],
+                credentials_craft_token=credentials["credentials_craft_token"],
+                credentials_craft_token_id=credentials["credentials_craft_token_id"]
+            )
+            logger.info({"auth_type": "Client", "credentials": authenticator.token})
+            return {"auth_type": "Client", "credentials": authenticator.token}
+
+        return credentials

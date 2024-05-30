@@ -109,8 +109,6 @@ class YandexDiskResource(HttpStream, ABC):
         for old_val, new_val in replacements.items():
             properties[new_val] = properties.pop(old_val)
 
-        logger.info(schema)
-
         # Replace required fields in list
         # required = schema["required"]
         # schema["required"] = [self._field_name_map.get(required_field, required_field) for required_field in required]
@@ -155,23 +153,9 @@ class YandexDiskResource(HttpStream, ABC):
                         f'count - {len(values_line)}).'
                     )
             record = dict(zip(headers, values_line))
-
-            logger.info("HEADERS RECORD"*20)
-            logger.info(headers)
-            logger.info("HEADERS RECORD"*20)
-
-            logger.info("CSV RECORD"*20)
-            logger.info(record)
-            logger.info("CSV RECORD"*20)
-
             for record_key in list(record.keys()):
                 if record_key in self._field_name_map:
                     record[self._field_name_map[record_key]] = record.pop(record_key)
-
-            logger.info("CSV AFTER RECORD"*20)
-            logger.info(record)
-            logger.info("CSV AFTER RECORD"*20)
-
             if record:
                 yield self.add_constants_to_record(record)
 
@@ -189,15 +173,12 @@ class YandexDiskResource(HttpStream, ABC):
                     read_excel_kwargs['names'] = self.user_specified_fields
 
             df = pd.io.excel.read_excel(fh, **read_excel_kwargs)
-            logger.info(df.to_dict('records'))
+
             for record in df.to_dict('records'):
                 for record_key in list(record.keys()):
                     if record_key in self._field_name_map:
                         record[self._field_name_map[record_key]] = record.pop(record_key)
 
-                logger.info("RECORD###"*10)
-                logger.info(record)
-                logger.info("RECORD###"*10)
                 yield self.add_constants_to_record(record)
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -370,10 +351,7 @@ class SourceYandexDisk(AbstractSource):
     def get_field_name_map(config: Mapping[str, any]) -> dict[str, str]:
         """Get values that needs to be replaced and their replacements"""
         field_name_map: Optional[list[dict[str, str]]]
-        logger.info(config)
         field_name_map = config.get("field_name_map")
-        logger.info("FIELD_NAME IN GET FIELD FUNC"*20)
-        logger.info(field_name_map)
         if not field_name_map:
             return {}
         else:

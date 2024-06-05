@@ -47,8 +47,8 @@ class YandexDiskResource(HttpStream, ABC):
         resources_filename_pattern: re.Pattern,
         resource_files_type: Literal['CSV', 'Excel'],
         excel_sheet_name: str,
-        client_name_constant: str,
-        product_name_constant: str,
+        # client_name_constant: str,
+        # product_name_constant: str,
         custom_constants: Dict[str, Any],
         user_specified_fields: List[str] = [],
         csv_delimiter: str = None,
@@ -65,8 +65,8 @@ class YandexDiskResource(HttpStream, ABC):
         self.resource_files_type = resource_files_type
         self.date_from = date_from
         self.date_to = date_to
-        self.product_name_constant = product_name_constant
-        self.client_name_constant = client_name_constant
+        # self.product_name_constant = product_name_constant # Deprecated
+        # self.client_name_constant = client_name_constant # Deprecated
         self.custom_constants = custom_constants
         self.excel_sheet_name = excel_sheet_name
         self._authenticator = authenticator
@@ -92,11 +92,12 @@ class YandexDiskResource(HttpStream, ABC):
         for field_name in fields:
             schema["properties"][field_name] = {"type": ["null", "string"]}
 
-        extra_properties = ["__productName", "__clientName"]
+        extra_properties = [] # ["__productName", "__clientName"]
         extra_properties.extend(self.custom_constants.keys())
 
-        for key in extra_properties:
-            schema["properties"][key] = {"type": ["null", "string"]}
+        if extra_properties:
+            for key in extra_properties:
+                schema["properties"][key] = {"type": ["null", "string"]}
 
         # Replace properties keys
         logger.info(self._field_name_map)
@@ -192,11 +193,12 @@ class YandexDiskResource(HttpStream, ABC):
 
     def add_constants_to_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         constants = {
-            "__productName": self.product_name_constant,
-            "__clientName": self.client_name_constant,
+            # "__productName": self.product_name_constant,
+            # "__clientName": self.client_name_constant,
         }
         constants.update(self.custom_constants)
-        record.update(constants)
+        if constants:
+            record.update(constants)
         return record
 
     def request_kwargs(self, *args, **kwargs) -> Mapping[str, Any]:
@@ -392,8 +394,8 @@ class SourceYandexDisk(AbstractSource):
                     resources_filename_pattern=stream_config['files_pattern'],
                     resource_files_type=stream_config['files_type'],
                     excel_sheet_name=stream_config.get('excel_sheet_name'),
-                    client_name_constant=config['client_name_constant'],
-                    product_name_constant=config['product_name_constant'],
+                    # client_name_constant=config['client_name_constant'],
+                    # product_name_constant=config['product_name_constant'],
                     field_name_map=config.get("field_name_map"),
                     custom_constants=json.loads(
                         config.get('custom_constants_json', '{}')

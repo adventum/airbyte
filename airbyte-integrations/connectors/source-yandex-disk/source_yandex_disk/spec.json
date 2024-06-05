@@ -147,28 +147,12 @@
           }
         }
       },
-      "client_name_constant": {
-        "title": "Client Name Constant",
-        "description": "Constant that will be used in record __clientName property",
-        "type": "string",
-        "examples": ["abcd"],
-        "order": 2,
-        "default": ""
-      },
-      "product_name_constant": {
-        "title": "Product Name Constant",
-        "description": "Constant that will be used in record __productName property",
-        "type": "string",
-        "examples": ["abcd"],
-        "order": 3,
-        "default": ""
-      },
       "custom_constants_json": {
         "title": "Custom JSON",
         "description": "Custom JSON for additional record properties. Must be string of JSON object with first-level properties",
         "type": "string",
         "examples": ["{\"abc\": \"123\", \"cde\": \"132\"}"],
-        "order": 4
+        "order": 3
       }
     }
   }

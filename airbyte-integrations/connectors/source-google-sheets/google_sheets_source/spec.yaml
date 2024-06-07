@@ -70,6 +70,36 @@ connectionSpecification:
               airbyte_secret: true
               examples:
                 - '{ "type": "service_account", "project_id": YOUR_PROJECT_ID, "private_key_id": YOUR_PRIVATE_KEY, ... }'
+        - title: CredentialsCraft Auth
+          type: object
+          properties:
+            auth_type:
+              title: Auth Type
+              const: credentials_craft_auth
+              order: 0
+              type: string
+            credentials_craft_host:
+              title: CredentialsCraft Host
+              description: CredentialsCraft Host.
+              examples:
+                - https://credentialscraft.mysite.com
+              type: string
+            credentials_craft_token:
+              title: CredentialsCraft Token
+              description: Long-term CredentialsCraft Access Token (NOT Google Sheets token).
+              type: string
+              airbyte_secret: true
+            credentials_craft_token_id:
+              title: CredentialsCraft Google Sheets Token ID
+              description: Google Sheets Token ID in CredentialsCraft
+              examples:
+                - 123
+              type: integer
+          required:
+            - auth_type
+            - credentials_craft_host
+            - credentials_craft_token
+            - credentials_craft_token_id
 authSpecification:
   auth_type: oauth2.0
   oauth2Specification:

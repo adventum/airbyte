@@ -45,7 +45,7 @@ class YandexMetrikaSourceField:
         Get all variants of this field
         Example: field<currency> -> fieldUSD, fieldRUB, ...
         """
-        res: list[str] = []
+        res: list[str] = [self.field_name]  # allow raw input with further auto-replace
         fields_to_replace: set[str] = {self.field_name}
         while fields_to_replace:
             field = fields_to_replace.pop()

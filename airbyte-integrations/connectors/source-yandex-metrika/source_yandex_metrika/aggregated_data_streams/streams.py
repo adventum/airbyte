@@ -14,7 +14,7 @@ from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
-from .translations import attribution_translations, currency_translations, date_group_translations, preset_name_translations
+from ..translations import attribution_translations, currency_translations, date_group_translations, preset_name_translations
 from ..base_stream import YandexMetrikaStream
 
 from .supported_fields import aggregated_data_streams_fields_manager

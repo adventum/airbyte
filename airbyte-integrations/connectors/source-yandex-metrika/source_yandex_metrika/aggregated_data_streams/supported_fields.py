@@ -1,4 +1,4 @@
-from ..fields import YandexMetrikaFieldsManager, YandexMetrikaSourceField
+from ..field_manager import YandexMetrikaFieldsManager, YandexMetrikaSourceField
 
 fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField("ym:s:visits", field_type="integer"),

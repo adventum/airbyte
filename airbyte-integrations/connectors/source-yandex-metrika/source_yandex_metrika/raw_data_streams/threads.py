@@ -22,7 +22,7 @@ class LogMessagesPoolConsumer:
 
 
 class YandexMetrikaRawSliceMissingChunksObserver:
-    def __init__(self, expected_chunks_ids: int):
+    def __init__(self, expected_chunks_ids: list[int]):
         self._actually_loaded_chunk_ids = []
         self._expected_chunks_ids = expected_chunks_ids
 
@@ -80,6 +80,11 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                         records: list[dict] = [data for data in chunk.to_dict("records")]
                         for record in records:
                             self.stream_instance.replace_keys(record)
+                            # TODO: move postprocess somewhere else
+                            replace_keys = [k for k in record.keys() if "<attribution>" in k]
+                            for key in replace_keys:
+                                new_key = key.replace("<attribution>", self.stream_instance.attribution)
+                                record[new_key] = record.pop(key)
                         self.records.extend(records)
                         self.records_count += len(records)
                         print("records_count", self.records_count, filename)

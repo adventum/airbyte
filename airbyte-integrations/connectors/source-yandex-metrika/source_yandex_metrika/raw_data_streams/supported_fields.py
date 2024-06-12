@@ -1,4 +1,4 @@
-from ..fields import YandexMetrikaSourceField, YandexMetrikaFieldsManager
+from ..field_manager import YandexMetrikaSourceField, YandexMetrikaFieldsManager
 
 hits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField("ym:pv:watchID", field_type="string", required=True),

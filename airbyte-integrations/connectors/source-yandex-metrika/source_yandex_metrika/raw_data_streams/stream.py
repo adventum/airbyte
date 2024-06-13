@@ -79,7 +79,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         self.clean_log_requests_before_replication = clean_log_requests_before_replication
         self.check_log_requests_ability = check_log_requests_ability
         self.created_for_test = created_for_test
-        self.attribution: str = attribution_translations.get(attribution) if attribution is not None else ""
+        self.attribution: str = attribution_translations.get(attribution, "<attribution>") if attribution is not None else "<attribution>"
 
         if self.clean_log_requests_before_replication and not self.created_for_test:
             logger.info("Clean all log requests before replication...")

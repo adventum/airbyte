@@ -70,6 +70,49 @@ connectionSpecification:
               airbyte_secret: true
               examples:
                 - '{ "type": "service_account", "project_id": YOUR_PROJECT_ID, "private_key_id": YOUR_PRIVATE_KEY, ... }'
+    field_name_map:
+      title: "Замена полей"
+      description: 'Этот параметр заменяет поля в итоговых записях. Например, если вы хотите заменить поле "_day" на "День", 
+                    то укажите в этом параметре "Старое поле" - "_day", "Новое поле" - "День".'
+      type: "array"
+      group: "replace"
+      items:
+        type: "object"
+        additionalProperties: false
+        required:
+          - "old_value"
+          - "new_value"
+        title: "Замена полей"
+        description: "Пара: старое и новое поле"
+        properties:
+          old_value:
+            type: "string"
+            title: "Старое поле"
+          new_value:
+            type: "string"
+            title: "Новое поле"
+    field_name_map_stream:
+      title: "Замена стрима(Листа)"
+      description: 'Этот параметр заменяет имя стрима в итоговых записях. Например, если вы хотите заменить имя "Лист1" на "День", 
+                    то укажите в этом параметре "Старый стрим" - "Лист1", "Новый стрим" - "День".'
+      type: "array"
+      group: "replace"
+      items:
+        type: "object"
+        additionalProperties: false
+        required:
+          - "old_value_stream"
+          - "new_value_stream"
+        title: "Замена стримов"
+        description: "Пара: старый и новый стрим"
+        properties:
+          old_value_stream:
+            type: "string"
+            title: "Старый стрим"
+          new_value_stream:
+            type: "string"
+            title: "Новый стрим"
+
 authSpecification:
   auth_type: oauth2.0
   oauth2Specification:

@@ -135,15 +135,22 @@ class Helpers(object):
 
     @staticmethod
     def get_available_sheets_to_column_index_to_name(
-        client, spreadsheet_id: str, requested_sheets_and_columns: Dict[str, FrozenSet[str]]
+            client, spreadsheet_id: str, requested_sheets_and_columns: Dict[str, FrozenSet[str]], renamed_sheets: Dict[str, str]
     ) -> Dict[str, Dict[int, str]]:
         available_sheets = Helpers.get_sheets_in_spreadsheet(client, spreadsheet_id)
+
+        updated_sheets_and_columns = {}
+        for sheet_name, columns in requested_sheets_and_columns.items():
+            # Find original sheet name if it has been renamed
+            original_sheet_name = next((old_name for old_name, new_name in renamed_sheets.items() if new_name == sheet_name), sheet_name)
+            updated_sheets_and_columns[original_sheet_name] = columns
+
         logger.info(f"Available sheets: {available_sheets}")
         available_sheets_to_column_index_to_name = defaultdict(dict)
-        for sheet, columns in requested_sheets_and_columns.items():
+        for sheet, columns in updated_sheets_and_columns.items():
             if sheet in available_sheets:
                 first_row = Helpers.get_first_row(client, spreadsheet_id, sheet)
-                # Find the column index of each header value
+                # Find column index for each header value
                 idx = 0
                 for cell_value in first_row:
                     if cell_value in columns:

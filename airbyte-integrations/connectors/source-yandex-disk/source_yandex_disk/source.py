@@ -13,6 +13,7 @@ from abc import ABC
 from datetime import datetime
 from functools import cache
 from typing import Any, Dict, Iterable, List, Literal, Mapping, MutableMapping, Optional, Tuple
+from airbyte_cdk.models import SyncMode
 
 import pandas as pd
 import requests
@@ -24,6 +25,7 @@ from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from source_yandex_disk.auth import CredentialsCraftAuthenticator
+from source_yandex_disk.utils import find_duplicates
 
 logger = logging.getLogger('airbyte')
 
@@ -45,14 +47,13 @@ class YandexDiskResource(HttpStream, ABC):
         resources_filename_pattern: re.Pattern,
         resource_files_type: Literal['CSV', 'Excel'],
         excel_sheet_name: str,
-        client_name_constant: str,
-        product_name_constant: str,
         custom_constants: Dict[str, Any],
         user_specified_fields: List[str] = [],
         csv_delimiter: str = None,
         no_header: bool = False,
         date_from: datetime = None,
         date_to: datetime = None,
+        field_name_map: Optional[dict[str, str]] = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
         self.stream_name = stream_name
@@ -62,14 +63,13 @@ class YandexDiskResource(HttpStream, ABC):
         self.resource_files_type = resource_files_type
         self.date_from = date_from
         self.date_to = date_to
-        self.product_name_constant = product_name_constant
-        self.client_name_constant = client_name_constant
         self.custom_constants = custom_constants
         self.excel_sheet_name = excel_sheet_name
         self._authenticator = authenticator
         self.csv_delimiter = csv_delimiter
         self.no_header = no_header
         self.user_specified_fields = user_specified_fields
+        self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
 
     @property
     def name(self) -> str:
@@ -78,6 +78,7 @@ class YandexDiskResource(HttpStream, ABC):
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(package_name_from_class(
             self.__class__)).get_schema("yandex_disk_resource")
+        properties = schema["properties"]
 
         if self.user_specified_fields:
             fields = self.user_specified_fields
@@ -87,11 +88,23 @@ class YandexDiskResource(HttpStream, ABC):
         for field_name in fields:
             schema["properties"][field_name] = {"type": ["null", "string"]}
 
-        extra_properties = ["__productName", "__clientName"]
+        extra_properties = []
         extra_properties.extend(self.custom_constants.keys())
 
-        for key in extra_properties:
-            schema["properties"][key] = {"type": ["null", "string"]}
+        if extra_properties:
+            for key in extra_properties:
+                schema["properties"][key] = {"type": ["null", "string"]}
+
+        # Replace properties keys
+        logger.info(self._field_name_map)
+        logger.info(self._field_name_map.items())
+        replacements = {}
+        for old_val, new_val in self._field_name_map.items():
+            if old_val in properties:
+                replacements[old_val] = new_val
+
+        for old_val, new_val in replacements.items():
+            properties[new_val] = properties.pop(old_val)
 
         return schema
 
@@ -134,6 +147,9 @@ class YandexDiskResource(HttpStream, ABC):
                         f'count - {len(values_line)}).'
                     )
             record = dict(zip(headers, values_line))
+            for record_key in list(record.keys()):
+                if record_key in self._field_name_map:
+                    record[self._field_name_map[record_key]] = record.pop(record_key)
             if record:
                 yield self.add_constants_to_record(record)
 
@@ -151,7 +167,12 @@ class YandexDiskResource(HttpStream, ABC):
                     read_excel_kwargs['names'] = self.user_specified_fields
 
             df = pd.io.excel.read_excel(fh, **read_excel_kwargs)
+
             for record in df.to_dict('records'):
+                for record_key in list(record.keys()):
+                    if record_key in self._field_name_map:
+                        record[self._field_name_map[record_key]] = record.pop(record_key)
+
                 yield self.add_constants_to_record(record)
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -165,11 +186,10 @@ class YandexDiskResource(HttpStream, ABC):
 
     def add_constants_to_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         constants = {
-            "__productName": self.product_name_constant,
-            "__clientName": self.client_name_constant,
         }
         constants.update(self.custom_constants)
-        record.update(constants)
+        if constants:
+            record.update(constants)
         return record
 
     def request_kwargs(self, *args, **kwargs) -> Mapping[str, Any]:
@@ -207,7 +227,6 @@ class YandexDiskResource(HttpStream, ABC):
             offset += self.limit
         return available_resources
 
-    @cache
     def derive_fields_names_from_sample(self):
         sample_file = self.lookup_resources_for_pattern()[0]
         download_file_link = self.get_download_link_for_resource(sample_file)[
@@ -223,12 +242,28 @@ class YandexDiskResource(HttpStream, ABC):
         logger.info(f'Fields for stream {self.name}: {fields}')
         return fields
 
-    @cache
     def lookup_resources_for_pattern(self):
+        availabe_path_resources = self.get_path_resources()
         resources = []
-        for resource in filter(lambda r: r['type'] == 'file', self.get_path_resources()):
+        for resource in filter(lambda r: r['type'] == 'file', availabe_path_resources):
             if self.resources_filename_pattern.match(resource['name']):
                 resources.append(resource)
+        if not resources:
+            available_resource_names = list(
+                map(
+                    lambda r: '\'' + r.get('name', '<empty name>') + '\'',
+                    availabe_path_resources
+                )
+            )
+            raise Exception(
+                f'Resources for stream \'{self.name}\' with pattern '
+                f'\'{self.resources_filename_pattern.pattern}\' not found,'
+                ' so it\'s failed to derive field names from sample file.'
+                ' Specify \'user_specified_fields\' for this stream or check your'
+                f' path or pattern for stream \'{self.name}\'. Available'
+                f" resources with this stream \'path\': "
+                f"{', '.join(available_resource_names)}."
+            )
         logger.info(
             f'Stream {self.name}: found resources for pattern'
             f' {self.resources_filename_pattern}:'
@@ -265,11 +300,17 @@ class SourceYandexDisk(AbstractSource):
             json.loads(config.get("custom_constants_json", "{}"))
         except Exception as msg:
             return False, f"Invalid Custom Constants JSON: {msg}"
+        
+        stream_names = [stream_config['name'] for stream_config in config['streams']]
+        stream_name_duplicates = find_duplicates(stream_names)
+        if stream_name_duplicates:
+            return False, f'Each stream name must be unique. Stream names duplicates: {stream_name_duplicates}'
 
         for stream_config in config['streams']:
             if stream_config.get('no_header', False) and not stream_config.get('user_specified_fields'):
                 return False, f'"No Header" selected for stream {stream_config["name"]},' + \
-                    ' but no user_specified_fields specified.'
+                    ' but no user_specified_fields specified. Connector can\'t derive' + \
+                    ' fields from sample file sinse you turn on \'No header\''
 
         auth = self.get_auth(config)
         if isinstance(auth, CredentialsCraftAuthenticator):
@@ -277,19 +318,8 @@ class SourceYandexDisk(AbstractSource):
             if not cc_auth_check_result[0]:
                 return cc_auth_check_result
 
-        test_stream_config = config['streams'][0]
-        test_request = requests.get(
-            'https://cloud-api.yandex.net/v1/disk/resources',
-            headers=auth.get_auth_header(),
-            params={
-                'path': test_stream_config['path']
-            }
-        )
-        try:
-            test_request.raise_for_status()
-        except:
-            raise Exception(
-                f'Api Error {test_request.status_code}: {test_request.text}. URL {test_request.request.url}')
+        for stream in self.streams(config):
+            stream.get_json_schema()
 
         return True, None
 
@@ -310,7 +340,30 @@ class SourceYandexDisk(AbstractSource):
             raise Exception(
                 "Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
 
+    @staticmethod
+    def get_field_name_map(config: Mapping[str, any]) -> dict[str, str]:
+        """Get values that needs to be replaced and their replacements"""
+        field_name_map: Optional[list[dict[str, str]]]
+        field_name_map = config.get("field_name_map")
+        if not field_name_map:
+            return {}
+        else:
+            return {item["old_value"]: item["new_value"] for item in field_name_map}
+
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        # logger.info("Before transform")
+        # logger.info(config["field_name_map"])
+        # transformed_field_name_map = []
+        # for rename_dict in config["field_name_map"]:
+        #     rename_dict = SourceYandexDisk.get_field_name_map(config)
+        #     logger.info("renamed_dict"*30)
+        #     logger.info(rename_dict)
+        #     transformed_field_name_map.append(rename_dict)
+        # config["field_name_map"] = transformed_field_name_map
+        # logger.info("after transform")
+        # logger.info(config["field_name_map"])
+        config["field_name_map"] = SourceYandexDisk.get_field_name_map(config)
+
         return config
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
@@ -332,8 +385,7 @@ class SourceYandexDisk(AbstractSource):
                     resources_filename_pattern=stream_config['files_pattern'],
                     resource_files_type=stream_config['files_type'],
                     excel_sheet_name=stream_config.get('excel_sheet_name'),
-                    client_name_constant=config['client_name_constant'],
-                    product_name_constant=config['product_name_constant'],
+                    field_name_map=config.get("field_name_map"),
                     custom_constants=json.loads(
                         config.get('custom_constants_json', '{}')
                     ),

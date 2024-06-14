@@ -118,28 +118,41 @@
           }
         }
       },
-      "client_name_constant": {
-        "title": "Client Name Constant",
-        "description": "Constant that will be used in record __clientName property",
-        "type": "string",
-        "examples": ["abcd"],
+      "field_name_map": {
+        "title": "Замена полей",
+        "description": "Этот параметр заменяет поля(столбцы) в итоговых записях. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
+        "type": "array",
+        "group": "replace",
         "order": 2,
-        "default": ""
-      },
-      "product_name_constant": {
-        "title": "Product Name Constant",
-        "description": "Constant that will be used in record __productName property",
-        "type": "string",
-        "examples": ["abcd"],
-        "order": 3,
-        "default": ""
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "old_value",
+            "new_value"
+          ],
+          "title": "Замена ключей",
+          "description": "Пара: старое и новое поле",
+          "properties": {
+            "old_value": {
+              "type": "string",
+              "title": "Старое поле",
+              "order": 0
+            },
+            "new_value": {
+              "type": "string",
+              "title": "Новое поле",
+              "order": 1
+            }
+          }
+        }
       },
       "custom_constants_json": {
         "title": "Custom JSON",
         "description": "Custom JSON for additional record properties. Must be string of JSON object with first-level properties",
         "type": "string",
         "examples": ["{\"abc\": \"123\", \"cde\": \"132\"}"],
-        "order": 4
+        "order": 3
       }
     }
   }

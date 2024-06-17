@@ -54,6 +54,7 @@ class YandexDiskResource(HttpStream, ABC):
         date_from: datetime = None,
         date_to: datetime = None,
         field_name_map: Optional[dict[str, str]] = None,
+        path_placeholder: str = None
     ) -> None:
         super().__init__(authenticator=authenticator)
         self.stream_name = stream_name
@@ -70,6 +71,7 @@ class YandexDiskResource(HttpStream, ABC):
         self.no_header = no_header
         self.user_specified_fields = user_specified_fields
         self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
+        self.path_placeholder = path_placeholder
 
     @property
     def name(self) -> str:
@@ -350,6 +352,27 @@ class SourceYandexDisk(AbstractSource):
         else:
             return {item["old_value"]: item["new_value"] for item in field_name_map}
 
+    @staticmethod
+    def contains_placeholder(file_path: str) -> bool:
+        return "{placeholder}" in file_path
+
+    @staticmethod
+    def transform_file_path_and_files_pattern(stream_config: dict[str, Any]):
+        if stream_config.get("path_placeholder"):
+            path_placeholder = stream_config["path_placeholder"]
+
+            files_pattern = stream_config["files_pattern"]
+            if SourceYandexDisk.contains_placeholder(files_pattern):
+                updated_files_pattern = files_pattern.replace("{placeholder}", path_placeholder)
+                stream_config["files_pattern"] = updated_files_pattern
+
+            files_path = stream_config["path"]
+            if SourceYandexDisk.contains_placeholder(files_path):
+                updated_files_path = files_path.replace("{placeholder}", path_placeholder)
+                stream_config["path"] = updated_files_path
+        return stream_config
+
+    @staticmethod # maybe delete staticmethod
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
         # logger.info("Before transform")
         # logger.info(config["field_name_map"])
@@ -377,6 +400,9 @@ class SourceYandexDisk(AbstractSource):
                 'user_specified_fields', '').strip().split(',')
             if user_specified_fields == ['']:
                 user_specified_fields = None
+
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config)
+
             streams.append(
                 YandexDiskResource(
                     authenticator=authenticator,
@@ -392,6 +418,7 @@ class SourceYandexDisk(AbstractSource):
                     user_specified_fields=user_specified_fields,
                     csv_delimiter=stream_config.get('csv_delimiter'),
                     no_header=stream_config.get('no_header'),
+                    path_placeholder=stream_config.get("path_placeholder") # if error todo ("path_placeholder", "")
                 )
             )
         return streams

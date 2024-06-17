@@ -114,6 +114,12 @@
             "excel_sheet_name": {
               "title": "Excel Sheet Name",
               "description": "Name of sheet in excel file. Only for Excel files type. First sheet will be taken if not specified."
+            },
+            "path_placeholder": {
+              "title": "Path Placeholder",
+              "type": "string",
+              "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
+              "examples": ["February -> disk:/February/some_files_for_analysis"]
             }
           }
         }

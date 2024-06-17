@@ -54,7 +54,7 @@ class YandexDiskResource(HttpStream, ABC):
         date_from: datetime = None,
         date_to: datetime = None,
         field_name_map: Optional[dict[str, str]] = None,
-        path_placeholder: str = None
+        path_placeholder: str = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
         self.stream_name = stream_name
@@ -90,7 +90,7 @@ class YandexDiskResource(HttpStream, ABC):
         for field_name in fields:
             schema["properties"][field_name] = {"type": ["null", "string"]}
 
-        extra_properties = []
+        extra_properties = ["__filepath"]
         extra_properties.extend(self.custom_constants.keys())
 
         if extra_properties:
@@ -119,7 +119,12 @@ class YandexDiskResource(HttpStream, ABC):
     def path(self, stream_slice: Mapping[str, Any] = None, *args, **kwargs) -> str:
         return stream_slice['href']
 
-    def parse_csv_response(self, response: requests.Response) -> Iterable[Mapping]:
+    @staticmethod
+    def add_filepath_to_record(record: Dict[str, Any], file_path: str) -> Dict[str, Any]:
+        record["__filepath"] = file_path
+        return record
+
+    def parse_csv_response(self, response: requests.Response, file_path) -> Iterable[Mapping]:
         lines_gen = (line.decode("utf-8").replace('\ufeff', '')
                      for line in response.iter_lines())
 
@@ -153,9 +158,11 @@ class YandexDiskResource(HttpStream, ABC):
                 if record_key in self._field_name_map:
                     record[self._field_name_map[record_key]] = record.pop(record_key)
             if record:
-                yield self.add_constants_to_record(record)
+                record = self.add_constants_to_record(record)
+                record = self.add_filepath_to_record(record, file_path)
+                yield record
 
-    def parse_excel_response(self, response: requests.Response) -> Iterable[Mapping]:
+    def parse_excel_response(self, response: requests.Response, file_path) -> Iterable[Mapping]:
         with io.BytesIO(response.content) as fh:
             read_excel_kwargs = {
                 "sheet_name": self.excel_sheet_name if self.excel_sheet_name else 0
@@ -175,13 +182,16 @@ class YandexDiskResource(HttpStream, ABC):
                     if record_key in self._field_name_map:
                         record[self._field_name_map[record_key]] = record.pop(record_key)
 
-                yield self.add_constants_to_record(record)
+                record = self.add_constants_to_record(record)
+                record = self.add_filepath_to_record(record, file_path)
+                yield record
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        file_path = kwargs.get("file_path") or kwargs.get("stream_slice", {}).get("file_path")
         if self.resource_files_type == 'CSV':
-            yield from self.parse_csv_response(response)
+            yield from self.parse_csv_response(response, file_path)
         elif self.resource_files_type == 'Excel':
-            yield from self.parse_excel_response(response)
+            yield from self.parse_excel_response(response, file_path)
         else:
             raise Exception(
                 f'Unsupported file type: {self.resource_files_type}')
@@ -231,13 +241,13 @@ class YandexDiskResource(HttpStream, ABC):
 
     def derive_fields_names_from_sample(self):
         sample_file = self.lookup_resources_for_pattern()[0]
-        download_file_link = self.get_download_link_for_resource(sample_file)[
-            'href']
+        download_file_link = self.get_download_link_for_resource(sample_file)['href']
         sample_record: Dict[str, Any] = next(self.parse_response(
             requests.get(
                 download_file_link,
                 headers=self.authenticator.get_auth_header()
-            )
+            ),
+            file_path=sample_file['path']
         ))
         fields = sample_record.keys()
         print(f'Fields for stream {self.name}: {fields}')
@@ -293,6 +303,7 @@ class YandexDiskResource(HttpStream, ABC):
         for resource in self.lookup_resources_for_pattern():
             file = self.get_download_link_for_resource(resource)
             file['href'] = file['href'].replace(self.url_base, '')
+            file['file_path'] = f"{self.resources_path}/{resource['name']}"
             yield file
 
 
@@ -372,7 +383,7 @@ class SourceYandexDisk(AbstractSource):
                 stream_config["path"] = updated_files_path
         return stream_config
 
-    @staticmethod # maybe delete staticmethod
+    # @staticmethod # maybe delete staticmethod
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
         # logger.info("Before transform")
         # logger.info(config["field_name_map"])

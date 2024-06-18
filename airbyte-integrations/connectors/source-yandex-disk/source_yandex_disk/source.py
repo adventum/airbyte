@@ -54,6 +54,7 @@ class YandexDiskResource(HttpStream, ABC):
         date_from: datetime = None,
         date_to: datetime = None,
         field_name_map: Optional[dict[str, str]] = None,
+        field_name_map_individual: Optional[dict[str, str]] = None,
         path_placeholder: str = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
@@ -71,6 +72,7 @@ class YandexDiskResource(HttpStream, ABC):
         self.no_header = no_header
         self.user_specified_fields = user_specified_fields
         self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
+        self._field_name_map_individual: dict[str, str] = field_name_map_individual if field_name_map_individual is not None else {}
         self.path_placeholder = path_placeholder
 
     @property
@@ -124,6 +126,12 @@ class YandexDiskResource(HttpStream, ABC):
         record["__filepath"] = file_path
         return record
 
+    def apply_field_name_map(self, record: Dict[str, Any], field_name_map_individual: Dict[str, str]) -> Dict[str, Any]:
+        for record_key in list(record.keys()):
+            if record_key in field_name_map_individual:
+                record[field_name_map_individual[record_key]] = record.pop(record_key)
+        return record
+
     def parse_csv_response(self, response: requests.Response, file_path) -> Iterable[Mapping]:
         lines_gen = (line.decode("utf-8").replace('\ufeff', '')
                      for line in response.iter_lines())
@@ -157,6 +165,9 @@ class YandexDiskResource(HttpStream, ABC):
             for record_key in list(record.keys()):
                 if record_key in self._field_name_map:
                     record[self._field_name_map[record_key]] = record.pop(record_key)
+
+            record = self.apply_field_name_map(record, self._field_name_map_individual)
+
             if record:
                 record = self.add_constants_to_record(record)
                 record = self.add_filepath_to_record(record, file_path)
@@ -182,6 +193,7 @@ class YandexDiskResource(HttpStream, ABC):
                     if record_key in self._field_name_map:
                         record[self._field_name_map[record_key]] = record.pop(record_key)
 
+                record = self.apply_field_name_map(record, self._field_name_map_individual)
                 record = self.add_constants_to_record(record)
                 record = self.add_filepath_to_record(record, file_path)
                 yield record
@@ -423,13 +435,15 @@ class SourceYandexDisk(AbstractSource):
                     resource_files_type=stream_config['files_type'],
                     excel_sheet_name=stream_config.get('excel_sheet_name'),
                     field_name_map=config.get("field_name_map"),
+                    field_name_map_individual={item["old_value_individual"]:
+                                               item["new_value_individual"] for item in stream_config.get("field_name_map_individual", [])},
                     custom_constants=json.loads(
                         config.get('custom_constants_json', '{}')
                     ),
                     user_specified_fields=user_specified_fields,
                     csv_delimiter=stream_config.get('csv_delimiter'),
                     no_header=stream_config.get('no_header'),
-                    path_placeholder=stream_config.get("path_placeholder") # if error todo ("path_placeholder", "")
+                    path_placeholder=stream_config.get("path_placeholder")
                 )
             )
         return streams

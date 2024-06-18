@@ -14,6 +14,7 @@ from datetime import datetime
 from functools import cache
 from typing import Any, Dict, Iterable, List, Literal, Mapping, MutableMapping, Optional, Tuple
 from airbyte_cdk.models import SyncMode
+from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
@@ -63,16 +64,15 @@ class YandexDiskResource(HttpStream, ABC):
         self.resources_filename_pattern = re.compile(
             resources_filename_pattern)
         self.resource_files_type = resource_files_type
-        self.date_from = date_from
-        self.date_to = date_to
-        self.custom_constants = custom_constants
         self.excel_sheet_name = excel_sheet_name
-        self._authenticator = authenticator
+        self.custom_constants = custom_constants
+        self.user_specified_fields = user_specified_fields
         self.csv_delimiter = csv_delimiter
         self.no_header = no_header
-        self.user_specified_fields = user_specified_fields
-        self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
-        self._field_name_map_individual: dict[str, str] = field_name_map_individual if field_name_map_individual is not None else {}
+        self.date_from = date_from
+        self.date_to = date_to
+        self._field_name_map = field_name_map
+        self.field_name_map_individual = field_name_map_individual
         self.path_placeholder = path_placeholder
 
     @property
@@ -376,8 +376,28 @@ class SourceYandexDisk(AbstractSource):
             return {item["old_value"]: item["new_value"] for item in field_name_map}
 
     @staticmethod
+    def get_date_range(start_date: str, end_date: str) -> Tuple[datetime, datetime]:
+        start = datetime.strptime(start_date, '%Y-%m-%d')
+        end = datetime.strptime(end_date, '%Y-%m-%d')
+        return start, end
+
+    @staticmethod
+    def get_last_n_days_date_range(n_days: int) -> Tuple[datetime, datetime]:
+        end = datetime.now()
+        start = end - timedelta(days=n_days)
+        return start, end
+
+    # @staticmethod # maybe useless func
+    # def replace_date_placeholders(path_or_pattern: str, date: datetime) -> str:
+    #     return date.strftime(path_or_pattern)
+
+    @staticmethod
     def contains_placeholder(file_path: str) -> bool:
         return "{placeholder}" in file_path
+
+    @staticmethod
+    def contains_date_placeholder(file_path: str) -> bool:
+        return "{%Y-%m}" in file_path
 
     @staticmethod
     def transform_file_path_and_files_pattern(stream_config: dict[str, Any]):
@@ -392,6 +412,37 @@ class SourceYandexDisk(AbstractSource):
             files_path = stream_config["path"]
             if SourceYandexDisk.contains_placeholder(files_path):
                 updated_files_path = files_path.replace("{placeholder}", path_placeholder)
+                stream_config["path"] = updated_files_path
+        return stream_config
+
+    @staticmethod
+    def transform_file_path_and_files_pattern_for_date(stream_config: dict[str, Any]):
+        logger.info("date replace started")
+
+        if stream_config.get("date_range").get("start_date"):
+
+            date_path_placeholder_raw = stream_config.get("date_range").get("start_date")
+
+            files_pattern = stream_config["files_pattern"]
+            logger.info("date replace premiddle")
+            if SourceYandexDisk.contains_date_placeholder(files_pattern):
+                logger.info("date replace middle")
+
+                parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
+                formatted_date = parsed_date.strftime("%Y-%m")
+
+                updated_files_pattern = files_pattern.replace("{%Y-%m}", formatted_date)
+                stream_config["files_pattern"] = updated_files_pattern
+                logger.info("date replace ended")
+
+            files_path = stream_config["path"]
+
+            if SourceYandexDisk.contains_date_placeholder(files_path):
+
+                parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
+                formatted_date = parsed_date.strftime("%Y-%m")
+
+                updated_files_path = files_path.replace("{%Y-%m}", formatted_date)
                 stream_config["path"] = updated_files_path
         return stream_config
 
@@ -425,6 +476,22 @@ class SourceYandexDisk(AbstractSource):
                 user_specified_fields = None
 
             stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config)
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config)
+
+            # Date range handling
+            date_from, date_to = None, None
+            if "date_range" in stream_config:
+                date_from, date_to = self.get_date_range(
+                    stream_config["date_range"]["start_date"],
+                    stream_config["date_range"]["end_date"]
+                )
+            elif "last_n_days" in stream_config:
+                date_from, date_to = self.get_last_n_days_date_range(
+                    stream_config["last_n_days"]
+                )
+
+            logger.info(stream_config)
+            logger.info("##"*100)
 
             streams.append(
                 YandexDiskResource(
@@ -443,7 +510,9 @@ class SourceYandexDisk(AbstractSource):
                     user_specified_fields=user_specified_fields,
                     csv_delimiter=stream_config.get('csv_delimiter'),
                     no_header=stream_config.get('no_header'),
-                    path_placeholder=stream_config.get("path_placeholder")
+                    path_placeholder=stream_config.get("path_placeholder"),
+                    date_from=date_from,
+                    date_to=date_to,
                 )
             )
         return streams

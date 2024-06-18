@@ -121,31 +121,31 @@
               "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
               "examples": ["February -> disk:/February/some_files_for_analysis"]
             },
-
-            "field_name_map_individual" : {
-              "description" : "Этот параметр заменяет поля(столбцы) индивидуально, для конкретного стрима, в итоговых записях. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
-              "default" : [],
-              "title" : "Rename fields",
-              "type" : "array",
-              "items" : {
-                "type" : "object",
-                "properties" : {
-                  "old_value_individual" : {
-                    "type" : "string",
-                    "title" : "Old name",
-                    "description" : "Field name to rename."
-                  },
-                  "new_value_individual" : {
-                    "type" : "string",
-                    "title" : "New name",
-                    "description" : "New field name."
-                  }
+            "date_range": {
+              "title": "Date Range",
+              "description": "Specify the date range in YYYY-MM-DD format.",
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "title": "Start Date",
+                  "type": "string",
+                  "format": "date",
+                  "examples": ["2023-01-01"]
                 },
-                "required" : [
-                  "old_value_individual",
-                  "new_value_individual"
-                ]
-              }
+                "end_date": {
+                  "title": "End Date",
+                  "type": "string",
+                  "format": "date",
+                  "examples": ["2023-01-31"]
+                }
+              },
+              "required": ["start_date", "end_date"]
+            },
+            "last_n_days": {
+              "title": "Last N Days",
+              "description": "Fetch files from the last N days.",
+              "type": "integer",
+              "examples": [30]
             }
           }
         }

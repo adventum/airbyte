@@ -434,7 +434,7 @@ class SourceYandexMetrika(AbstractSource):
                         self,
                         source_to_stream_config["kwargs_field_name"],
                     ),
-                    field_name_map=self.format_field_name_map(stream_config["field_name_map"]),
+                    field_name_map=self.format_field_name_map(stream_config.get("field_name_map")),
                     attribution=stream_config.get("attribution"),
                 )
                 raw_data_streams.append(stream)
@@ -445,7 +445,7 @@ class SourceYandexMetrika(AbstractSource):
                 authenticator=auth,
                 global_config=config,
                 report_config=stream_config,
-                field_name_map=self.format_field_name_map(stream_config["field_name_map"]),
+                field_name_map=self.format_field_name_map(stream_config.get("field_name_map")),
             )
             for stream_config in config.get("aggregated_reports", [])
         ]

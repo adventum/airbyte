@@ -3,6 +3,7 @@ from typing import Callable
 
 
 attribution_values: list[str] = [
+    "",
     "first",
     "last",
     "lastsign",
@@ -14,9 +15,9 @@ attribution_values: list[str] = [
     "automatic",
 ]
 
-group_values: list[str] = ["day", "week", "month", "quarter", "year"]
+group_values: list[str] = ["", "day", "week", "month", "quarter", "year"]
 
-currency_values: list[str] = ["RUB", "USD", "EUR", "YND"]
+currency_values: list[str] = ["", "RUB", "USD", "EUR", "YND"]
 
 """
 Format functions create all required fields with real values

@@ -387,17 +387,19 @@ class SourceYandexDisk(AbstractSource):
         start = end - timedelta(days=n_days)
         return start, end
 
-    # @staticmethod # maybe useless func
-    # def replace_date_placeholders(path_or_pattern: str, date: datetime) -> str:
-    #     return date.strftime(path_or_pattern)
-
     @staticmethod
     def contains_placeholder(file_path: str) -> bool:
         return "{placeholder}" in file_path
 
     @staticmethod
-    def contains_date_placeholder(file_path: str) -> bool:
-        return "{%Y-%m}" in file_path
+    def contains_date_placeholder(file_path: str) -> str:
+        # Returns a format like %Y-%m-%d
+        searching_pattern = r'!(.*?)!'
+        is_match = re.search(searching_pattern, file_path)
+
+        if is_match:
+            extracted_string = is_match.group(1)
+            return extracted_string
 
     @staticmethod
     def transform_file_path_and_files_pattern(stream_config: dict[str, Any]):
@@ -423,26 +425,29 @@ class SourceYandexDisk(AbstractSource):
 
             date_path_placeholder_raw = stream_config.get("date_range").get("start_date")
 
+            # Getting date format from Files Pattern
             files_pattern = stream_config["files_pattern"]
+            extracted_date_format = SourceYandexDisk.contains_date_placeholder(files_pattern)
             logger.info("date replace premiddle")
-            if SourceYandexDisk.contains_date_placeholder(files_pattern):
+
+            if extracted_date_format:
                 logger.info("date replace middle")
 
                 parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
-                formatted_date = parsed_date.strftime("%Y-%m")
+                formatted_date = parsed_date.strftime(extracted_date_format)
 
-                updated_files_pattern = files_pattern.replace("{%Y-%m}", formatted_date)
+                updated_files_pattern = files_pattern.replace(f"!{extracted_date_format}!", formatted_date)
                 stream_config["files_pattern"] = updated_files_pattern
                 logger.info("date replace ended")
 
+            # Getting date format from Path
             files_path = stream_config["path"]
-
-            if SourceYandexDisk.contains_date_placeholder(files_path):
+            if extracted_date_format:
 
                 parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
-                formatted_date = parsed_date.strftime("%Y-%m")
+                formatted_date = parsed_date.strftime(extracted_date_format)
 
-                updated_files_path = files_path.replace("{%Y-%m}", formatted_date)
+                updated_files_path = files_path.replace(f"!{extracted_date_format}!", formatted_date)
                 stream_config["path"] = updated_files_path
         return stream_config
 

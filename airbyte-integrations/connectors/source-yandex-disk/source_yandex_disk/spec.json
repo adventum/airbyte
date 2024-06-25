@@ -80,13 +80,13 @@
             "path": {
               "title": "Files Path",
               "type": "string",
-              "description": "Files path directory on Yandex Disk",
-              "examples": ["disk:/foo/bar", "/foo/bar", "app:/foo/bar"]
+              "description": "Files path directory on Yandex Disk. If you want to use the date_placeholder format, you have to use a format like !%d-%m!. Every date_placeholder starts with '!' and ends with '!', and between these symbols, you have to use Python's date format. For example: %Y-%m. Some of the available formats are: %d - day, %Y - year, %m - month",
+              "examples": ["disk:/foo/bar", "/foo/bar", "app:/foo/bar", "disk:/foo/!%d-%m!", "disk:/foo/!%Y-%m!"]
             },
             "files_pattern": {
               "title": "Files Pattern",
-              "description": "Stream files pattern (must contain regular expression)",
-              "examples": ["^foobar_\\d{4}-\\d{2}-\\d{2}_\\d+\\.csv$"]
+              "description": "Stream files pattern (must contain regular expression). If you want to use the date_placeholder format, you have to use a format like !%d-%m!. Every date_placeholder starts with '!' and ends with '!', and between these symbols, you have to use Python's date format. For example: %Y-%m. Some of the available formats are: %d - day, %Y - year, %m - month",
+              "examples": ["^foobar_\\d{4}-\\d{2}-\\d{2}_\\d+\\.csv$", "^foobar_!%Y-%m!.csv$"]
             },
             "no_header": {
               "title": "CSV No Header",

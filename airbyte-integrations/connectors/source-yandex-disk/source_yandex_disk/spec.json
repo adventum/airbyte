@@ -121,6 +121,34 @@
               "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
               "examples": ["February -> disk:/February/some_files_for_analysis"]
             },
+            "field_name_map_individual": {
+              "title": "Замена полей",
+              "description": "Этот параметр заменяет поля(столбцы) в итоговых записях для конкретного стрима. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
+              "type": "array",
+              "group": "replace",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "old_value_individual",
+                  "new_value_individual"
+                ],
+                "title": "Замена ключей для конкректного стрима",
+                "description": "Пара: старое и новое поле",
+                "properties": {
+                  "old_value_individual": {
+                    "type": "string",
+                    "title": "Старое поле",
+                    "order": 0
+                  },
+                  "new_value_individual": {
+                    "type": "string",
+                    "title": "Новое поле",
+                    "order": 1
+                  }
+                }
+              }
+            },
             "date_range": {
               "title": "Date Range",
               "description": "Specify the date range in YYYY-MM-DD format.",

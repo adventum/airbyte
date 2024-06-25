@@ -166,7 +166,7 @@ class YandexDiskResource(HttpStream, ABC):
                 if record_key in self._field_name_map:
                     record[self._field_name_map[record_key]] = record.pop(record_key)
 
-            record = self.apply_field_name_map(record, self._field_name_map_individual)
+            record = self.apply_field_name_map(record, self.field_name_map_individual)
 
             if record:
                 record = self.add_constants_to_record(record)
@@ -193,7 +193,7 @@ class YandexDiskResource(HttpStream, ABC):
                     if record_key in self._field_name_map:
                         record[self._field_name_map[record_key]] = record.pop(record_key)
 
-                record = self.apply_field_name_map(record, self._field_name_map_individual)
+                record = self.apply_field_name_map(record, self.field_name_map_individual)
                 record = self.add_constants_to_record(record)
                 record = self.add_filepath_to_record(record, file_path)
                 yield record
@@ -396,9 +396,11 @@ class SourceYandexDisk(AbstractSource):
         # Returns a format like %Y-%m-%d
         searching_pattern = r'!(.*?)!'
         is_match = re.search(searching_pattern, file_path)
+        logger.info(is_match)
 
         if is_match:
             extracted_string = is_match.group(1)
+            logger.info(extracted_string)
             return extracted_string
 
     @staticmethod
@@ -442,12 +444,13 @@ class SourceYandexDisk(AbstractSource):
 
             # Getting date format from Path
             files_path = stream_config["path"]
-            if extracted_date_format:
+            extracted_date_format_path = SourceYandexDisk.contains_date_placeholder(files_path)
+            if extracted_date_format_path:
 
                 parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
-                formatted_date = parsed_date.strftime(extracted_date_format)
+                formatted_date = parsed_date.strftime(extracted_date_format_path)
 
-                updated_files_path = files_path.replace(f"!{extracted_date_format}!", formatted_date)
+                updated_files_path = files_path.replace(f"!{extracted_date_format_path}!", formatted_date)
                 stream_config["path"] = updated_files_path
         return stream_config
 

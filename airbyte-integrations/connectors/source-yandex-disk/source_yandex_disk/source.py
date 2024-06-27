@@ -14,6 +14,7 @@ from datetime import datetime
 from functools import cache
 from typing import Any, Dict, Iterable, List, Literal, Mapping, MutableMapping, Optional, Tuple
 from airbyte_cdk.models import SyncMode
+from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
@@ -54,6 +55,8 @@ class YandexDiskResource(HttpStream, ABC):
         date_from: datetime = None,
         date_to: datetime = None,
         field_name_map: Optional[dict[str, str]] = None,
+        field_name_map_individual: Optional[dict[str, str]] = None,
+        path_placeholder: str = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
         self.stream_name = stream_name
@@ -61,15 +64,16 @@ class YandexDiskResource(HttpStream, ABC):
         self.resources_filename_pattern = re.compile(
             resources_filename_pattern)
         self.resource_files_type = resource_files_type
-        self.date_from = date_from
-        self.date_to = date_to
-        self.custom_constants = custom_constants
         self.excel_sheet_name = excel_sheet_name
-        self._authenticator = authenticator
+        self.custom_constants = custom_constants
+        self.user_specified_fields = user_specified_fields
         self.csv_delimiter = csv_delimiter
         self.no_header = no_header
-        self.user_specified_fields = user_specified_fields
-        self._field_name_map: dict[str, str] = field_name_map if field_name_map is not None else {}
+        self.date_from = date_from
+        self.date_to = date_to
+        self._field_name_map = field_name_map
+        self.field_name_map_individual = field_name_map_individual
+        self.path_placeholder = path_placeholder
 
     @property
     def name(self) -> str:
@@ -88,7 +92,7 @@ class YandexDiskResource(HttpStream, ABC):
         for field_name in fields:
             schema["properties"][field_name] = {"type": ["null", "string"]}
 
-        extra_properties = []
+        extra_properties = ["__filepath"]
         extra_properties.extend(self.custom_constants.keys())
 
         if extra_properties:
@@ -96,8 +100,6 @@ class YandexDiskResource(HttpStream, ABC):
                 schema["properties"][key] = {"type": ["null", "string"]}
 
         # Replace properties keys
-        logger.info(self._field_name_map)
-        logger.info(self._field_name_map.items())
         replacements = {}
         for old_val, new_val in self._field_name_map.items():
             if old_val in properties:
@@ -117,7 +119,18 @@ class YandexDiskResource(HttpStream, ABC):
     def path(self, stream_slice: Mapping[str, Any] = None, *args, **kwargs) -> str:
         return stream_slice['href']
 
-    def parse_csv_response(self, response: requests.Response) -> Iterable[Mapping]:
+    @staticmethod
+    def add_filepath_to_record(record: Dict[str, Any], file_path: str) -> Dict[str, Any]:
+        record["__filepath"] = file_path
+        return record
+
+    def apply_field_name_map(self, record: Dict[str, Any], field_name_map_individual: Dict[str, str]) -> Dict[str, Any]:
+        for record_key in list(record.keys()):
+            if record_key in field_name_map_individual:
+                record[field_name_map_individual[record_key]] = record.pop(record_key)
+        return record
+
+    def parse_csv_response(self, response: requests.Response, file_path) -> Iterable[Mapping]:
         lines_gen = (line.decode("utf-8").replace('\ufeff', '')
                      for line in response.iter_lines())
 
@@ -150,10 +163,15 @@ class YandexDiskResource(HttpStream, ABC):
             for record_key in list(record.keys()):
                 if record_key in self._field_name_map:
                     record[self._field_name_map[record_key]] = record.pop(record_key)
-            if record:
-                yield self.add_constants_to_record(record)
 
-    def parse_excel_response(self, response: requests.Response) -> Iterable[Mapping]:
+            record = self.apply_field_name_map(record, self.field_name_map_individual)
+
+            if record:
+                record = self.add_constants_to_record(record)
+                record = self.add_filepath_to_record(record, file_path)
+                yield record
+
+    def parse_excel_response(self, response: requests.Response, file_path) -> Iterable[Mapping]:
         with io.BytesIO(response.content) as fh:
             read_excel_kwargs = {
                 "sheet_name": self.excel_sheet_name if self.excel_sheet_name else 0
@@ -173,13 +191,17 @@ class YandexDiskResource(HttpStream, ABC):
                     if record_key in self._field_name_map:
                         record[self._field_name_map[record_key]] = record.pop(record_key)
 
-                yield self.add_constants_to_record(record)
+                record = self.apply_field_name_map(record, self.field_name_map_individual)
+                record = self.add_constants_to_record(record)
+                record = self.add_filepath_to_record(record, file_path)
+                yield record
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        file_path = kwargs.get("file_path") or kwargs.get("stream_slice", {}).get("file_path")
         if self.resource_files_type == 'CSV':
-            yield from self.parse_csv_response(response)
+            yield from self.parse_csv_response(response, file_path)
         elif self.resource_files_type == 'Excel':
-            yield from self.parse_excel_response(response)
+            yield from self.parse_excel_response(response, file_path)
         else:
             raise Exception(
                 f'Unsupported file type: {self.resource_files_type}')
@@ -229,13 +251,13 @@ class YandexDiskResource(HttpStream, ABC):
 
     def derive_fields_names_from_sample(self):
         sample_file = self.lookup_resources_for_pattern()[0]
-        download_file_link = self.get_download_link_for_resource(sample_file)[
-            'href']
+        download_file_link = self.get_download_link_for_resource(sample_file)['href']
         sample_record: Dict[str, Any] = next(self.parse_response(
             requests.get(
                 download_file_link,
                 headers=self.authenticator.get_auth_header()
-            )
+            ),
+            file_path=sample_file['path']
         ))
         fields = sample_record.keys()
         print(f'Fields for stream {self.name}: {fields}')
@@ -291,6 +313,7 @@ class YandexDiskResource(HttpStream, ABC):
         for resource in self.lookup_resources_for_pattern():
             file = self.get_download_link_for_resource(resource)
             file['href'] = file['href'].replace(self.url_base, '')
+            file['file_path'] = f"{self.resources_path}/{resource['name']}"
             yield file
 
 
@@ -350,18 +373,78 @@ class SourceYandexDisk(AbstractSource):
         else:
             return {item["old_value"]: item["new_value"] for item in field_name_map}
 
+    @staticmethod
+    def get_date_range(date_from: str, date_to: str) -> Tuple[datetime, datetime]:
+        start = datetime.strptime(date_from, '%Y-%m-%d')
+        end = datetime.strptime(date_to, '%Y-%m-%d')
+        return start, end
+
+    @staticmethod
+    def get_last_days_date_range(n_days: int) -> Tuple[datetime, datetime]:
+        end = datetime.now()
+        start = end - timedelta(days=n_days)
+        return start, end
+
+    @staticmethod
+    def contains_placeholder(file_path: str) -> bool:
+        return "{placeholder}" in file_path
+
+    @staticmethod
+    def contains_date_placeholder(file_path: str) -> str:
+        # Returns a format like %Y-%m-%d
+        searching_pattern = r'!(.*?)!'
+        is_match = re.search(searching_pattern, file_path)
+
+        if is_match:
+            extracted_string = is_match.group(1)
+            return extracted_string
+
+    @staticmethod
+    def transform_file_path_and_files_pattern(stream_config: dict[str, Any], config: dict[str, Any]):
+        if config.get("path_placeholder"):
+            path_placeholder = config["path_placeholder"]
+
+            files_pattern = stream_config["files_pattern"]
+            if SourceYandexDisk.contains_placeholder(files_pattern):
+                updated_files_pattern = files_pattern.replace("{placeholder}", path_placeholder)
+                stream_config["files_pattern"] = updated_files_pattern
+
+            files_path = stream_config["path"]
+            if SourceYandexDisk.contains_placeholder(files_path):
+                updated_files_path = files_path.replace("{placeholder}", path_placeholder)
+                stream_config["path"] = updated_files_path
+        return stream_config
+
+    @staticmethod
+    def transform_file_path_and_files_pattern_for_date(stream_config: dict[str, Any], config: dict[str, Any], date_from: datetime):
+        if config.get("date_range"):
+            date_path_placeholder_raw = date_from
+
+            # Getting date format from Files Pattern
+            files_pattern = stream_config["files_pattern"]
+            extracted_date_format = SourceYandexDisk.contains_date_placeholder(files_pattern)
+
+            if extracted_date_format:
+
+                parsed_date = date_path_placeholder_raw
+                formatted_date = parsed_date.strftime(extracted_date_format)
+
+                updated_files_pattern = files_pattern.replace(f"!{extracted_date_format}!", formatted_date)
+                stream_config["files_pattern"] = updated_files_pattern
+
+            # Getting date format from Path
+            files_path = stream_config["path"]
+            extracted_date_format_path = SourceYandexDisk.contains_date_placeholder(files_path)
+            if extracted_date_format_path:
+
+                parsed_date = date_path_placeholder_raw
+                formatted_date = parsed_date.strftime(extracted_date_format_path)
+
+                updated_files_path = files_path.replace(f"!{extracted_date_format_path}!", formatted_date)
+                stream_config["path"] = updated_files_path
+        return stream_config
+
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        # logger.info("Before transform")
-        # logger.info(config["field_name_map"])
-        # transformed_field_name_map = []
-        # for rename_dict in config["field_name_map"]:
-        #     rename_dict = SourceYandexDisk.get_field_name_map(config)
-        #     logger.info("renamed_dict"*30)
-        #     logger.info(rename_dict)
-        #     transformed_field_name_map.append(rename_dict)
-        # config["field_name_map"] = transformed_field_name_map
-        # logger.info("after transform")
-        # logger.info(config["field_name_map"])
         config["field_name_map"] = SourceYandexDisk.get_field_name_map(config)
 
         return config
@@ -377,6 +460,27 @@ class SourceYandexDisk(AbstractSource):
                 'user_specified_fields', '').strip().split(',')
             if user_specified_fields == ['']:
                 user_specified_fields = None
+
+            # Date range handling
+            date_from, date_to = None, None
+            date_type_choiced = config["date_range"]["date_range_type"]
+            if date_type_choiced == "custom_date":
+                date_from, date_to = self.get_date_range(
+                    config["date_range"]["date_from"],
+                    config["date_range"]["date_to"]
+                )
+            elif date_type_choiced == "last_days":
+                date_from, date_to = self.get_last_days_date_range(
+                    config["date_range"]["last_days"]
+                )
+
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config, config)
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config, config, date_from)
+
+            # Logging entire config
+            logger.info(config)
+            logger.info("_config_" * 100)
+
             streams.append(
                 YandexDiskResource(
                     authenticator=authenticator,
@@ -386,12 +490,17 @@ class SourceYandexDisk(AbstractSource):
                     resource_files_type=stream_config['files_type'],
                     excel_sheet_name=stream_config.get('excel_sheet_name'),
                     field_name_map=config.get("field_name_map"),
+                    field_name_map_individual={item["old_value_individual"]:
+                                               item["new_value_individual"] for item in stream_config.get("field_name_map_individual", [])},
                     custom_constants=json.loads(
                         config.get('custom_constants_json', '{}')
                     ),
                     user_specified_fields=user_specified_fields,
                     csv_delimiter=stream_config.get('csv_delimiter'),
                     no_header=stream_config.get('no_header'),
+                    path_placeholder=config.get("path_placeholder"),
+                    date_from=date_from,
+                    date_to=date_to,
                 )
             )
         return streams

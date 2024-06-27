@@ -115,12 +115,6 @@
               "title": "Excel Sheet Name",
               "description": "Name of sheet in excel file. Only for Excel files type. First sheet will be taken if not specified."
             },
-            "path_placeholder": {
-              "title": "Path Placeholder",
-              "type": "string",
-              "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
-              "examples": ["February -> disk:/February/some_files_for_analysis"]
-            },
             "field_name_map_individual": {
               "title": "Замена полей",
               "description": "Этот параметр заменяет поля(столбцы) в итоговых записях для конкретного стрима. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
@@ -169,8 +163,8 @@
               },
               "required": ["start_date", "end_date"]
             },
-            "last_n_days": {
-              "title": "Last N Days",
+            "last_days": {
+              "title": "Last Days",
               "description": "Fetch files from the last N days.",
               "type": "integer",
               "examples": [30]
@@ -178,12 +172,19 @@
           }
         }
       },
+      "path_placeholder": {
+        "title": "Path Placeholder",
+        "type": "string",
+        "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
+        "examples": ["February -> disk:/February/some_files_for_analysis"],
+        "order": 2
+      },
       "field_name_map": {
         "title": "Замена полей",
         "description": "Этот параметр заменяет поля(столбцы) в итоговых записях. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
         "type": "array",
         "group": "replace",
-        "order": 2,
+        "order": 3,
         "items": {
           "type": "object",
           "additionalProperties": false,
@@ -212,7 +213,7 @@
         "description": "Custom JSON for additional record properties. Must be string of JSON object with first-level properties",
         "type": "string",
         "examples": ["{\"abc\": \"123\", \"cde\": \"132\"}"],
-        "order": 3
+        "order": 4
       }
     }
   }

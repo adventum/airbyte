@@ -382,7 +382,7 @@ class SourceYandexDisk(AbstractSource):
         return start, end
 
     @staticmethod
-    def get_last_n_days_date_range(n_days: int) -> Tuple[datetime, datetime]:
+    def get_last_days_date_range(n_days: int) -> Tuple[datetime, datetime]:
         end = datetime.now()
         start = end - timedelta(days=n_days)
         return start, end
@@ -404,9 +404,9 @@ class SourceYandexDisk(AbstractSource):
             return extracted_string
 
     @staticmethod
-    def transform_file_path_and_files_pattern(stream_config: dict[str, Any]):
-        if stream_config.get("path_placeholder"):
-            path_placeholder = stream_config["path_placeholder"]
+    def transform_file_path_and_files_pattern(stream_config: dict[str, Any], config: dict[str, Any]):
+        if config.get("path_placeholder"):
+            path_placeholder = config["path_placeholder"]
 
             files_pattern = stream_config["files_pattern"]
             if SourceYandexDisk.contains_placeholder(files_pattern):
@@ -483,7 +483,7 @@ class SourceYandexDisk(AbstractSource):
             if user_specified_fields == ['']:
                 user_specified_fields = None
 
-            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config)
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config, config)
             stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config)
 
             # Date range handling
@@ -493,9 +493,9 @@ class SourceYandexDisk(AbstractSource):
                     stream_config["date_range"]["start_date"],
                     stream_config["date_range"]["end_date"]
                 )
-            elif "last_n_days" in stream_config:
-                date_from, date_to = self.get_last_n_days_date_range(
-                    stream_config["last_n_days"]
+            elif "last_days" in stream_config:
+                date_from, date_to = self.get_last_days_date_range(
+                    stream_config["last_days"]
                 )
 
             logger.info(stream_config)
@@ -518,7 +518,7 @@ class SourceYandexDisk(AbstractSource):
                     user_specified_fields=user_specified_fields,
                     csv_delimiter=stream_config.get('csv_delimiter'),
                     no_header=stream_config.get('no_header'),
-                    path_placeholder=stream_config.get("path_placeholder"),
+                    path_placeholder=config.get("path_placeholder"),
                     date_from=date_from,
                     date_to=date_to,
                 )

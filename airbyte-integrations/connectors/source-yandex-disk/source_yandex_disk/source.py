@@ -100,8 +100,6 @@ class YandexDiskResource(HttpStream, ABC):
                 schema["properties"][key] = {"type": ["null", "string"]}
 
         # Replace properties keys
-        logger.info(self._field_name_map)
-        logger.info(self._field_name_map.items())
         replacements = {}
         for old_val, new_val in self._field_name_map.items():
             if old_val in properties:
@@ -376,9 +374,9 @@ class SourceYandexDisk(AbstractSource):
             return {item["old_value"]: item["new_value"] for item in field_name_map}
 
     @staticmethod
-    def get_date_range(start_date: str, end_date: str) -> Tuple[datetime, datetime]:
-        start = datetime.strptime(start_date, '%Y-%m-%d')
-        end = datetime.strptime(end_date, '%Y-%m-%d')
+    def get_date_range(date_from: str, date_to: str) -> Tuple[datetime, datetime]:
+        start = datetime.strptime(date_from, '%Y-%m-%d')
+        end = datetime.strptime(date_to, '%Y-%m-%d')
         return start, end
 
     @staticmethod
@@ -396,11 +394,9 @@ class SourceYandexDisk(AbstractSource):
         # Returns a format like %Y-%m-%d
         searching_pattern = r'!(.*?)!'
         is_match = re.search(searching_pattern, file_path)
-        logger.info(is_match)
 
         if is_match:
             extracted_string = is_match.group(1)
-            logger.info(extracted_string)
             return extracted_string
 
     @staticmethod
@@ -420,53 +416,35 @@ class SourceYandexDisk(AbstractSource):
         return stream_config
 
     @staticmethod
-    def transform_file_path_and_files_pattern_for_date(stream_config: dict[str, Any]):
-        logger.info("date replace started")
-
-        if stream_config.get("date_range").get("start_date"):
-
-            date_path_placeholder_raw = stream_config.get("date_range").get("start_date")
+    def transform_file_path_and_files_pattern_for_date(stream_config: dict[str, Any], config: dict[str, Any], date_from: datetime):
+        if config.get("date_range"):
+            date_path_placeholder_raw = date_from
 
             # Getting date format from Files Pattern
             files_pattern = stream_config["files_pattern"]
             extracted_date_format = SourceYandexDisk.contains_date_placeholder(files_pattern)
-            logger.info("date replace premiddle")
 
             if extracted_date_format:
-                logger.info("date replace middle")
 
-                parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
+                parsed_date = date_path_placeholder_raw
                 formatted_date = parsed_date.strftime(extracted_date_format)
 
                 updated_files_pattern = files_pattern.replace(f"!{extracted_date_format}!", formatted_date)
                 stream_config["files_pattern"] = updated_files_pattern
-                logger.info("date replace ended")
 
             # Getting date format from Path
             files_path = stream_config["path"]
             extracted_date_format_path = SourceYandexDisk.contains_date_placeholder(files_path)
             if extracted_date_format_path:
 
-                parsed_date = datetime.strptime(date_path_placeholder_raw, "%Y-%m-%d")
+                parsed_date = date_path_placeholder_raw
                 formatted_date = parsed_date.strftime(extracted_date_format_path)
 
                 updated_files_path = files_path.replace(f"!{extracted_date_format_path}!", formatted_date)
                 stream_config["path"] = updated_files_path
         return stream_config
 
-    # @staticmethod # maybe delete staticmethod
     def transform_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        # logger.info("Before transform")
-        # logger.info(config["field_name_map"])
-        # transformed_field_name_map = []
-        # for rename_dict in config["field_name_map"]:
-        #     rename_dict = SourceYandexDisk.get_field_name_map(config)
-        #     logger.info("renamed_dict"*30)
-        #     logger.info(rename_dict)
-        #     transformed_field_name_map.append(rename_dict)
-        # config["field_name_map"] = transformed_field_name_map
-        # logger.info("after transform")
-        # logger.info(config["field_name_map"])
         config["field_name_map"] = SourceYandexDisk.get_field_name_map(config)
 
         return config
@@ -483,23 +461,25 @@ class SourceYandexDisk(AbstractSource):
             if user_specified_fields == ['']:
                 user_specified_fields = None
 
-            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config, config)
-            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config)
-
             # Date range handling
             date_from, date_to = None, None
-            if "date_range" in stream_config:
+            date_type_choiced = config["date_range"]["date_range_type"]
+            if date_type_choiced == "custom_date":
                 date_from, date_to = self.get_date_range(
-                    stream_config["date_range"]["start_date"],
-                    stream_config["date_range"]["end_date"]
+                    config["date_range"]["date_from"],
+                    config["date_range"]["date_to"]
                 )
-            elif "last_days" in stream_config:
+            elif date_type_choiced == "last_days":
                 date_from, date_to = self.get_last_days_date_range(
-                    stream_config["last_days"]
+                    config["date_range"]["last_days"]
                 )
 
-            logger.info(stream_config)
-            logger.info("##"*100)
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config, config)
+            stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config, config, date_from)
+
+            # Logging entire config
+            logger.info(config)
+            logger.info("_config_" * 100)
 
             streams.append(
                 YandexDiskResource(

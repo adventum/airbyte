@@ -24,7 +24,7 @@ logger = logging.getLogger("airbyte")
 
 class DateRangeType(Enum):
     DATE_RANGE = "date_range"
-    LAST_DAYS = "last_days"
+    LAST_DAYS = "last_n_days"
     DAY_ENUM = "day_enum"
 
 
@@ -38,7 +38,7 @@ class DateRange(NamedTuple):
     date_range_type: DateRangeType
     date_from: str | None
     date_to: str | None
-    last_days_count: int | None
+    last_days: int | None
     load_today: bool | None
     day: DateRangeDay | None
 

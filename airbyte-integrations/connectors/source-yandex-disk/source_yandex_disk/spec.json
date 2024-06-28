@@ -268,7 +268,7 @@
                 "type" : "string",
                 "title" : "Date Range Type",
                 "description" : "Last Days",
-                "const" : "last_days",
+                "const" : "last_n_days",
                 "order" : 1
               }
             }

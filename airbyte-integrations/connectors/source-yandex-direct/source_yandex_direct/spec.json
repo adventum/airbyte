@@ -240,15 +240,15 @@
             "type": "object",
             "title": "Последние несколько дней",
             "required": [
-              "last_days_count"
+              "last_days"
             ],
             "properties": {
               "date_range_type": {
                 "type": "string",
-                "const": "last_days",
+                "const": "last_n_days",
                 "order": 0
               },
-              "last_days_count": {
+              "last_days": {
                 "title": "Количество дней",
                 "description": "Количество дней",
                 "examples": [

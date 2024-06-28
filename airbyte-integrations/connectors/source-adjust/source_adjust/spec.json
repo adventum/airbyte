@@ -341,12 +341,12 @@
             "type" : "object",
             "title" : "Last N Days",
             "required" : [
-              "last_days_count",
+              "last_days",
               "should_load_today",
               "date_range_type"
             ],
             "properties" : {
-              "last_days_count" : {
+              "last_days" : {
                 "title" : "Last Days Count",
                 "type" : "integer",
                 "description" : "Count of last days exclude today.",
@@ -378,7 +378,7 @@
             "title" : "From Start Date To Today",
             "description" : "Load data from Start Date to Today. Only with this option you can use incremental sync.",
             "required" : [
-              "last_days_count",
+              "date_from",
               "should_load_today",
               "date_range_type"
             ],

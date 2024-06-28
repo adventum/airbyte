@@ -469,7 +469,7 @@ class SourceYandexDisk(AbstractSource):
                     config["date_range"]["date_from"],
                     config["date_range"]["date_to"]
                 )
-            elif date_type_choiced == "last_days":
+            elif date_type_choiced == "last_n_days":
                 date_from, date_to = self.get_last_days_date_range(
                     config["date_range"]["last_days"]
                 )

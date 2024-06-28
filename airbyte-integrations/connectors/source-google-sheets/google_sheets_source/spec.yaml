@@ -4,19 +4,29 @@ connectionSpecification:
   title: Stripe Source Spec
   type: object
   required:
-    - spreadsheet_id
+    - spreadsheets
     - credentials
   additionalProperties: true
   properties:
-    spreadsheet_id:
-      type: string
-      title: Spreadsheet Link
-      description: >-
-        The link to your spreadsheet. See <a
-        href='https://docs.airbyte.com/integrations/sources/google-sheets#sheetlink'>this
-        guide</a> for more details.
-      examples:
-        - https://docs.google.com/spreadsheets/d/1hLd9Qqti3UyLXZB2aFfUWDT7BG-arw2xy4HR3D-dwUb/edit
+    spreadsheets:
+      type: array
+      title: SpreadSheets List
+      description: List of SpreadSheets, there are links leading to Google Shields files
+      minItems: 1
+      items:
+        type: object
+        required:
+          - spreadsheet_id
+        properties:
+          spreadsheet_id:
+            type: string
+            title: Spreadsheet Link
+            description: >-
+              The link to your spreadsheet. See <a
+              href='https://docs.airbyte.com/integrations/sources/google-sheets#sheetlink'>this
+              guide</a> for more details.
+            examples:
+              - https://docs.google.com/spreadsheets/d/1hLd9Qqti3UyLXZB2aFfUWDT7BG-arw2xy4HR3D-dwUb/edit
     credentials:
       type: object
       title: Authentication

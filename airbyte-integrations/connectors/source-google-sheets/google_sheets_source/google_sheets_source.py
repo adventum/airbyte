@@ -5,6 +5,7 @@
 
 import json
 import socket
+import re
 from typing import Dict, Generator, Mapping
 
 from airbyte_cdk.logger import AirbyteLogger
@@ -19,6 +20,7 @@ from airbyte_cdk.models.airbyte_protocol import (
 from airbyte_cdk.sources.source import Source
 from apiclient import errors
 from requests.status_codes import codes as status_codes
+#from unidecode import unidecode
 
 from .client import GoogleSheetsClient
 from .helpers import Helpers, logger
@@ -47,152 +49,180 @@ class GoogleSheetsSource(Source):
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         # Check involves verifying that the specified spreadsheet is reachable with our credentials.
         try:
-            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
+            if config["credentials"]["auth_type"] == "credentials_craft_auth":
+                client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
+            else:
+                client = GoogleSheetsClient(self.get_credentials(config))
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"Please use valid credentials json file. Error: {e}")
 
-        spreadsheet_id = Helpers.get_spreadsheet_id(config["spreadsheet_id"])
+        logger.info(config)
+        spreadsheets = config.get("spreadsheets")
+        for spreadsheet_id in spreadsheets:
+            spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+            logger.info("##"*20)
+            logger.info(spreadsheets)
+            logger.info(spreadsheet_id)
+            logger.info("##"*20)
+            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id) #(config["spreadsheet_id"])
 
-        try:
-            # Attempt to get first row of sheet
-            client.get(spreadsheetId=spreadsheet_id, includeGridData=False, ranges="1:1")
-        except errors.HttpError as err:
-            reason = str(err)
-            # Give a clearer message if it's a common error like 404.
-            if err.resp.status == status_codes.NOT_FOUND:
-                reason = "Requested spreadsheet was not found."
-            logger.error(f"Formatted error: {reason}")
-            return AirbyteConnectionStatus(
-                status=Status.FAILED, message=f"Unable to connect with the provided credentials to spreadsheet. Error: {reason}"
-            )
-
-        # Check for duplicate headers
-        spreadsheet_metadata = Spreadsheet.parse_obj(client.get(spreadsheetId=spreadsheet_id, includeGridData=False))
-
-        grid_sheets = Helpers.get_grid_sheets(spreadsheet_metadata)
-
-        duplicate_headers_in_sheet = {}
-        for sheet_name in grid_sheets:
-            print(f"Это check {sheet_name}")
             try:
-                header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
-                print(f"Это check {header_row_data}")
-                _, duplicate_headers = Helpers.get_valid_headers_and_duplicates(header_row_data)
-                if duplicate_headers:
-                    duplicate_headers_in_sheet[sheet_name] = duplicate_headers
-            except Exception as err:
-                if str(err).startswith("Expected data for exactly one row for sheet"):
-                    logger.warn(f"Skip empty sheet: {sheet_name}")
-                else:
-                    logger.error(str(err))
-                    return AirbyteConnectionStatus(
-                        status=Status.FAILED, message=f"Unable to read the schema of sheet {sheet_name}. Error: {str(err)}"
-                    )
-        if duplicate_headers_in_sheet:
-            duplicate_headers_error_message = ", ".join(
-                [
-                    f"[sheet:{sheet_name}, headers:{duplicate_sheet_headers}]"
-                    for sheet_name, duplicate_sheet_headers in duplicate_headers_in_sheet.items()
-                ]
-            )
-            return AirbyteConnectionStatus(
-                status=Status.FAILED,
-                message="The following duplicate headers were found in the following sheets. Please fix them to continue: "
-                + duplicate_headers_error_message,
-            )
+                # Attempt to get first row of sheet
+                client.get(spreadsheetId=spreadsheet_id, includeGridData=False, ranges="1:1")
+            except errors.HttpError as err:
+                reason = str(err)
+                # Give a clearer message if it's a common error like 404.
+                if err.resp.status == status_codes.NOT_FOUND:
+                    reason = "Requested spreadsheet was not found."
+                logger.error(f"Formatted error: {reason}")
+                return AirbyteConnectionStatus(
+                    status=Status.FAILED, message=f"Unable to connect with the provided credentials to spreadsheet. Error: {reason}"
+                )
 
-        return AirbyteConnectionStatus(status=Status.SUCCEEDED)
-
-    def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
-        client = GoogleSheetsClient(self.get_credentials(config))
-        spreadsheet_id = Helpers.get_spreadsheet_id(config["spreadsheet_id"])
-        try:
-            self.field_name_map = self.get_field_name_map(config=config)
-            self.field_name_map_stream = self.get_field_name_map_stream(config=config)
-
-            logger.info(f"Running discovery on sheet {spreadsheet_id}")
+            # Check for duplicate headers
             spreadsheet_metadata = Spreadsheet.parse_obj(client.get(spreadsheetId=spreadsheet_id, includeGridData=False))
+
             grid_sheets = Helpers.get_grid_sheets(spreadsheet_metadata)
-            streams = []
+
+            duplicate_headers_in_sheet = {}
             for sheet_name in grid_sheets:
+                print(f"Это check {sheet_name}")
                 try:
                     header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
-                    sheet_name = self.field_name_map_stream.get(sheet_name, sheet_name)
-
-                    header_row_data = [self.field_name_map.get(col, col) for col in header_row_data]
-                    stream = Helpers.headers_to_airbyte_stream(logger, sheet_name, header_row_data)
-                    streams.append(stream)
+                    print(f"Это check {header_row_data}")
+                    _, duplicate_headers = Helpers.get_valid_headers_and_duplicates(header_row_data)
+                    if duplicate_headers:
+                        duplicate_headers_in_sheet[sheet_name] = duplicate_headers
                 except Exception as err:
                     if str(err).startswith("Expected data for exactly one row for sheet"):
                         logger.warn(f"Skip empty sheet: {sheet_name}")
                     else:
                         logger.error(str(err))
-            return AirbyteCatalog(streams=streams)
+                        return AirbyteConnectionStatus(
+                            status=Status.FAILED, message=f"Unable to read the schema of sheet {sheet_name}. Error: {str(err)}"
+                        )
+            if duplicate_headers_in_sheet:
+                duplicate_headers_error_message = ", ".join(
+                    [
+                        f"[sheet:{sheet_name}, headers:{duplicate_sheet_headers}]"
+                        for sheet_name, duplicate_sheet_headers in duplicate_headers_in_sheet.items()
+                    ]
+                )
+                return AirbyteConnectionStatus(
+                    status=Status.FAILED,
+                    message="The following duplicate headers were found in the following sheets. Please fix them to continue: "
+                    + duplicate_headers_error_message,
+                )
 
-        except errors.HttpError as err:
-            reason = str(err)
-            if err.resp.status == status_codes.NOT_FOUND:
-                reason = "Requested spreadsheet was not found."
-            raise Exception(f"Could not run discovery: {reason}")
+            return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+
+    def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
+        if config["credentials"]["auth_type"] == "credentials_craft_auth":
+            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
+        else:
+            client = GoogleSheetsClient(self.get_credentials(config))
+
+        streams = []
+        spreadsheets = config.get("spreadsheets")
+        for spreadsheet_id in spreadsheets:
+            spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
+            try:
+                self.field_name_map = self.get_field_name_map(config=config)
+                self.field_name_map_stream = self.get_field_name_map_stream(config=config)
+
+                logger.info(f"Running discovery on sheet {spreadsheet_id}")
+                spreadsheet_metadata = Spreadsheet.parse_obj(client.get(spreadsheetId=spreadsheet_id, includeGridData=False))
+                grid_sheets = Helpers.get_grid_sheets(spreadsheet_metadata)
+
+                for sheet_name in grid_sheets:
+                    try:
+                        header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
+                        sheet_name = self.field_name_map_stream.get(sheet_name, sheet_name)
+                        #sheet_name = self.translate_name(sheet_name)
+
+                        header_row_data = [self.field_name_map.get(col, col) for col in header_row_data]
+                        stream = Helpers.headers_to_airbyte_stream(logger, sheet_name, header_row_data)
+                        streams.append(stream)
+                    except Exception as err:
+                        if str(err).startswith("Expected data for exactly one row for sheet"):
+                            logger.warn(f"Skip empty sheet: {sheet_name}")
+                        else:
+                            logger.error(str(err))
+
+            except errors.HttpError as err:
+                reason = str(err)
+                if err.resp.status == status_codes.NOT_FOUND:
+                    reason = "Requested spreadsheet was not found."
+                raise Exception(f"Could not run discovery: {reason}")
+
+        return AirbyteCatalog(streams=streams)
 
     def read(
             self, logger: AirbyteLogger, config: json, catalog: ConfiguredAirbyteCatalog, state: Dict[str, any]
     ) -> Generator[AirbyteMessage, None, None]:
-        client = GoogleSheetsClient(self.get_credentials(config))
+        if config["credentials"]["auth_type"] == "credentials_craft_auth":
+            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
+        else:
+            client = GoogleSheetsClient(self.get_credentials(config))
 
-        old_fields = self.get_field_name_map(config=config)
-        renamed_sheets = self.get_field_name_map_stream(config=config)
-        sheet_to_column_name = Helpers.parse_sheet_and_column_names_from_catalog(catalog)
-        new_to_old_names = {new: old for old, new in old_fields.items()}
+        spreadsheets = config.get("spreadsheets")
+        for spreadsheet_id in spreadsheets:
 
-        restored_sheet_to_column_name = {}
-        for sheet, columns in sheet_to_column_name.items():
-            restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
-            restored_sheet_to_column_name[sheet] = restored_columns
+            old_fields = self.get_field_name_map(config=config)
+            renamed_sheets = self.get_field_name_map_stream(config=config)
+            sheet_to_column_name = Helpers.parse_sheet_and_column_names_from_catalog(catalog)
+            new_to_old_names = {new: old for old, new in old_fields.items()}
 
-        spreadsheet_id = Helpers.get_spreadsheet_id(config["spreadsheet_id"])
+            restored_sheet_to_column_name = {}
+            for sheet, columns in sheet_to_column_name.items():
+                restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
+                restored_sheet_to_column_name[sheet] = restored_columns
 
-        logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
+            spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
 
-        sheet_to_column_index_to_name = Helpers.get_available_sheets_to_column_index_to_name(
-            client, spreadsheet_id, restored_sheet_to_column_name, renamed_sheets
-        )
+            logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
 
-        logger.info(f"Sheet_to_column_index_to_name: {sheet_to_column_index_to_name.keys()}")
-        sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
-        logger.info(f"Row counts: {sheet_row_counts}")
+            sheet_to_column_index_to_name = Helpers.get_available_sheets_to_column_index_to_name(
+                client, spreadsheet_id, restored_sheet_to_column_name, renamed_sheets
+            )
 
-        for original_sheet in sheet_to_column_index_to_name.keys():
-            logger.info(f"Syncing sheet {original_sheet}")
-            column_index_to_name = sheet_to_column_index_to_name[original_sheet]
+            logger.info(f"Sheet_to_column_index_to_name: {sheet_to_column_index_to_name.keys()}")
+            sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
+            logger.info(f"Row counts: {sheet_row_counts}")
 
-            for key, value in column_index_to_name.items():
-                if value in old_fields.keys():
-                    column_index_to_name[key] = old_fields[value]
+            for original_sheet in sheet_to_column_index_to_name.keys():
+                logger.info(f"Syncing sheet {original_sheet}")
+                column_index_to_name = sheet_to_column_index_to_name[original_sheet]
 
-            row_cursor = 2  # we start syncing after the title line
-            while row_cursor <= sheet_row_counts[original_sheet]:
-                range = f"{original_sheet}!{row_cursor}:{row_cursor + ROW_BATCH_SIZE}"
-                logger.info(f"Fetching range {range}")
-                row_batch = SpreadsheetValues.parse_obj(
-                    client.get_values(spreadsheetId=spreadsheet_id, ranges=range, majorDimension="ROWS")
-                )
+                for key, value in column_index_to_name.items():
+                    if value in old_fields.keys():
+                        column_index_to_name[key] = old_fields[value]
 
-                row_cursor += ROW_BATCH_SIZE + 1
-                value_ranges = row_batch.valueRanges[0]
+                row_cursor = 2  # we start syncing after the title line
+                while row_cursor <= sheet_row_counts[original_sheet]:
+                    range = f"{original_sheet}!{row_cursor}:{row_cursor + ROW_BATCH_SIZE}"
+                    logger.info(f"Fetching range {range}")
+                    row_batch = SpreadsheetValues.parse_obj(
+                        client.get_values(spreadsheetId=spreadsheet_id, ranges=range, majorDimension="ROWS")
+                    )
 
-                if not value_ranges.values:
-                    break
+                    row_cursor += ROW_BATCH_SIZE + 1
+                    value_ranges = row_batch.valueRanges[0]
 
-                row_values = value_ranges.values
-                if len(row_values) == 0:
-                    break
+                    if not value_ranges.values:
+                        break
 
-                for row in row_values:
-                    if not Helpers.is_row_empty(row) and Helpers.row_contains_relevant_data(row, column_index_to_name.keys()):
-                        sheet = renamed_sheets.get(original_sheet, original_sheet)
-                        yield AirbyteMessage(type=Type.RECORD, record=Helpers.row_data_to_record_message(sheet, row, column_index_to_name))
-        logger.info(f"Finished syncing spreadsheet {spreadsheet_id}")
+                    row_values = value_ranges.values
+                    if len(row_values) == 0:
+                        break
+
+                    for row in row_values:
+                        if not Helpers.is_row_empty(row) and Helpers.row_contains_relevant_data(row, column_index_to_name.keys()):
+                            sheet = renamed_sheets.get(original_sheet, original_sheet)
+                            yield AirbyteMessage(type=Type.RECORD, record=Helpers.row_data_to_record_message(sheet, row, column_index_to_name))
+            logger.info(f"Finished syncing spreadsheet {spreadsheet_id}")
 
     @staticmethod
     def get_credentials(config):
@@ -231,3 +261,11 @@ class GoogleSheetsSource(Source):
             return {}
         else:
             return {item["old_value_stream"]: item["new_value_stream"] for item in field_name_map_stream}
+
+    # @staticmethod
+    # def translate_name(name: str):
+    #     name = re.sub("[^A-Za-z0-9\s]+", "", unidecode(name))
+    #     name = name.strip()
+    #     name = re.sub("[\s]", "_", name)
+    #     name = re.sub("_{2,}", "_", name)
+    #     return name.lower()

@@ -599,7 +599,7 @@
             "type" : "object",
             "title" : "Последние несколько дней",
             "required" : [
-              "last_days_count"
+              "last_days"
             ],
             "properties" : {
               "date_range_type" : {
@@ -607,7 +607,7 @@
                 "order" : 0,
                 "const" : "last_n_days"
               },
-              "last_days_count" : {
+              "last_days" : {
                 "title" : "Количество дней",
                 "description" : "Количество дней",
                 "examples" : [

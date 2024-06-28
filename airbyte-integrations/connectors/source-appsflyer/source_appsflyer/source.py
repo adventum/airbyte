@@ -742,7 +742,7 @@ class SourceAppsflyer(AbstractSource):
             else:
                 time_to = today_date.subtract(days=1)
         elif date_range_type == "last_n_days":
-            time_from = today_date.subtract(days=date_range.get("last_days_count"))
+            time_from = today_date.subtract(days=date_range.get("last_days"))
             if date_range.get("should_load_today"):
 
                 time_to = today_date

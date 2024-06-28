@@ -265,8 +265,8 @@ class SourceYandexDirect(AbstractSource):
                 prepared_range["date_to"] = today
             else:
                 prepared_range["date_to"] = today - timedelta(days=1)
-        elif range_type == "last_days":
-            prepared_range["date_from"] = today - timedelta(days=date_range["last_days_count"])
+        elif range_type == "last_n_days":
+            prepared_range["date_from"] = today - timedelta(days=date_range["last_days"])
             if date_range.get("should_load_today", False):
                 prepared_range["date_to"] = today
             else:

@@ -64,7 +64,13 @@ class GoogleSheetsSource(Source):
             logger.info(spreadsheets)
             logger.info(spreadsheet_id)
             logger.info("##"*20)
-            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id) #(config["spreadsheet_id"])
+
+            # Replace part of spreadsheet_id if placeholder in spreadsheet_id
+            if self.contains_placeholder(spreadsheet_id):
+                path_placeholder = config["path_placeholder"]
+                spreadsheet_id = spreadsheet_id.replace("{placeholder}", path_placeholder)
+
+            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
 
             try:
                 # Attempt to get first row of sheet
@@ -126,6 +132,12 @@ class GoogleSheetsSource(Source):
         spreadsheets = config.get("spreadsheets")
         for spreadsheet_id in spreadsheets:
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+
+            # Replace part of spreadsheet_id if placeholder in spreadsheet_id
+            if self.contains_placeholder(spreadsheet_id):
+                path_placeholder = config["path_placeholder"]
+                spreadsheet_id = spreadsheet_id.replace("{placeholder}", path_placeholder)
+
             spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
             try:
                 self.field_name_map = self.get_field_name_map(config=config)
@@ -180,6 +192,12 @@ class GoogleSheetsSource(Source):
                 restored_sheet_to_column_name[sheet] = restored_columns
 
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+
+            # Replace part of spreadsheet_id if placeholder in spreadsheet_id
+            if self.contains_placeholder(spreadsheet_id):
+                path_placeholder = config["path_placeholder"]
+                spreadsheet_id = spreadsheet_id.replace("{placeholder}", path_placeholder)
+
             spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
 
             logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
@@ -261,6 +279,20 @@ class GoogleSheetsSource(Source):
             return {}
         else:
             return {item["old_value_stream"]: item["new_value_stream"] for item in field_name_map_stream}
+
+    @staticmethod
+    def contains_placeholder(file_path: str) -> bool:
+        return "{placeholder}" in file_path
+
+    @staticmethod
+    def contains_date_placeholder(file_path: str) -> str:
+        # Returns a format like %Y-%m-%d
+        searching_pattern = r'!(.*?)!'
+        is_match = re.search(searching_pattern, file_path)
+
+        if is_match:
+            extracted_string = is_match.group(1)
+            return extracted_string
 
     # @staticmethod
     # def translate_name(name: str):

@@ -80,13 +80,13 @@
             "path": {
               "title": "Files Path",
               "type": "string",
-              "description": "Files path directory on Yandex Disk",
-              "examples": ["disk:/foo/bar", "/foo/bar", "app:/foo/bar"]
+              "description": "Files path directory on Yandex Disk. If you want to use the date_placeholder format, you have to use a format like !%d-%m!. Every date_placeholder starts with '!' and ends with '!', and between these symbols, you have to use Python's date format. For example: %Y-%m. Some of the available formats are: %d - day, %Y - year, %m - month",
+              "examples": ["disk:/foo/bar", "/foo/bar", "app:/foo/bar", "disk:/foo/!%d-%m!", "disk:/foo/!%Y-%m!"]
             },
             "files_pattern": {
               "title": "Files Pattern",
-              "description": "Stream files pattern (must contain regular expression)",
-              "examples": ["^foobar_\\d{4}-\\d{2}-\\d{2}_\\d+\\.csv$"]
+              "description": "Stream files pattern (must contain regular expression). If you want to use the date_placeholder format, you have to use a format like !%d-%m!. Every date_placeholder starts with '!' and ends with '!', and between these symbols, you have to use Python's date format. For example: %Y-%m. Some of the available formats are: %d - day, %Y - year, %m - month",
+              "examples": ["^foobar_\\d{4}-\\d{2}-\\d{2}_\\d+\\.csv$", "^foobar_!%Y-%m!.csv$"]
             },
             "no_header": {
               "title": "CSV No Header",
@@ -114,25 +114,73 @@
             "excel_sheet_name": {
               "title": "Excel Sheet Name",
               "description": "Name of sheet in excel file. Only for Excel files type. First sheet will be taken if not specified."
+            },
+            "field_name_map_individual": {
+              "title": "Замена полей",
+              "description": "Этот параметр заменяет поля(столбцы) в итоговых записях для конкретного стрима. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
+              "type": "array",
+              "group": "replace",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "old_value_individual",
+                  "new_value_individual"
+                ],
+                "title": "Замена ключей для конкректного стрима",
+                "description": "Пара: старое и новое поле",
+                "properties": {
+                  "old_value_individual": {
+                    "type": "string",
+                    "title": "Старое поле",
+                    "order": 0
+                  },
+                  "new_value_individual": {
+                    "type": "string",
+                    "title": "Новое поле",
+                    "order": 1
+                  }
+                }
+              }
             }
           }
         }
       },
-      "client_name_constant": {
-        "title": "Client Name Constant",
-        "description": "Constant that will be used in record __clientName property",
+      "path_placeholder": {
+        "title": "Path Placeholder",
         "type": "string",
-        "examples": ["abcd"],
-        "order": 2,
-        "default": ""
+        "description": "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis",
+        "examples": ["February -> disk:/February/some_files_for_analysis"],
+        "order": 2
       },
-      "product_name_constant": {
-        "title": "Product Name Constant",
-        "description": "Constant that will be used in record __productName property",
-        "type": "string",
-        "examples": ["abcd"],
+      "field_name_map": {
+        "title": "Замена полей",
+        "description": "Этот параметр заменяет поля(столбцы) в итоговых записях. Например, если вы хотите заменить поле \"абвг\" на \"День\", то укажите в этом параметре \"Старое поле\" - \"абвг\", \"Новое поле\" - \"День\".",
+        "type": "array",
+        "group": "replace",
         "order": 3,
-        "default": ""
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "old_value",
+            "new_value"
+          ],
+          "title": "Замена ключей",
+          "description": "Пара: старое и новое поле",
+          "properties": {
+            "old_value": {
+              "type": "string",
+              "title": "Старое поле",
+              "order": 0
+            },
+            "new_value": {
+              "type": "string",
+              "title": "Новое поле",
+              "order": 1
+            }
+          }
+        }
       },
       "custom_constants_json": {
         "title": "Custom JSON",
@@ -140,6 +188,92 @@
         "type": "string",
         "examples": ["{\"abc\": \"123\", \"cde\": \"132\"}"],
         "order": 4
+      },
+      "date_range" : {
+        "title" : "Date Range",
+        "description" : "Choose date period that must be loaded",
+        "type" : "object",
+        "order" : 5,
+        "oneOf" : [
+          {
+            "type" : "object",
+            "title" : "Custom Date Range",
+            "required" : [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Start Date",
+                "type" : "string",
+                "description" : "Start date in format YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "date_to" : {
+                "title" : "End Date",
+                "type" : "string",
+                "description" : "End date in format YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Date Range Type",
+                "description" : "Custom Date",
+                "const" : "custom_date",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "Last Days",
+            "required" : [
+              "last_days",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "last_days" : {
+                "title" : "Last Days Count",
+                "type" : "integer",
+                "description" : "Count of last days exclude today.",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
+                  30
+                ],
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Load Today?",
+                "type" : "boolean",
+                "description" : "Should connector load today time as End Time? If not, End Time will be yesterday.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Date Range Type",
+                "description" : "Last Days",
+                "const" : "last_days",
+                "order" : 1
+              }
+            }
+          }
+        ]
       }
     }
   }

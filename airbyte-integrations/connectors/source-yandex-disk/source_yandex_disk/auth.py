@@ -28,8 +28,11 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             requests.get(self._cc_host)
         except:
             return False, f"Connection to {self._cc_host} timed out"
-
-        token_resp = requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"}).json()
+        resp_for_except = requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"})
+        try:
+            token_resp = requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"}).json()
+        except:
+            return {"error_code": resp_for_except.status_code, "text_response": resp_for_except.text}
         if token_resp.get("error"):
             return False, f"CredentialsCraft error: {token_resp.get('error')}"
 

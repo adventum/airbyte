@@ -22,7 +22,7 @@ class LogMessagesPoolConsumer:
 
 
 class YandexMetrikaRawSliceMissingChunksObserver:
-    def __init__(self, expected_chunks_ids: int):
+    def __init__(self, expected_chunks_ids: list[int]):
         self._actually_loaded_chunk_ids = []
         self._expected_chunks_ids = expected_chunks_ids
 
@@ -58,6 +58,7 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
         self.records_count = 0
         self.lock = lock
         self.completed_chunks_observer = completed_chunks_observer
+        self.records = []
 
     def process_log_request(self):
         try:
@@ -67,49 +68,47 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                     stream_slice=self.stream_slice,
                 )
             )
+        except Exception as ex:
+            logger.info(f"Failed to get file for stream slice {self.stream_slice.values()}")
+            return
+
+        try:
             with open(filename, "r") as input_f:
                 df_reader = pd.read_csv(input_f, chunksize=5000, delimiter="\t")
                 for chunk in df_reader:
-                    now_millis = int(datetime.now().timestamp() * 1000)
                     with self.lock:
-                        records: list[dict] = []
-                        for data in chunk.to_dict("records"):
-                            records.append(
-                                {
-                                    "type": "RECORD",
-                                    "record": {
-                                        "stream": self.stream_instance.name,
-                                        "data": self.stream_instance.replace_keys(data),
-                                        "emitted_at": now_millis,
-                                    },
-                                }
-                            )
-                        df = pd.DataFrame(records)
-                        print(df.to_json(orient="records", lines=True))
-                        self.records_count += len(df.index)
-                        print("self.records_count", self.records_count, filename)
-                        del df
+                        records: list[dict] = [data for data in chunk.to_dict("records")]
+                        for record in records:
+                            self.stream_instance.replace_keys(record)
+                            # TODO: move postprocess somewhere else
+                            replace_keys = [k for k in record.keys() if "<attribution>" in k]
+                            for key in replace_keys:
+                                new_key = key.replace("<attribution>", self.stream_instance.attribution)
+                                record[new_key] = record.pop(key)
+                        self.records.extend(records)
+                        self.records_count += len(records)
+                        print("records_count", self.records_count, filename)
 
             del input_f
 
             self.completed_chunks_observer.add_actually_loaded_chunk_id(self.stream_slice["part"]["part_number"])
         except AirbyteTracedException as e:
-            logger.info(self.name, "exception", e)
+            # logger.info(self.name, "exception", e)
             raise e
         except Exception as e:
-            logger.info(self.name, "exception", e)
+            # logger.info(self.name, "exception", e)
             logger.exception(f"Encountered an exception while reading stream {self.stream_instance.name}")
             display_message = self.stream_instance.get_error_display_message(e)
             if display_message:
                 raise AirbyteTracedException.from_exception(e, message=display_message) from e
             raise e
-        else:
+        finally:
             logger.info(f"Remove file {filename} for slice {self.stream_slice}")
             os.remove(filename)
             logger.info(f"Finished syncing {self.stream_instance.name}")
 
     def run(self):
-        self.log_info(f"Run processor thread instanse {self.name} with slice {self.stream_slice}")
+        self.log_info(f"Run processor thread instance {self.name} with slice {self.stream_slice}")
         self.process_log_request()
         self.log_info(f"End processing thread {self.name} (slice {self.stream_slice}) with {self.records_count} records")
 
@@ -139,7 +138,7 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
         self.stream_instance: YandexMetrikaRawDataStream = stream_instance
         self.completed_chunks_observer = completed_chunks_observer
 
-        self.threads: list[Thread] = []
+        self.threads: list[PreprocessedSlicePartProcessorThread] = []
         self.lock = Lock()
         for slice in preprocessed_slices_batch:
             thread_name = "Thread-" + self.stream_instance.name + "-" + str(slice)

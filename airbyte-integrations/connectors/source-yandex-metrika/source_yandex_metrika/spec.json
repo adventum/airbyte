@@ -253,35 +253,6 @@
               ],
               "default" : "Последний значимый источник",
               "order" : 9
-            },
-            "field_name_map" : {
-              "title" : "Замена ключей",
-              "description" : "Этот параметр заменяет ключи в итоговых записях. Например, если вы хотите заменить поле \"ym:s:watchIDs\" на \"watch_ids\", то укажите в этом параметре \"Старый ключ\" - \"ym:s:watchIDs\", \"Новый ключ\" - \"watch_ids\".",
-              "type" : "array",
-              "group" : "replace",
-              "order" : 10,
-              "items" : {
-                "type" : "object",
-                "additionalProperties" : false,
-                "required" : [
-                  "old_value",
-                  "new_value"
-                ],
-                "title" : "Замена ключей",
-                "description" : "Пара: старый и новый ключ",
-                "properties" : {
-                  "old_value" : {
-                    "type" : "string",
-                    "title" : "Старый ключ",
-                    "order" : 0
-                  },
-                  "new_value" : {
-                    "type" : "string",
-                    "title" : "Новый ключ",
-                    "order" : 1
-                  }
-                }
-              }
             }
           }
         }
@@ -352,51 +323,11 @@
                 "order" : 6
               },
               "attribution" : {
-                "title" : "Модель аттрибуции",
+                "title" : "Модель аттрибуции (Допускаются те же значения, что для агрегированных отчетов)",
                 "description" : "Необязательно. Используется, например, для ym:ad:&lt;attribution&gt;Currency. По умолчанию: lastsign. Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/param.html",
                 "type" : "string",
-                "enum" : [
-                  "Первый источник",
-                  "Последний источник",
-                  "Последний значимый источник",
-                  "Последний переход из Директа",
-                  "Первый источник со всех устройств",
-                  "Последний источник со всех устройств",
-                  "Последний значимый источник со всех устройств",
-                  "Последний переход из Директа со всех устройств",
-                  "Автоматический"
-                ],
                 "default" : "Последний значимый источник",
                 "order" : 7
-              },
-              "field_name_map" : {
-                "title" : "Замена ключей",
-                "description" : "Этот параметр заменяет ключи в итоговых записях. Например, если вы хотите заменить поле \"ym:s:watchIDs\" на \"watch_ids\", то укажите в этом параметре \"Старый ключ\" - \"ym:s:watchIDs\", \"Новый ключ\" - \"watch_ids\".",
-                "type" : "array",
-                "group" : "replace",
-                "order" : 8,
-                "items" : {
-                  "type" : "object",
-                  "additionalProperties" : false,
-                  "required" : [
-                    "old_value",
-                    "new_value"
-                  ],
-                  "title" : "Замена ключей (нельзя переименовывать ym:pv:watchID)",
-                  "description" : "Пара: старый и новый ключ",
-                  "properties" : {
-                    "old_value" : {
-                      "type" : "string",
-                      "title" : "Старый ключ",
-                      "order" : 0
-                    },
-                    "new_value" : {
-                      "type" : "string",
-                      "title" : "Новый ключ",
-                      "order" : 1
-                    }
-                  }
-                }
               }
             },
             "required" : [
@@ -485,51 +416,11 @@
                 "order" : 6
               },
               "attribution" : {
-                "title" : "Модель аттрибуции",
+                "title" : "Модель аттрибуции (Допускаются те же значения, что для агрегированных отчетов)",
                 "description" : "Необязательно. Используется, например, для ym:ad:&lt;attribution&gt;Currency. По умолчанию: lastsign. Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/param.html",
                 "type" : "string",
-                "enum" : [
-                  "Первый источник",
-                  "Последний источник",
-                  "Последний значимый источник",
-                  "Последний переход из Директа",
-                  "Первый источник со всех устройств",
-                  "Последний источник со всех устройств",
-                  "Последний значимый источник со всех устройств",
-                  "Последний переход из Директа со всех устройств",
-                  "Автоматический"
-                ],
                 "default" : "Последний значимый источник",
                 "order" : 7
-              },
-              "field_name_map" : {
-                "title" : "Замена ключей",
-                "description" : "Этот параметр заменяет ключи в итоговых записях. Например, если вы хотите заменить поле \"ym:s:watchIDs\" на \"watch_ids\", то укажите в этом параметре \"Старый ключ\" - \"ym:s:watchIDs\", \"Новый ключ\" - \"watch_ids\".",
-                "type" : "array",
-                "group" : "replace",
-                "order" : 8,
-                "items" : {
-                  "type" : "object",
-                  "additionalProperties" : false,
-                  "required" : [
-                    "old_value",
-                    "new_value"
-                  ],
-                  "title" : "Замена ключей (Нельзя переименовывать обязательные поля ym:s:visitID)",
-                  "description" : "Пара: старый и новый ключ",
-                  "properties" : {
-                    "old_value" : {
-                      "type" : "string",
-                      "title" : "Старый ключ",
-                      "order" : 0
-                    },
-                    "new_value" : {
-                      "type" : "string",
-                      "title" : "Новый ключ",
-                      "order" : 1
-                    }
-                  }
-                }
               }
             },
             "required" : [
@@ -630,6 +521,35 @@
             }
           }
         ]
+      },
+      "field_name_map" : {
+        "title" : "Замена ключей",
+        "description" : "Этот параметр заменяет ключи в итоговых записях. Например, если вы хотите заменить поле \"ym:s:watchIDs\" на \"watch_ids\", то укажите в этом параметре \"Старый ключ\" - \"ym:s:watchIDs\", \"Новый ключ\" - \"watch_ids\".",
+        "type" : "array",
+        "group" : "replace",
+        "order" : 6,
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : false,
+          "required" : [
+            "old_value",
+            "new_value"
+          ],
+          "title" : "Замена ключей",
+          "description" : "Пара: старый и новый ключ",
+          "properties" : {
+            "old_value" : {
+              "type" : "string",
+              "title" : "Старый ключ",
+              "order" : 0
+            },
+            "new_value" : {
+              "type" : "string",
+              "title" : "Новый ключ",
+              "order" : 1
+            }
+          }
+        }
       }
     }
   }

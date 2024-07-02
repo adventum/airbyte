@@ -323,10 +323,10 @@
                 "order" : 6
               },
               "attribution" : {
-                "title" : "Модель аттрибуции (Допускаются те же значения, что для агрегированных отчетов)",
+                "title" : "Модель аттрибуции (Формат first, last, last_sign...)",
                 "description" : "Необязательно. Используется, например, для ym:ad:&lt;attribution&gt;Currency. По умолчанию: lastsign. Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/param.html",
                 "type" : "string",
-                "default" : "Последний значимый источник",
+                "default" : "lastsign",
                 "order" : 7
               }
             },
@@ -416,10 +416,10 @@
                 "order" : 6
               },
               "attribution" : {
-                "title" : "Модель аттрибуции (Допускаются те же значения, что для агрегированных отчетов)",
+                "title" : "Модель аттрибуции (Формат first, last, last_sign...)",
                 "description" : "Необязательно. Используется, например, для ym:ad:&lt;attribution&gt;Currency. По умолчанию: lastsign. Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/param.html",
                 "type" : "string",
-                "default" : "Последний значимый источник",
+                "default" : "lastsign",
                 "order" : 7
               }
             },

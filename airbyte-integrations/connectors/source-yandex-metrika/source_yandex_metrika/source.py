@@ -435,7 +435,7 @@ class SourceYandexMetrika(AbstractSource):
                         source_to_stream_config["kwargs_field_name"],
                     ),
                     field_name_map=self.format_field_name_map(stream_config.get("field_name_map")),
-                    attribution=stream_config.get("attribution"),
+                    attribution=stream_config.get("attribution", ""),
                 )
                 raw_data_streams.append(stream)
                 setattr(self, source_to_stream_config["preprocessor_field_name"], stream.preprocessor)

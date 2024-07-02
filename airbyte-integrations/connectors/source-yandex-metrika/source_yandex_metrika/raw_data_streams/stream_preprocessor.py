@@ -85,9 +85,14 @@ class YandexMetrikaStreamPreprocessor:
         self,
         stream_slice: Mapping[str, any],
         cached_available_log_requests: list[Mapping[str, any]] = None,
-    ) -> tuple[bool, int]:
+    ) -> tuple[bool, int | None]:
         # Return (True, <log_request_id>) if log request was found, otherwise return (False, None)
-        available_log_requests = cached_available_log_requests or self.get_available_log_requests()
+        try:
+            available_log_requests = cached_available_log_requests or self.get_available_log_requests()
+        except Exception as ex:
+            logger.error(ex)
+            return False, None
+
         params = self.request_params(stream_slice=stream_slice)
         fields_to_check = sorted(params["fields"].split(","))
         date_from_to_check, date_to_to_check = params["date1"], params["date2"]

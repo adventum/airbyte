@@ -63,7 +63,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         multithreading_threads_count: int = 1,
         created_for_test: bool = False,
         field_name_map: dict[str, any] | None = None,
-        attribution: str | None = None,
+        attribution: str = "",
     ):
         super().__init__(field_name_map)
         self.counter_id = counter_id
@@ -79,7 +79,13 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         self.clean_log_requests_before_replication = clean_log_requests_before_replication
         self.check_log_requests_ability = check_log_requests_ability
         self.created_for_test = created_for_test
-        self.attribution: str = attribution_translations.get(attribution, "<attribution>") if attribution is not None else "<attribution>"
+
+        # User may enter "last" or "Последний"
+        self.attribution: str = attribution_translations.get(attribution, attribution)
+
+        for i, field in enumerate(self.fields):
+            if "<attribution>" in field:
+                self.fields[i] = field.replace("<attribution>", self.attribution)
 
         if self.clean_log_requests_before_replication and not self.created_for_test:
             logger.info("Clean all log requests before replication...")
@@ -93,8 +99,6 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
     def get_json_schema(self) -> Mapping[str, any]:
         schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("yandex_metrika_raw_data_stream")
         for key in self.fields:
-            # Will do nothing if no attribution
-            key = key.replace("<attribution>", self.attribution)
             schema["properties"][key] = {"type": ["null", "string"]}
 
         super().replace_keys(schema["properties"])
@@ -116,15 +120,10 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         return None
 
     def request_params(self, stream_slice: Mapping[str, any] = None, *args, **kwargs) -> MutableMapping[str, any]:
-        fields: list[str] = []
-        for field in self.fields:
-            # if no attribution, will still do nothing
-            fields.append(field.replace("<attribution>", self.attribution))
-
         return {
             "date1": datetime.strftime(stream_slice["date_from"], "%Y-%m-%d"),
             "date2": datetime.strftime(stream_slice["date_to"], "%Y-%m-%d"),
-            "fields": ",".join(fields),
+            "fields": ",".join(self.fields),
             "source": self.log_source,
         }
 

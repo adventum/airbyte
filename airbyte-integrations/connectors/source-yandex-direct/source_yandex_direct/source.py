@@ -35,9 +35,11 @@ class SourceYandexDirect(AbstractSource):
     availability_strategy = HttpAvailabilityStrategy
 
     def check_connection(self, logger, config) -> Tuple[bool, Any]:
-        spec_fields_names_for_streams = self.get_spec_fields_names_for_streams(
-            self.ads_streams_classes
-        )
+        spec_fields_names_for_streams = self.get_spec_fields_names_for_streams(self.ads_streams_classes)
+        client_login = config.get("client_login", "")
+        if config["agent_account"] and not client_login:
+            return False, "Для агентского аккаунта необходимо указать client_login"
+
         for stream_class, spec_field_name in spec_fields_names_for_streams:
             try:
                 json.loads(config.get(spec_field_name, "{}"))
@@ -148,9 +150,9 @@ class SourceYandexDirect(AbstractSource):
                     "CriterionId",
                     "CriterionType",
                 ]
-            ) and set(report_config["fields"]).intersection(
-                ["Criteria", "CriteriaId", "CriteriaType"]
-            ):
+            ) and set(
+                report_config["fields"]
+            ).intersection(["Criteria", "CriteriaId", "CriteriaType"]):
                 return (
                     False,
                     f"Отчёт {report_name}: Поля Criterion, CriterionId, CriterionType "
@@ -186,8 +188,7 @@ class SourceYandexDirect(AbstractSource):
                 return is_success, message
 
         try:  # YYYY-MM-DD
-            CLIENT_LOGIN = config.get("client_login", "")
-            FIELD_NAMES = [
+            field_names = [
                 "Date",
                 "CampaignName",
                 "LocationOfPresenceName",
@@ -195,13 +196,13 @@ class SourceYandexDirect(AbstractSource):
                 "Clicks",
                 "Cost",
             ]
-            REPORT_NAME = random_name(9)
+            report_name = random_name(9)
 
             body = {
                 "params": {
                     "SelectionCriteria": {},
-                    "FieldNames": FIELD_NAMES,
-                    "ReportName": REPORT_NAME,
+                    "FieldNames": field_names,
+                    "ReportName": report_name,
                     "ReportType": "CUSTOM_REPORT",
                     "DateRangeType": "TODAY",
                     "Format": "TSV",
@@ -217,8 +218,8 @@ class SourceYandexDirect(AbstractSource):
                 "skipReportSummary": "true",
             }
             headers.update(auth.get_auth_header())
-            if CLIENT_LOGIN:
-                headers["Client-Login"] = CLIENT_LOGIN
+            if client_login:
+                headers["Client-Login"] = client_login
 
             req = requests.post(
                 url="https://api.direct.yandex.com/json/v5/reports",
@@ -246,9 +247,7 @@ class SourceYandexDirect(AbstractSource):
                 credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
             )
         else:
-            raise Exception(
-                "Неверный тип авторизации. Доступные: access_token_auth and credentials_craft_auth"
-            )
+            raise Exception("Неверный тип авторизации. Доступные: access_token_auth and credentials_craft_auth")
 
     @staticmethod
     def prepare_config_datetime(config: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -275,14 +274,11 @@ class SourceYandexDirect(AbstractSource):
             raise ValueError("Invalid date_range_type")
 
         if isinstance(prepared_range["date_from"], str):
-            prepared_range["date_from"] = datetime.strptime(
-                prepared_range["date_from"], CONFIG_DATE_FORMAT
-            )
+            prepared_range["date_from"] = datetime.strptime(prepared_range["date_from"], CONFIG_DATE_FORMAT)
 
         if isinstance(prepared_range["date_to"], str):
-            prepared_range["date_to"] = datetime.strptime(
-                prepared_range["date_to"], CONFIG_DATE_FORMAT
-            )
+            prepared_range["date_to"] = datetime.strptime(prepared_range["date_to"], CONFIG_DATE_FORMAT)
+
         config["prepared_date_range"] = prepared_range
         return config
 
@@ -308,18 +304,14 @@ class SourceYandexDirect(AbstractSource):
 
         return spec
 
-    def generate_spec_fields_for_streams(
-        self, ads_streams_classes: List[YandexDirectAdsStream]
-    ) -> List[Mapping[str, Any]]:
+    def generate_spec_fields_for_streams(self, ads_streams_classes: List[YandexDirectAdsStream]) -> List[Mapping[str, Any]]:
         streams_spec_fields = {}
         for stream_class in ads_streams_classes:
             spec_field = {
                 "description": f"Поля для стрима {stream_class.__name__}. Для полей по умолчанию - оставьте пустыми.",
                 "title": f"Поля стрима {stream_class.__name__} (JSON, необязательно)",
                 "type": "string",
-                "examples": [
-                    '{"FieldNames": ["CampaignId", "Id"], "MobileAppAdFieldNames": ["Text", "Title"]}'
-                ],
+                "examples": ['{"FieldNames": ["CampaignId", "Id"], "MobileAppAdFieldNames": ["Text", "Title"]}'],
                 "order": 4,
             }
             streams_spec_fields[stream_class.__name__.lower() + "_fields_params"] = spec_field
@@ -333,9 +325,7 @@ class SourceYandexDirect(AbstractSource):
             yield (stream, stream.__name__.lower() + "_fields_params")
 
     def get_spec_property_name_for_stream(self, stream: YandexDirectAdsStream) -> Mapping[str, Any]:
-        for stream_class, spec_field_name in self.get_spec_fields_names_for_streams(
-            self.ads_streams_classes
-        ):
+        for stream_class, spec_field_name in self.get_spec_fields_names_for_streams(self.ads_streams_classes):
             if stream.__name__ == stream_class.__name__:
                 return spec_field_name
 
@@ -347,15 +337,13 @@ class SourceYandexDirect(AbstractSource):
             report_streams.append(
                 CustomReport(
                     auth=auth,
-                    client_login=config["client_login"],
+                    client_login=config.get("client_login"),
                     report_name=report_config["name"],
                     fields=report_config.get("fields"),
                     additional_fields=report_config.get("additional_fields", []),
                     goal_ids=report_config.get("goal_ids", []),
                     attribution_models=report_config.get("attribution_models", []),
-                    parsed_filters=json.loads(report_config["filters_json"])
-                    if report_config.get("filters_json")
-                    else None,
+                    parsed_filters=json.loads(report_config["filters_json"]) if report_config.get("filters_json") else None,
                     date_range=config["prepared_date_range"],
                     split_range_days_count=report_config.get("split_range_days_count"),
                     replace_keys_config=report_config.get("replace_keys_config", []),
@@ -369,9 +357,7 @@ class SourceYandexDirect(AbstractSource):
             }
             if stream_class == AdImages:
                 stream_kwargs["use_simple_loader"] = config.get("adimages_use_simple_loader", False)
-            for _, spec_fields_name in self.get_spec_fields_names_for_streams(
-                self.ads_streams_classes
-            ):
+            for _, spec_fields_name in self.get_spec_fields_names_for_streams(self.ads_streams_classes):
                 stream_kwargs[spec_fields_name] = json.loads(config.get(spec_fields_name, "{}"))
             ads_streams.append(stream_class(**stream_kwargs))
         return [*report_streams, *ads_streams]

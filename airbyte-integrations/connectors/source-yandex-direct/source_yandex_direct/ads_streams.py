@@ -22,7 +22,7 @@ class YandexDirectAdsStream(HttpStream, ABC):
     def __init__(
         self,
         auth: TokenAuthenticator,
-        client_login: str,
+        client_login: str | None,
         *args,
         **kwargs,
     ):

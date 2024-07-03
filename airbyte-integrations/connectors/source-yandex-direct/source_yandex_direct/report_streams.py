@@ -36,7 +36,7 @@ class YandexDirectStream(HttpStream, ABC):
     def __init__(
         self,
         auth: TokenAuthenticator,
-        client_login: str,
+        client_login: str | None,
         report_name: str,
         fields: list[str],
         additional_fields: list[str],
@@ -63,32 +63,20 @@ class YandexDirectStream(HttpStream, ABC):
     def name(self) -> str:
         return self.report_name
 
-    def _send(
-        self, request: requests.PreparedRequest, request_kwargs: Mapping[str, Any]
-    ) -> requests.Response:
+    def _send(self, request: requests.PreparedRequest, request_kwargs: Mapping[str, Any]) -> requests.Response:
         while True:
             response = self._session.send(request, **request_kwargs)
             response.encoding = "utf-8"
-            self.logger.info(
-                f"Request {response.url} (Kwargs: {request_kwargs}, request body: {response.request.body})"
-            )
+            self.logger.info(f"Request {response.url} (Kwargs: {request_kwargs}, request body: {response.request.body})")
             sleep_time = int(response.headers.get("retryIn", 5))
             if response.status_code == 200:
                 return response
             elif response.status_code == 201:
                 sleep(sleep_time)
-                logger.info(
-                    "Report is creating in offline mode. Re-check after "
-                    + str(sleep_time)
-                    + " seconds"
-                )
+                logger.info("Report is creating in offline mode. Re-check after " + str(sleep_time) + " seconds")
             elif response.status_code == 202:
                 sleep(sleep_time)
-                logger.info(
-                    "Report is creating in offline mode. Re-check after "
-                    + str(sleep_time)
-                    + " seconds"
-                )
+                logger.info("Report is creating in offline mode. Re-check after " + str(sleep_time) + " seconds")
             else:
                 if self.should_retry(response):
                     custom_backoff_time = self.backoff_time(response)
@@ -102,9 +90,7 @@ class YandexDirectStream(HttpStream, ABC):
                         raise DefaultBackoffException(request=request, response=response)
                 elif self.raise_on_http_errors:
                     # Raise any HTTP exceptions that happened in case there were unexpected ones
-                    logger.error(
-                        f"Request {response.url} (Kwargs: {request_kwargs}, response body: {response.text})"
-                    )
+                    logger.error(f"Request {response.url} (Kwargs: {request_kwargs}, response body: {response.text})")
                     response.raise_for_status()
 
     def request_kwargs(
@@ -122,16 +108,12 @@ class YandexDirectStream(HttpStream, ABC):
 
     def replace_record_key(self, key: str) -> str:
         if self.replace_keys_config:
-            key_replace_config = next(
-                (c for c in self.replace_keys_config if c["old_key"] == key), None
-            )
+            key_replace_config = next((c for c in self.replace_keys_config if c["old_key"] == key), None)
             if key_replace_config:
                 return key_replace_config["new_key"]
         return key
 
-    def parse_response(
-        self, response: requests.Response, stream_slice: Mapping[str, Any] = None, **kwargs
-    ) -> Iterable[Mapping]:
+    def parse_response(self, response: requests.Response, stream_slice: Mapping[str, Any] = None, **kwargs) -> Iterable[Mapping]:
         # parse raw TSV data to list of named dicts
         raw_data_lines = response.iter_lines(delimiter=b"\n")
         header = []
@@ -170,9 +152,7 @@ class CustomReport(YandexDirectStream):
     def primary_key(self) -> Optional[Union[str, List[str], List[List[str]]]]:
         return self.fields[0]
 
-    def request_body_json(
-        self, stream_slice: Mapping[str, Any], *args, **kwargs
-    ) -> Optional[Mapping]:
+    def request_body_json(self, stream_slice: Mapping[str, Any], *args, **kwargs) -> Optional[Mapping]:
         date_range = stream_slice["transformed_date_range"]
         params = {
             "params": {
@@ -214,9 +194,7 @@ class CustomReport(YandexDirectStream):
 
     @lru_cache(maxsize=None)
     def get_json_schema(self) -> Mapping[str, Any]:
-        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
-            "custom_report"
-        )
+        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("custom_report")
         for field_name in self.fields:
             if self.goal_ids and field_name in [
                 "ConversionRate",

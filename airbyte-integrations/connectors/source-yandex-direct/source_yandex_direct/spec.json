@@ -6,7 +6,7 @@
     "type": "object",
     "required": [
       "credentials",
-      "client_login",
+      "agent_account",
       "date_range"
     ],
     "additionalProperties": false,
@@ -80,17 +80,24 @@
           }
         ]
       },
+      "agent_account": {
+        "type": "boolean",
+        "title": "Агентский аккаунт",
+        "description": "Если аккаунт агентский, обязательно будет использоваться client_login",
+        "default": true,
+        "order": 1
+      },
       "client_login": {
         "type": "string",
         "title": "Логин клиента",
         "description": "Логин клиента в Яндекс.Директе",
-        "order": 1
+        "order": 2
       },
       "reports": {
         "title": "Отчёты",
         "type": "array",
         "description": "Укажите список отчётов Яндекс.Директа",
-        "order": 2,
+        "order": 3,
         "always_show": true,
         "group": "streams_config",
         "items": {
@@ -197,7 +204,7 @@
         "title": "Период отчётов",
         "type": "object",
         "group": "date_range",
-        "order": 3,
+        "order": 4,
         "oneOf": [
           {
             "type": "object",
@@ -277,7 +284,7 @@
         "title": "Обычная загрузка AdImages",
         "type": "boolean",
         "default": true,
-        "order": 4
+        "order": 5
       }
     }
   }

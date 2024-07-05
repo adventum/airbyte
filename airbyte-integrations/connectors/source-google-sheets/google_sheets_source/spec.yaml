@@ -155,9 +155,9 @@ connectionSpecification:
     path_placeholder:
       title: "Path Placeholder"
       type: "string"
-      description: "Can be used in Files Path/Files Pattern like disk:/{placeholder}/some_files_for_analysis"
+      description: "Can be used in Document Path like 'https://docs.google.com/spreadsheets/d/{placeholder}/edit?gid=0#gid=0'"
       examples:
-        - "February -> disk:/February/some_files_for_analysis"
+        - "1XimqM1pRoVN9Iqu86h69ewk6GDwKn5fO2YwKFKhNeBU -> https://docs.google.com/spreadsheets/d/1XimqM1pRoVN9Iqu86h69ewk6GDwKn5fO2YwKFKhNeBU/edit?gid=0#gid=0"
 #    date_range:
 #      title: "Date Range"
 #      description: "Choose date period that must be loaded"

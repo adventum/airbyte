@@ -20,7 +20,7 @@ from airbyte_cdk.models.airbyte_protocol import (
 from airbyte_cdk.sources.source import Source
 from apiclient import errors
 from requests.status_codes import codes as status_codes
-#from unidecode import unidecode
+from unidecode import unidecode
 
 from .client import GoogleSheetsClient
 from .helpers import Helpers, logger
@@ -150,7 +150,7 @@ class GoogleSheetsSource(Source):
                 for sheet_name in grid_sheets:
                     try:
                         header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
-                        sheet_name = self.field_name_map_stream.get(sheet_name, sheet_name)
+                        sheet_name = self.translate_name(self.field_name_map_stream.get(sheet_name, sheet_name))
                         #sheet_name = self.translate_name(sheet_name)
 
                         header_row_data = [self.field_name_map.get(col, col) for col in header_row_data]
@@ -180,17 +180,6 @@ class GoogleSheetsSource(Source):
 
         spreadsheets = config.get("spreadsheets")
         for spreadsheet_id in spreadsheets:
-
-            old_fields = self.get_field_name_map(config=config)
-            renamed_sheets = self.get_field_name_map_stream(config=config)
-            sheet_to_column_name = Helpers.parse_sheet_and_column_names_from_catalog(catalog)
-            new_to_old_names = {new: old for old, new in old_fields.items()}
-
-            restored_sheet_to_column_name = {}
-            for sheet, columns in sheet_to_column_name.items():
-                restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
-                restored_sheet_to_column_name[sheet] = restored_columns
-
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
 
             # Replace part of spreadsheet_id if placeholder in spreadsheet_id
@@ -199,6 +188,30 @@ class GoogleSheetsSource(Source):
                 spreadsheet_id = spreadsheet_id.replace("{placeholder}", path_placeholder)
 
             spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
+
+            available_sheets = Helpers.get_sheets_in_spreadsheet(client, spreadsheet_id)
+
+            old_fields = self.get_field_name_map(config=config)
+            renamed_sheets = self.get_field_name_map_stream(config=config)
+
+            # Добавление исходных названий листов, для их транслитерации
+            for available_sheet in available_sheets:
+                if available_sheet in renamed_sheets.keys():
+                    continue
+                else:
+                    origin_sheet_for_transliterate = {available_sheet: available_sheet}
+                    renamed_sheets.update(origin_sheet_for_transliterate)
+
+            renamed_sheets = {key: self.translate_name(value) for key, value in renamed_sheets.items()}
+            sheet_to_column_name = Helpers.parse_sheet_and_column_names_from_catalog(catalog)
+            new_to_old_names = {new: old for old, new in old_fields.items()}
+
+            restored_sheet_to_column_name = {}
+            for sheet, columns in sheet_to_column_name.items():
+                restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
+                restored_sheet_to_column_name[sheet] = restored_columns
+
+
 
             logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
 
@@ -294,10 +307,10 @@ class GoogleSheetsSource(Source):
             extracted_string = is_match.group(1)
             return extracted_string
 
-    # @staticmethod
-    # def translate_name(name: str):
-    #     name = re.sub("[^A-Za-z0-9\s]+", "", unidecode(name))
-    #     name = name.strip()
-    #     name = re.sub("[\s]", "_", name)
-    #     name = re.sub("_{2,}", "_", name)
-    #     return name.lower()
+    @staticmethod
+    def translate_name(name: str):
+        name = re.sub("[^A-Za-z0-9\s]+", "", unidecode(name))
+        name = name.strip()
+        name = re.sub("[\s]", "_", name)
+        name = re.sub("_{2,}", "_", name)
+        return name.lower()

@@ -151,7 +151,6 @@ class GoogleSheetsSource(Source):
                     try:
                         header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
                         sheet_name = self.translate_name(self.field_name_map_stream.get(sheet_name, sheet_name))
-                        #sheet_name = self.translate_name(sheet_name)
 
                         header_row_data = [self.field_name_map.get(col, col) for col in header_row_data]
                         stream = Helpers.headers_to_airbyte_stream(logger, sheet_name, header_row_data)
@@ -179,6 +178,8 @@ class GoogleSheetsSource(Source):
             client = GoogleSheetsClient(self.get_credentials(config))
 
         spreadsheets = config.get("spreadsheets")
+        duplicate = {} # Contains pair {duplicate: unique} sheets
+        unique = {}
         for spreadsheet_id in spreadsheets:
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
 
@@ -211,17 +212,29 @@ class GoogleSheetsSource(Source):
                 restored_columns = frozenset(new_to_old_names.get(column, column) for column in columns)
                 restored_sheet_to_column_name[sheet] = restored_columns
 
-
-
             logger.info(f"Starting syncing spreadsheet {spreadsheet_id}")
 
             sheet_to_column_index_to_name = Helpers.get_available_sheets_to_column_index_to_name(
                 client, spreadsheet_id, restored_sheet_to_column_name, renamed_sheets
             )
 
-            logger.info(f"Sheet_to_column_index_to_name: {sheet_to_column_index_to_name.keys()}")
+            logger.info(f"Sheet_to_column_index_to_name_keys: {sheet_to_column_index_to_name.keys()}")
+            logger.info(f"Sheet_to_column_index_to_name_values: {sheet_to_column_index_to_name.values()}")
             sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
             logger.info(f"Row counts: {sheet_row_counts}")
+
+            # Union duplicates sheets
+            logger.info(f"sheet_to_column_index_to_name (Name_of_sheet: dict(index: [column_names])) - {sheet_to_column_index_to_name}")
+
+            for sheet, columns in sheet_to_column_name.items():
+                if sheet_to_column_name[sheet] not in unique.values():
+                    unique[sheet] = columns
+                else:
+                    unique_sheet_with_same_value = None
+                    for key, value in unique.items():
+                        if columns == value:
+                            unique_sheet_with_same_value = key
+                    duplicate[sheet] = unique_sheet_with_same_value
 
             for original_sheet in sheet_to_column_index_to_name.keys():
                 logger.info(f"Syncing sheet {original_sheet}")
@@ -252,6 +265,8 @@ class GoogleSheetsSource(Source):
                     for row in row_values:
                         if not Helpers.is_row_empty(row) and Helpers.row_contains_relevant_data(row, column_index_to_name.keys()):
                             sheet = renamed_sheets.get(original_sheet, original_sheet)
+                            if duplicate:
+                                sheet = duplicate.get(sheet, sheet)
                             yield AirbyteMessage(type=Type.RECORD, record=Helpers.row_data_to_record_message(sheet, row, column_index_to_name))
             logger.info(f"Finished syncing spreadsheet {spreadsheet_id}")
 

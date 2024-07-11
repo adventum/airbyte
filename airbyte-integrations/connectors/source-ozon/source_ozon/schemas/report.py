@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 from pydantic import BaseModel
 
 
 class ReportRequest(BaseModel):
-    campaigns: list[str]
+    campaigns: List[str]
     dateFrom: Optional[str]
     dateTo: Optional[str]
     groupBy: Optional[Literal["NO_GROUP_BY", "DATE", "START_OF_WEEK", "START_OF_MONTH"]]

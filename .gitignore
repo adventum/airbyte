@@ -83,3 +83,5 @@ charts/**/charts
 
 # Datadog
 dd-java-agent.jar
+
+.venv-*

@@ -12,7 +12,6 @@ class OzonCampaign(BaseModel):
     id: str
     title: str
     advObjectType: str
-    date: Optional[str]
 
 
 class CampaignReport(BaseModel):

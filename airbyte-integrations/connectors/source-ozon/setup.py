@@ -6,7 +6,7 @@
 from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
-    "airbyte-cdk~=0.2",
+    "airbyte-cdk~=0.80",
     "pydantic~=1.10",
     "requests~=2.31",
 ]
@@ -14,7 +14,6 @@ MAIN_REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     "pytest~=6.2",
     "pytest-mock~=3.6.1",
-    "source-acceptance-test",
 ]
 
 setup(

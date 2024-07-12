@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import time
 from abc import ABC
 from datetime import date

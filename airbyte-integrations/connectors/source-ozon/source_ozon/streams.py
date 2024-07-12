@@ -21,9 +21,7 @@ from source_ozon.schemas.report import ReportStatusResponse
 from source_ozon.schemas.search_promo_report_data import SearchPromoReport
 from source_ozon.schemas.sku_report_data import SkuReport
 from source_ozon.types import IsSuccess, Message
-from source_ozon.utils import chunks, pairwise, get_dates_between
-
-_CAMPAIGN_TYPES_WITHOUT_DATE: set[str] = {"BANNER", "BRAND_SHELF", "SKU"}
+from source_ozon.utils import chunks, pairwise
 
 
 def check_ozon_api_connection(credentials: OzonToken) -> tuple[IsSuccess, Optional[Message]]:
@@ -112,46 +110,22 @@ class CampaignsReportStream(Stream):
             return
 
         campaigns: List[OzonCampaign] = list(self._campaigns_by_ids.values())
-        campaigns_with_date: List[OzonCampaign] = []
-        campaigns_without_date: List[OzonCampaign] = []
-        for campaign in campaigns:
-            if campaign.advObjectType in _CAMPAIGN_TYPES_WITHOUT_DATE:
-                campaigns_without_date.append(campaign)
-            else:
-                campaigns_with_date.append(campaign)
 
-        for chunk in chunks(campaigns_with_date, 10):
+        for chunk in chunks(campaigns, 10):
             self._request_bodies.append(
                 {
                     "campaigns": [campaign.id for campaign in chunk],
                     "dateFrom": self.date_from.strftime("%Y-%m-%d"),
                     "dateTo": self.date_to.strftime("%Y-%m-%d"),
+                    "groupBy": "DATE",
                 }
             )
-
-        for date_str in get_dates_between(date_from=self.date_from, date_to=self.date_to):
-            for chunk in chunks(campaigns_without_date, 10):
-                self._request_bodies.append(
-                    {
-                        "campaigns": [campaign.id for campaign in chunk],
-                        "dateFrom": date_str,
-                        "dateTo": date_str,
-                    }
-                )
 
         print(f"{len(self._request_bodies)} Ozon reports will be created")
 
     def _run_report(self, request_body: Dict[str, Union[List[str], str]]) -> Iterable[Mapping[str, Any]]:
         request_campaign_ids = request_body["campaigns"]
-        request_date_from = request_body["dateFrom"]
-        request_date_to = request_body["dateTo"]
         campaigns_len = len(request_campaign_ids)
-
-        if request_date_from == request_date_to:
-            for campaign_id in request_campaign_ids:
-                campaign = self._campaigns_by_ids[campaign_id]
-                campaign.date = request_date_from
-
         report_id = self._create_report(request_body)
 
         if campaigns_len == 1:
@@ -287,10 +261,12 @@ class CampaignsReportStream(Stream):
                     campaign_type=campaign.advObjectType,
                 )
                 row.report_data = report_schema.parse_obj(dict(zip(columns_headers, current_row)))
-                if campaign.date:
-                    row.report_data.date = campaign.date
-                assert row.report_data.date
-                yield row.dict()
+                assert row.report_data.date, "Date field is missing in report data"
+                row_dict = row.dict()
+                del row_dict["report_data"]["date_den"]
+                del row_dict["report_data"]["date_data"]
+                row_dict["report_data"]["date"] = row.report_data.date
+                yield row_dict
             except Exception as e:
                 print(f"Failed to parse Ozon report for campaign '{campaign.id}': {str(e)}")
                 raise RuntimeError(f"Failed to parse Ozon report for campaign '{campaign.id}': {str(e)}") from e

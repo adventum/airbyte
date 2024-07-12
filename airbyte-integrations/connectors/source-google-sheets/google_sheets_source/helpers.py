@@ -14,6 +14,7 @@ from airbyte_cdk.models.airbyte_protocol import AirbyteRecordMessage, AirbyteStr
 from google.oauth2 import credentials as client_account
 from google.oauth2 import service_account
 from googleapiclient import discovery
+from unidecode import unidecode
 
 from .models.spreadsheet import RowData, Spreadsheet
 
@@ -213,3 +214,22 @@ class Helpers(object):
                 return m.group(2)
         else:
             return id_or_url
+
+    @staticmethod
+    def translate_name(name: str):
+        name = re.sub("[^A-Za-z0-9\s]+", "", unidecode(name))
+        name = name.strip()
+        name = re.sub("[\s]", "_", name)
+        name = re.sub("_{2,}", "_", name)
+        return name.lower()
+
+    @staticmethod
+    def get_all_original_sheets_names(client, spreadsheets: List[Dict[str, str]]):
+
+        all_original_sheets_names = []
+        for spreadsheet_id in spreadsheets:
+            spreadsheet_id = spreadsheet_id["spreadsheet_id"]
+            spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
+            all_original_sheets_names.extend(Helpers.get_sheets_in_spreadsheet(client, spreadsheet_id))
+
+        return all_original_sheets_names

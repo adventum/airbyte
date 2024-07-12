@@ -9,10 +9,10 @@ import shutil
 from datetime import datetime, timedelta
 from typing import Iterator, Mapping, MutableMapping
 
-from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog, ConfiguredAirbyteStream, SyncMode
+from airbyte_cdk.models import AirbyteMessage
+from airbyte_cdk.models import ConfiguredAirbyteCatalog, ConfiguredAirbyteStream, SyncMode
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig, split_config
 from airbyte_cdk.utils.event_timing import create_timer
@@ -45,19 +45,27 @@ class SourceYandexMetrika(AbstractSource):
         check_log_request_ability: bool = False,
     ) -> tuple[list[Mapping[str, any]], str]:
         logger.info(f"Preprocessing raw stream slice {stream_slice} for stream {stream_name}...")
-        preprocessor = getattr(self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"])
-        is_request_on_server, request_id = preprocessor.check_if_log_request_already_on_server(stream_slice)
+        preprocessor = getattr(
+            self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"]
+        )
+        is_request_on_server, request_id = preprocessor.check_if_log_request_already_on_server(
+            stream_slice
+        )
         if is_request_on_server:
             logger.info(f"Log request {request_id} already on server.")
         else:
             logger.info(f"Log request was not found on server, creating it.")
             if check_log_request_ability:
-                is_request_available, request_ability_msg = preprocessor.check_log_request_ability(stream_slice)
+                is_request_available, request_ability_msg = preprocessor.check_log_request_ability(
+                    stream_slice
+                )
                 if not is_request_available:
                     raise Exception(request_ability_msg)
 
             request_id = preprocessor.create_log_request(stream_slice)
-        preprocessed_slice = preprocessor.wait_for_log_request_processed(log_request_id=request_id, stream_slice=stream_slice)
+        preprocessed_slice = preprocessor.wait_for_log_request_processed(
+            log_request_id=request_id, stream_slice=stream_slice
+        )
         return [
             {
                 "date_from": preprocessed_slice["date_from"],
@@ -69,8 +77,12 @@ class SourceYandexMetrika(AbstractSource):
         ], preprocessed_slice["log_request_id"]
 
     def postprocess_raw_stream_slice(self, stream_name: str, stream_slice, log_request_id: str):
-        stream_instance_kwargs = getattr(self, self.raw_data_stream_to_field_map[stream_name]["kwargs_field_name"])
-        preprocessor = getattr(self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"])
+        stream_instance_kwargs = getattr(
+            self, self.raw_data_stream_to_field_map[stream_name]["kwargs_field_name"]
+        )
+        preprocessor = getattr(
+            self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"]
+        )
         if stream_instance_kwargs["clean_slice_after_successfully_loaded"]:
             logger.info(f"clean_slice_after_successfully_loaded {stream_slice}")
             preprocessor.clean_log_request(log_request_id=log_request_id)
@@ -105,16 +117,20 @@ class SourceYandexMetrika(AbstractSource):
                         logger=logger,
                         stream_instance=stream_instance,
                         configured_stream=configured_stream,
-                        connector_state=connector_state,
+                        state_manager=None,  # No incremental -> no state manager
                         internal_config=internal_config,
                     )
                 except AirbyteTracedException as e:
                     raise e
                 except Exception as e:
-                    logger.exception(f"Encountered an exception while reading stream {configured_stream.stream.name}")
+                    logger.exception(
+                        f"Encountered an exception while reading stream {configured_stream.stream.name}"
+                    )
                     display_message = stream_instance.get_error_display_message(e)
                     if display_message:
-                        raise AirbyteTracedException.from_exception(e, message=display_message) from e
+                        raise AirbyteTracedException.from_exception(
+                            e, message=display_message
+                        ) from e
                     raise e
                 finally:
                     timer.finish_event()
@@ -128,38 +144,6 @@ class SourceYandexMetrika(AbstractSource):
         logger.info(f"Finished syncing {self.name}")
         yield from []
 
-    def _read_stream(
-        self,
-        logger: logging.Logger,
-        stream_instance: Stream,
-        configured_stream: ConfiguredAirbyteStream,
-        connector_state: MutableMapping[str, any],
-        internal_config: InternalConfig,
-    ) -> Iterator[AirbyteMessage]:
-        # self._apply_log_level_to_stream_logger(logger, stream_instance)
-        if internal_config.page_size and isinstance(stream_instance, HttpStream):
-            logger.info(f"Setting page size for {stream_instance.name} to {internal_config.page_size}")
-            stream_instance.page_size = internal_config.page_size
-        logger.debug(
-            f"Syncing configured stream: {configured_stream.stream.name}",
-            extra={
-                "sync_mode": configured_stream.sync_mode,
-                "primary_key": configured_stream.primary_key,
-                "cursor_field": configured_stream.cursor_field,
-            },
-        )
-        logger.debug(
-            f"Syncing stream instance: {stream_instance.name}",
-            extra={
-                "primary_key": stream_instance.primary_key,
-                "cursor_field": stream_instance.cursor_field,
-            },
-        )
-
-        logger.info(f"Syncing stream: {configured_stream.stream.name} ")
-        yield from self._read_full_refresh(logger, stream_instance, configured_stream, internal_config)
-        logger.info(f"End of _read_stream stream")
-
     def _read_full_refresh(
         self,
         logger: logging.Logger,
@@ -169,60 +153,67 @@ class SourceYandexMetrika(AbstractSource):
     ) -> Iterator[AirbyteMessage]:
         if stream_instance.__class__.__name__ == "YandexMetrikaRawDataStream":
             stream_instance: YandexMetrikaRawDataStream = stream_instance
-            raw_slices = stream_instance.stream_slices(sync_mode=SyncMode.full_refresh, cursor_field=configured_stream.cursor_field)
+            raw_slices = stream_instance.stream_slices(
+                sync_mode=SyncMode.full_refresh, cursor_field=configured_stream.cursor_field
+            )
             logger.debug(
                 f"Processing raw stream slices for {configured_stream.stream.name}",
                 extra={"stream_slices": raw_slices},
             )
             logger.info(f"Raw slices: {raw_slices}")
-            with create_timer(self.name) as timer:
-                for raw_slice in raw_slices:
-                    logger.info(f"Current raw slice: {raw_slice}")
-                    preprocessed_slices, log_request_id = self.preprocess_raw_stream_slice(
-                        stream_name=stream_instance.name,
-                        stream_slice=raw_slice,
-                        check_log_request_ability=stream_instance.check_log_requests_ability,
-                    )
-                    logger.info(f"Current preprocessed slices: {preprocessed_slices}")
-                    completed_chunks_observer = YandexMetrikaRawSliceMissingChunksObserver(
-                        expected_chunks_ids=[chunk["part"]["part_number"] for chunk in preprocessed_slices]
-                    )
-                    stream_instance_kwargs = getattr(
-                        self,
-                        self.raw_data_stream_to_field_map[stream_instance.name]["kwargs_field_name"],
-                    )
-                    threads_controller = PreprocessedSlicePartThreadsController(
-                        stream_instance=stream_instance,
-                        stream_instance_kwargs=stream_instance_kwargs,
-                        raw_slice=raw_slice,
-                        preprocessed_slices_batch=preprocessed_slices,
-                        multithreading_threads_count=stream_instance_kwargs["multithreading_threads_count"],
-                        timer=timer,
-                        completed_chunks_observer=completed_chunks_observer,
-                    )
-                    logger.info("Threads controller created")
-                    logger.info("Run threads process, get into main loop")
-                    threads_controller.process_threads()
+            for raw_slice in raw_slices:
+                logger.info(f"Current raw slice: {raw_slice}")
+                preprocessed_slices, log_request_id = self.preprocess_raw_stream_slice(
+                    stream_name=stream_instance.name,
+                    stream_slice=raw_slice,
+                    check_log_request_ability=stream_instance.check_log_requests_ability,
+                )
+                logger.info(f"Current preprocessed slices: {preprocessed_slices}")
+                completed_chunks_observer = YandexMetrikaRawSliceMissingChunksObserver(
+                    expected_chunks_ids=[
+                        chunk["part"]["part_number"] for chunk in preprocessed_slices
+                    ]
+                )
+                stream_instance_kwargs = getattr(
+                    self,
+                    self.raw_data_stream_to_field_map[stream_instance.name]["kwargs_field_name"],
+                )
+                threads_controller = PreprocessedSlicePartThreadsController(
+                    stream_instance=stream_instance,
+                    stream_instance_kwargs=stream_instance_kwargs,
+                    raw_slice=raw_slice,
+                    preprocessed_slices_batch=preprocessed_slices,
+                    multithreading_threads_count=stream_instance_kwargs[
+                        "multithreading_threads_count"
+                    ],
+                    completed_chunks_observer=completed_chunks_observer,
+                )
+                logger.info("Threads controller created")
+                logger.info("Run threads process, get into main loop")
+                threads_controller.process_threads()
 
-                    if completed_chunks_observer.is_missing_chunks():
-                        raise MissingChunkIdsError(
-                            f"Missing chunks {completed_chunks_observer.missing_chunks} for raw slice {raw_slice}",
-                        )
-                    else:
-                        logger.info(
-                            "YandexMetrikaRawSliceMissingChunksObserver test completed with no exceptions. "
-                            f"completed_chunks_observer.missing_chunks result: {completed_chunks_observer.missing_chunks}"
-                        )
-
-                    self.postprocess_raw_stream_slice(
-                        stream_name=stream_instance.name, stream_slice=raw_slice, log_request_id=log_request_id
+                if completed_chunks_observer.is_missing_chunks():
+                    raise MissingChunkIdsError(
+                        f"Missing chunks {completed_chunks_observer.missing_chunks} for raw slice {raw_slice}",
                     )
-                    for thread in threads_controller.threads:
-                        for record in thread.records:
-                            yield self._get_message(record_data_or_message=record, stream=stream_instance)
+                else:
+                    logger.info(
+                        "YandexMetrikaRawSliceMissingChunksObserver test completed with no exceptions. "
+                        f"completed_chunks_observer.missing_chunks result: {completed_chunks_observer.missing_chunks}"
+                    )
+
+                self.postprocess_raw_stream_slice(
+                    stream_name=stream_instance.name,
+                    stream_slice=raw_slice,
+                    log_request_id=log_request_id,
+                )
+                for thread in threads_controller.threads:
+                    yield from (self._get_message(record, stream_instance) for record in thread.records)
             yield from []
         else:
-            yield from super()._read_full_refresh(logger, stream_instance, configured_stream, internal_config)
+            yield from super()._read_full_refresh(
+                logger, stream_instance, configured_stream, internal_config
+            )
 
     def check_connection(self, logger, config) -> tuple[bool, any]:
         """Check connection"""
@@ -244,7 +235,9 @@ class SourceYandexMetrika(AbstractSource):
                         False,
                         'Сырые отчёты - источник "Просмотры" (hits) должен содержать поля "ym:pv:watchID" и "ym:pv:dateTime"',
                     )
-            replace_old_values: list[str] = [value["old_value"] for value in raw_hits_config.get("field_name_map", {})]
+            replace_old_values: list[str] = [
+                value["old_value"] for value in raw_hits_config.get("field_name_map", {})
+            ]
             if "ym:pv:watchID" in replace_old_values:
                 return (
                     False,
@@ -269,7 +262,9 @@ class SourceYandexMetrika(AbstractSource):
                         'Сырые отчёты - источник "Визиты" (visits) должен содержать поля "ym:s:visitID" и "ym:s:dateTime"',
                     )
 
-            replace_old_values: list[str] = [value["old_value"] for value in raw_visits_config.get("field_name_map", {})]
+            replace_old_values: list[str] = [
+                value["old_value"] for value in raw_visits_config.get("field_name_map", {})
+            ]
             if "ym:s:visitID" in replace_old_values:
                 return (
                     False,
@@ -292,7 +287,9 @@ class SourceYandexMetrika(AbstractSource):
             test_response = stream.make_test_request()
             test_response_data = test_response.json()
             if test_response_data.get("errors"):
-                return False, f"Table #{stream_n} ({stream.name}) error: " + test_response_data.get("message")
+                return False, f"Table #{stream_n} ({stream.name}) error: " + test_response_data.get(
+                    "message"
+                )
 
         for stream_n, stream in enumerate(
             filter(
@@ -359,10 +356,14 @@ class SourceYandexMetrika(AbstractSource):
             raise ValueError("Invalid date_range_type")
 
         if isinstance(prepared_range["date_from"], str):
-            prepared_range["date_from"] = datetime.strptime(prepared_range["date_from"], CONFIG_DATE_FORMAT)
+            prepared_range["date_from"] = datetime.strptime(
+                prepared_range["date_from"], CONFIG_DATE_FORMAT
+            )
 
         if isinstance(prepared_range["date_to"], str):
-            prepared_range["date_to"] = datetime.strptime(prepared_range["date_to"], CONFIG_DATE_FORMAT)
+            prepared_range["date_to"] = datetime.strptime(
+                prepared_range["date_to"], CONFIG_DATE_FORMAT
+            )
         config["prepared_date_range"] = prepared_range
         return config
 
@@ -378,12 +379,20 @@ class SourceYandexMetrika(AbstractSource):
                 raise_exception_on_check=True,
             )
         else:
-            raise Exception("Неверный типа авторизации. Доступные: access_token_auth и credentials_craft_auth")
+            raise Exception(
+                "Неверный типа авторизации. Доступные: access_token_auth и credentials_craft_auth"
+            )
 
     @staticmethod
-    def format_field_name_map(field_name_map_old_format: list[dict[str, any]] | None) -> dict[str, str]:
+    def format_field_name_map(
+        field_name_map_old_format: list[dict[str, any]] | None
+    ) -> dict[str, str]:
         """Get values that needs to be replaced and their replacements"""
-        return {item["old_value"]: item["new_value"] for item in field_name_map_old_format} if field_name_map_old_format else {}
+        return (
+            {item["old_value"]: item["new_value"] for item in field_name_map_old_format}
+            if field_name_map_old_format
+            else {}
+        )
 
     def streams(self, config: Mapping[str, any], init_for_test: bool = False) -> list[Stream]:
         config = self.transform_config(config)
@@ -409,7 +418,9 @@ class SourceYandexMetrika(AbstractSource):
             stream_config = config.get(source_to_stream_config["in_config_field_name"], {})
             if stream_config["is_enabled"] == "enabled":
                 if not stream_config:
-                    raise Exception(f"Конфигурация для {source_to_stream_config['in_config_field_name']} не предоставлена.")
+                    raise Exception(
+                        f"Конфигурация для {source_to_stream_config['in_config_field_name']} не предоставлена."
+                    )
                 setattr(
                     self,
                     source_to_stream_config["kwargs_field_name"],
@@ -421,10 +432,18 @@ class SourceYandexMetrika(AbstractSource):
                         split_range_days_count=stream_config.get("split_range_days_count"),
                         log_source=source_to_stream_config["source"],
                         fields=stream_config["fields"],
-                        clean_slice_after_successfully_loaded=stream_config.get("clean_every_log_request_after_success", False),
-                        clean_log_requests_before_replication=stream_config.get("clean_log_requests_before_replication", False),
-                        check_log_requests_ability=stream_config.get("check_log_requests_ability", False),
-                        multithreading_threads_count=stream_config.get("multithreading_threads_count", 1),
+                        clean_slice_after_successfully_loaded=stream_config.get(
+                            "clean_every_log_request_after_success", False
+                        ),
+                        clean_log_requests_before_replication=stream_config.get(
+                            "clean_log_requests_before_replication", False
+                        ),
+                        check_log_requests_ability=stream_config.get(
+                            "check_log_requests_ability", False
+                        ),
+                        multithreading_threads_count=stream_config.get(
+                            "multithreading_threads_count", 1
+                        ),
                         created_for_test=init_for_test,
                     ),
                 )
@@ -438,7 +457,9 @@ class SourceYandexMetrika(AbstractSource):
                     attribution=stream_config.get("attribution", ""),
                 )
                 raw_data_streams.append(stream)
-                setattr(self, source_to_stream_config["preprocessor_field_name"], stream.preprocessor)
+                setattr(
+                    self, source_to_stream_config["preprocessor_field_name"], stream.preprocessor
+                )
 
         agg_data_streams = [
             AggregateDataYandexMetrikaReport(

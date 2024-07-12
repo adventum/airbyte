@@ -25,11 +25,15 @@ Can replace id with real value (on later steps), create fields for all currencie
 """
 
 format_funcs: dict[str, Callable[[str], list[str]]] = {
-    "<attribution>": lambda field_name: [field_name.replace("<attribution>", attribution) for attribution in attribution_values],
+    "<attribution>": lambda field_name: [
+        field_name.replace("<attribution>", attribution) for attribution in attribution_values
+    ],
     "<goal_id>": lambda field_name: [field_name.replace("<goal_id>", "\d+")],
     "<group>": lambda field_name: [field_name.replace("<group>", group) for group in group_values],
     "<experiment_ab>": lambda field_name: [field_name.replace("<experiment_ab>", "\d+")],
-    "<currency>": lambda field_name: [field_name.replace("<currency>", currency) for currency in currency_values],
+    "<currency>": lambda field_name: [
+        field_name.replace("<currency>", currency) for currency in currency_values
+    ],
 }
 
 

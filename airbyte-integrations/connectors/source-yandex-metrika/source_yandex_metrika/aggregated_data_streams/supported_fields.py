@@ -21,7 +21,9 @@ fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField("ym:s:goal<goal_id><currency>revenue", field_type="number"),
     YandexMetrikaSourceField("ym:s:goal<goal_id>converted<currency>Revenue", field_type="number"),
     YandexMetrikaSourceField("ym:s:goal<goal_id>ecommercePurchases", field_type="number"),
-    YandexMetrikaSourceField("ym:s:goal<goal_id>ecommerce<currency>ConvertedRevenue", field_type="number"),
+    YandexMetrikaSourceField(
+        "ym:s:goal<goal_id>ecommerce<currency>ConvertedRevenue", field_type="number"
+    ),
     YandexMetrikaSourceField("ym:s:anyGoalConversionRate", field_type="number"),
     YandexMetrikaSourceField("ym:s:sumGoalReachesAny", field_type="integer"),
     YandexMetrikaSourceField("ym:s:paramsNumber", field_type="integer"),
@@ -174,4 +176,6 @@ fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField("ym:ev:goal<goal_id>expense<currency>CRR", field_type="number"),
 ]
 
-aggregated_data_streams_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(fields=fields)
+aggregated_data_streams_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(
+    fields=fields
+)

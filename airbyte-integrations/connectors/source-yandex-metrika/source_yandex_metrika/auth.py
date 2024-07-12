@@ -44,12 +44,9 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             error = f"CredentialsCraft - Время ожидания подключения к {self._cc_host} истекло. Возможно, отсутствует подключение к сети или отключен VPN."
 
         if not error:
-            # print("#"*20)
-            # print(requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"}))
-            # print(requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"}).text)
-            # print("#" * 20)
-            token_resp: dict[str, any] = requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"}).json()
-            # print(token_resp)
+            token_resp: dict[str, any] = requests.get(
+                self._url, headers={"Authorization": f"Bearer {self._cc_token}"}
+            ).json()
             if token_resp.get("error"):
                 error = token_resp.get("error")
 

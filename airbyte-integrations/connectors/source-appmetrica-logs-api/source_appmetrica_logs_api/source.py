@@ -123,7 +123,7 @@ class AppmetricaLogsApiStream(HttpStream, ABC):
 
         return schema
 
-    def postprocess_record(self, record):
+    def postprocess_record(self, record) -> dict:
         for key, value in self.field_name_map.items():
             if key in record:
                 record[value] = record.pop(key)

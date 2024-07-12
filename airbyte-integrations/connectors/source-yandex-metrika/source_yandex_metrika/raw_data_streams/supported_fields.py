@@ -118,19 +118,35 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:<attribution>SearchEngineRoot", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>SearchEngine", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>SocialNetwork", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>SocialNetworkProfile", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>SocialNetworkProfile", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:referer", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickOrder", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectBannerGroup", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectBannerGroup", field_type="integer"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickBanner", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickOrderName", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>ClickBannerGroupName", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickBannerName", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectPhraseOrCond", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectPlatformType", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectClickOrderName", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>ClickBannerGroupName", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectClickBannerName", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectPhraseOrCond", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectPlatformType", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectPlatform", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectConditionType", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:CurrencyID", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectConditionType", field_type="string"
+    ),
+    YandexMetrikaSourceField(field_name="ym:s:<attribution>CurrencyID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:from", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMCampaign", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMContent", field_type="string"),
@@ -259,7 +275,9 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:parsedParamsKey8", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:parsedParamsKey9", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:parsedParamsKey10", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>RecommendationSystem", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>RecommendationSystem", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>Messenger", field_type="string"),
 ]
 

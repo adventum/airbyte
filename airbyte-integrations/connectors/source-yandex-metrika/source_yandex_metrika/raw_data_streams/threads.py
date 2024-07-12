@@ -1,14 +1,12 @@
 import logging
 import os
 import queue
-from datetime import datetime
 from queue import Queue
 from threading import Lock, Thread
 from typing import Mapping, TypeVar
 
 import pandas as pd
 from airbyte_cdk.models import SyncMode
-from airbyte_cdk.utils.event_timing import EventTimer
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 from ..source import YandexMetrikaRawDataStream
@@ -78,26 +76,30 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                 for chunk in df_reader:
                     with self.lock:
                         records: list[dict] = [data for data in chunk.to_dict("records")]
-                        for record in records:
+                        for i, record in enumerate(records):
                             self.stream_instance.replace_keys(record)
-                            # TODO: move postprocess somewhere else
-                            replace_keys = [k for k in record.keys() if "<attribution>" in k]
-                            for key in replace_keys:
-                                new_key = key.replace("<attribution>", self.stream_instance.attribution)
-                                record[new_key] = record.pop(key)
+                            # Replace Nan values
+                            records[i] = {
+                                key: value if not pd.isna(value) else None
+                                for key, value in record.items()
+                            }
+
                         self.records.extend(records)
                         self.records_count += len(records)
-                        print("records_count", self.records_count, filename)
 
             del input_f
 
-            self.completed_chunks_observer.add_actually_loaded_chunk_id(self.stream_slice["part"]["part_number"])
+            self.completed_chunks_observer.add_actually_loaded_chunk_id(
+                self.stream_slice["part"]["part_number"]
+            )
         except AirbyteTracedException as e:
             # logger.info(self.name, "exception", e)
             raise e
         except Exception as e:
             # logger.info(self.name, "exception", e)
-            logger.exception(f"Encountered an exception while reading stream {self.stream_instance.name}")
+            logger.exception(
+                f"Encountered an exception while reading stream {self.stream_instance.name}"
+            )
             display_message = self.stream_instance.get_error_display_message(e)
             if display_message:
                 raise AirbyteTracedException.from_exception(e, message=display_message) from e
@@ -110,7 +112,9 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
     def run(self):
         self.log_info(f"Run processor thread instance {self.name} with slice {self.stream_slice}")
         self.process_log_request()
-        self.log_info(f"End processing thread {self.name} (slice {self.stream_slice}) with {self.records_count} records")
+        self.log_info(
+            f"End processing thread {self.name} (slice {self.stream_slice}) with {self.records_count} records"
+        )
 
 
 _T = TypeVar("_T")
@@ -129,7 +133,6 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
         stream_instance_kwargs: Mapping[str, any],
         preprocessed_slices_batch: list[Mapping[str, any]],
         raw_slice: Mapping[str, any],
-        timer: EventTimer,
         completed_chunks_observer: "YandexMetrikaRawSliceMissingChunksObserver",
         multithreading_threads_count: int = 1,
     ):
@@ -154,7 +157,6 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
 
         self.stream_instance_kwargs = stream_instance_kwargs
         self.multithreading_threads_count = multithreading_threads_count
-        self.timer = timer
 
     def process_threads(self):
         threads_queue = queue.Queue()
@@ -168,7 +170,10 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
                 if not thread.is_alive():
                     running_threads.remove(thread)
 
-            if len(running_threads) < self.multithreading_threads_count and not threads_queue.empty():
+            if (
+                len(running_threads) < self.multithreading_threads_count
+                and not threads_queue.empty()
+            ):
                 thread: Thread = threads_queue.get()
                 thread.start()
                 running_threads.append(thread)

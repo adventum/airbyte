@@ -88,7 +88,9 @@ class YandexMetrikaStreamPreprocessor:
     ) -> tuple[bool, int | None]:
         # Return (True, <log_request_id>) if log request was found, otherwise return (False, None)
         try:
-            available_log_requests = cached_available_log_requests or self.get_available_log_requests()
+            available_log_requests = (
+                cached_available_log_requests or self.get_available_log_requests()
+            )
         except Exception as ex:
             logger.error(ex)
             return False, None
@@ -207,11 +209,16 @@ class YandexMetrikaStreamPreprocessor:
     def check_stream_slices_ability(self) -> tuple[bool, any]:
         available_log_requests = self.get_available_log_requests()
         for raw_stream_slice in self.stream_instance.stream_slices():
-            is_already_on_server, on_server_log_request_id = self.check_if_log_request_already_on_server(
-                stream_slice=raw_stream_slice, cached_available_log_requests=available_log_requests
+            is_already_on_server, on_server_log_request_id = (
+                self.check_if_log_request_already_on_server(
+                    stream_slice=raw_stream_slice,
+                    cached_available_log_requests=available_log_requests,
+                )
             )
             if is_already_on_server:
-                logger.info(f"Check raw slice {raw_stream_slice}. Status: Already on server. Log request ID: {on_server_log_request_id}")
+                logger.info(
+                    f"Check raw slice {raw_stream_slice}. Status: Already on server. Log request ID: {on_server_log_request_id}"
+                )
                 continue
             is_possible, is_possible_message = self.check_log_request_ability(raw_stream_slice)
             logger.info(f"Check raw slice {raw_stream_slice}. Is possible: {is_possible}")

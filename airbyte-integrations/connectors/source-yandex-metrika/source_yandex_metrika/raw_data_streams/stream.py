@@ -17,11 +17,11 @@ from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 
 from .stream_preprocessor import YandexMetrikaStreamPreprocessor
 from ..base_stream import YandexMetrikaStream
+from ..translations import attribution_translations
 from ..utils import (
     daterange_days_list,
     random_output_filename,
 )
-from ..translations import attribution_translations
 
 logger = logging.getLogger("airbyte")
 
@@ -97,7 +97,9 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
                 raise Exception(message)
 
     def get_json_schema(self) -> Mapping[str, any]:
-        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("yandex_metrika_raw_data_stream")
+        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
+            "yandex_metrika_raw_data_stream"
+        )
         for key in self.fields:
             schema["properties"][key] = {"type": ["null", "string"]}
 
@@ -119,7 +121,9 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
     def next_page_token(self, *args, **kwargs) -> Mapping[str, any] | None:
         return None
 
-    def request_params(self, stream_slice: Mapping[str, any] = None, *args, **kwargs) -> MutableMapping[str, any]:
+    def request_params(
+        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
+    ) -> MutableMapping[str, any]:
         return {
             "date1": datetime.strftime(stream_slice["date_from"], "%Y-%m-%d"),
             "date2": datetime.strftime(stream_slice["date_to"], "%Y-%m-%d"),

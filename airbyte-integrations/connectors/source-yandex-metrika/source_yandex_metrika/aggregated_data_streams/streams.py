@@ -14,7 +14,12 @@ from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
-from ..translations import attribution_translations, currency_translations, date_group_translations, preset_name_translations
+from ..translations import (
+    attribution_translations,
+    currency_translations,
+    date_group_translations,
+    preset_name_translations,
+)
 from ..base_stream import YandexMetrikaStream
 
 from .supported_fields import aggregated_data_streams_fields_manager
@@ -62,7 +67,9 @@ class ReportConfig(NamedTuple):
 class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
     limit = 1000
     primary_key = None
-    transformer: TypeTransformer = TypeTransformer(config=TransformConfig.DefaultSchemaNormalization)
+    transformer: TypeTransformer = TypeTransformer(
+        config=TransformConfig.DefaultSchemaNormalization
+    )
 
     def __init__(
         self,
@@ -116,7 +123,9 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         headers = self._authenticator.get_auth_header()
         return requests.get(self.url_base + self.path(), params=test_params, headers=headers)
 
-    def request_params(self, next_page_token: Mapping[str, any] = {}, *args, **kwargs) -> MutableMapping[str, any]:
+    def request_params(
+        self, next_page_token: Mapping[str, any] = {}, *args, **kwargs
+    ) -> MutableMapping[str, any]:
         params = {
             "ids": self.global_config["counter_id"],
             "limit": self.limit,
@@ -136,7 +145,9 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         params["date2"] = self.global_config.get("prepared_date_range", {}).get("date_to").date()
 
         if self.report_config.get("direct_client_logins"):
-            params["direct_client_logins"] = ",".join(self.report_config.get("direct_client_logins"))
+            params["direct_client_logins"] = ",".join(
+                self.report_config.get("direct_client_logins")
+            )
 
         if self.report_config.get("filters"):
             params["filters"] = self.report_config.get("filters")

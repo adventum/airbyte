@@ -3,7 +3,6 @@
 #
 
 
-import copy
 import logging
 import shutil
 from datetime import datetime, timedelta
@@ -14,9 +13,7 @@ from airbyte_cdk.models import ConfiguredAirbyteCatalog, ConfiguredAirbyteStream
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
-from airbyte_cdk.sources.utils.schema_helpers import InternalConfig, split_config
-from airbyte_cdk.utils.event_timing import create_timer
-from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
 
 from .aggregated_data_streams.streams import (
     AggregateDataYandexMetrikaReport,
@@ -94,52 +91,13 @@ class SourceYandexMetrika(AbstractSource):
         catalog: ConfiguredAirbyteCatalog,
         state: MutableMapping[str, any] = None,
     ) -> Iterator[AirbyteMessage]:
-        connector_state = copy.deepcopy(state or {})
+        yield from super().read(logger, config, catalog, state)
 
-        logger.info(f"Starting syncing {self.name}")
-        config, internal_config = split_config(config)
-
-        stream_instances = {s.name: s for s in self.streams(config)}
-        self._stream_to_instance_map = stream_instances
-
-        with create_timer(self.name) as timer:
+        # Remove tmp folder
+        try:
             shutil.rmtree("output", ignore_errors=True)
-            for configured_stream in catalog.streams:
-                stream_instance = stream_instances.get(configured_stream.stream.name)
-                if not stream_instance:
-                    raise KeyError(
-                        f"The requested stream {configured_stream.stream.name} was not found in the source."
-                        f" Available streams: {stream_instances.keys()}"
-                    )
-                try:
-                    timer.start_event(f"Syncing stream {configured_stream.stream.name}")
-                    yield from self._read_stream(
-                        logger=logger,
-                        stream_instance=stream_instance,
-                        configured_stream=configured_stream,
-                        state_manager=None,  # No incremental -> no state manager
-                        internal_config=internal_config,
-                    )
-                except AirbyteTracedException as e:
-                    raise e
-                except Exception as e:
-                    logger.exception(
-                        f"Encountered an exception while reading stream {configured_stream.stream.name}"
-                    )
-                    display_message = stream_instance.get_error_display_message(e)
-                    if display_message:
-                        raise AirbyteTracedException.from_exception(
-                            e, message=display_message
-                        ) from e
-                    raise e
-                finally:
-                    timer.finish_event()
-                    logger.info(f"Finished syncing {configured_stream.stream.name}")
-                    logger.info(timer.report())
-                    try:
-                        shutil.rmtree("output", ignore_errors=True)
-                    except:
-                        pass
+        except:
+            pass
 
         logger.info(f"Finished syncing {self.name}")
         yield from []
@@ -151,8 +109,7 @@ class SourceYandexMetrika(AbstractSource):
         configured_stream: ConfiguredAirbyteStream,
         internal_config: InternalConfig,
     ) -> Iterator[AirbyteMessage]:
-        if stream_instance.__class__.__name__ == "YandexMetrikaRawDataStream":
-            stream_instance: YandexMetrikaRawDataStream = stream_instance
+        if isinstance(stream_instance, YandexMetrikaRawDataStream):
             raw_slices = stream_instance.stream_slices(
                 sync_mode=SyncMode.full_refresh, cursor_field=configured_stream.cursor_field
             )
@@ -190,6 +147,7 @@ class SourceYandexMetrika(AbstractSource):
                 )
                 logger.info("Threads controller created")
                 logger.info("Run threads process, get into main loop")
+
                 threads_controller.process_threads()
 
                 if completed_chunks_observer.is_missing_chunks():
@@ -207,8 +165,10 @@ class SourceYandexMetrika(AbstractSource):
                     stream_slice=raw_slice,
                     log_request_id=log_request_id,
                 )
+
                 for thread in threads_controller.threads:
-                    yield from (self._get_message(record, stream_instance) for record in thread.records)
+                    records_generator = thread.records_generator()
+                    yield from (self._get_message(record, stream_instance) for record in records_generator)
             yield from []
         else:
             yield from super()._read_full_refresh(

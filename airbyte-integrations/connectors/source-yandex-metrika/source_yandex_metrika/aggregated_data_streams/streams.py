@@ -107,7 +107,7 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         if test_response.get("errors"):
             raise Exception(test_response["message"])
         for dimension in test_response["query"]["dimensions"]:
-            schema["properties"][dimension] = {"type": ["string", "null"]}
+            schema["properties"][dimension] = {"type": ["null", "string"]}
         for metric in test_response["query"]["metrics"]:
             lookup_ok, field_type = aggregated_data_streams_fields_manager.field_lookup(metric)
             if not lookup_ok:

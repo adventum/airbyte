@@ -3,7 +3,7 @@ import os
 import queue
 from queue import Queue
 from threading import Lock, Thread
-from typing import Mapping, TypeVar
+from typing import Mapping, TypeVar, Iterable
 
 import pandas as pd
 from airbyte_cdk.models import SyncMode
@@ -56,7 +56,42 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
         self.records_count = 0
         self.lock = lock
         self.completed_chunks_observer = completed_chunks_observer
-        self.records = []
+        self.filename: str | None = None
+
+    def records_generator(self) -> Iterable[Mapping[str, any]]:
+        try:
+            with open(self.filename, "r") as input_f:
+                df_reader = pd.read_csv(input_f, chunksize=5000, delimiter="\t")
+                for chunk in df_reader:
+                    with self.lock:
+                        records: list[dict] = [data for data in chunk.to_dict("records")]
+                        for record in records:
+                            self.stream_instance.replace_keys(record)
+                            # Replace Nan values
+                            record = {
+                                key: value if not pd.isna(value) else None
+                                for key, value in record.items()
+                            }
+                            self.records_count += 1
+                            yield record
+            del input_f
+            del df_reader
+        except AirbyteTracedException as e:
+            logger.info(self.name, "exception", e)
+            raise e
+        except Exception as e:
+            logger.info(self.name, "exception", e)
+            logger.exception(
+                f"Encountered an exception while reading stream {self.stream_instance.name}"
+            )
+            display_message = self.stream_instance.get_error_display_message(e)
+            if display_message:
+                raise AirbyteTracedException.from_exception(e, message=display_message) from e
+            raise e
+        finally:
+            logger.info(f"Remove file {self.filename} for slice {self.stream_slice}")
+            os.remove(self.filename)
+            logger.info(f"Finished syncing {self.stream_instance.name}")
 
     def process_log_request(self):
         try:
@@ -70,44 +105,10 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
             logger.info(f"Failed to get file for stream slice {self.stream_slice.values()}")
             return
 
-        try:
-            with open(filename, "r") as input_f:
-                df_reader = pd.read_csv(input_f, chunksize=5000, delimiter="\t")
-                for chunk in df_reader:
-                    with self.lock:
-                        records: list[dict] = [data for data in chunk.to_dict("records")]
-                        for i, record in enumerate(records):
-                            self.stream_instance.replace_keys(record)
-                            # Replace Nan values
-                            records[i] = {
-                                key: value if not pd.isna(value) else None
-                                for key, value in record.items()
-                            }
-
-                        self.records.extend(records)
-                        self.records_count += len(records)
-
-            del input_f
-
-            self.completed_chunks_observer.add_actually_loaded_chunk_id(
-                self.stream_slice["part"]["part_number"]
-            )
-        except AirbyteTracedException as e:
-            # logger.info(self.name, "exception", e)
-            raise e
-        except Exception as e:
-            # logger.info(self.name, "exception", e)
-            logger.exception(
-                f"Encountered an exception while reading stream {self.stream_instance.name}"
-            )
-            display_message = self.stream_instance.get_error_display_message(e)
-            if display_message:
-                raise AirbyteTracedException.from_exception(e, message=display_message) from e
-            raise e
-        finally:
-            logger.info(f"Remove file {filename} for slice {self.stream_slice}")
-            os.remove(filename)
-            logger.info(f"Finished syncing {self.stream_instance.name}")
+        self.filename = filename
+        self.completed_chunks_observer.add_actually_loaded_chunk_id(
+            self.stream_slice["part"]["part_number"]
+        )
 
     def run(self):
         self.log_info(f"Run processor thread instance {self.name} with slice {self.stream_slice}")

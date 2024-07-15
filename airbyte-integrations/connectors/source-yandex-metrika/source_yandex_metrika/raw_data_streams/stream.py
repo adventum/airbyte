@@ -5,10 +5,11 @@
 
 import logging
 import os
+import typing
 from abc import ABC
 from datetime import datetime
 from queue import Queue
-from typing import Iterable, Mapping, MutableMapping
+from typing import Iterable, Mapping, MutableMapping, Optional, Tuple
 
 import requests
 from airbyte_cdk.sources.streams.core import package_name_from_class
@@ -22,6 +23,9 @@ from ..utils import (
     daterange_days_list,
     random_output_filename,
 )
+
+if typing.TYPE_CHECKING:
+    from airbyte_cdk.sources import Source
 
 logger = logging.getLogger("airbyte")
 
@@ -117,6 +121,10 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         path = f"counter/{self.counter_id}/logrequest/{stream_slice['log_request_id']}/part/{stream_slice['part']['part_number']}/download"
         logger.info(f"Path: {path}")
         return path
+
+    def check_availability(self, logger: logging.Logger, source: Optional["Source"] = None) -> Tuple[bool, Optional[str]]:
+        # Custom stream used custom read that fails to check it
+        return True, None
 
     def next_page_token(self, *args, **kwargs) -> Mapping[str, any] | None:
         return None

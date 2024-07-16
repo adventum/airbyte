@@ -131,7 +131,6 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
     def __init__(
         self,
         stream_instance: YandexMetrikaRawDataStream,
-        stream_instance_kwargs: Mapping[str, any],
         preprocessed_slices_batch: list[Mapping[str, any]],
         raw_slice: Mapping[str, any],
         completed_chunks_observer: "YandexMetrikaRawSliceMissingChunksObserver",
@@ -156,7 +155,6 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
                 )
             )
 
-        self.stream_instance_kwargs = stream_instance_kwargs
         self.multithreading_threads_count = multithreading_threads_count
 
     def process_threads(self):

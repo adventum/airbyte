@@ -20,9 +20,9 @@ from .aggregated_data_streams.streams import (
     ReportConfig,
 )
 from .auth import CredentialsCraftAuthenticator
+from .exceptions import ConfigInvalidError
 from .raw_data_streams.exceptions import MissingChunkIdsError
 from .raw_data_streams.stream import YandexMetrikaRawDataStream
-from .raw_data_streams.supported_fields import hits_fields_manager, visits_fields_manager
 from .raw_data_streams.threads import (
     PreprocessedSlicePartThreadsController,
     YandexMetrikaRawSliceMissingChunksObserver,
@@ -32,19 +32,17 @@ logger = logging.getLogger("airbyte")
 CONFIG_DATE_FORMAT = "%Y-%m-%d"
 
 
-# Source
 class SourceYandexMetrika(AbstractSource):
 
+    @staticmethod
     def preprocess_raw_stream_slice(
-        self,
-        stream_name: str,
+        stream_instance: YandexMetrikaRawDataStream,
         stream_slice: Mapping[str, any],
         check_log_request_ability: bool = False,
     ) -> tuple[list[Mapping[str, any]], str]:
-        logger.info(f"Preprocessing raw stream slice {stream_slice} for stream {stream_name}...")
-        preprocessor = getattr(
-            self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"]
-        )
+        logger.info(f"Preprocessing raw stream slice {stream_slice} for stream {stream_instance.name}...")
+
+        preprocessor = stream_instance.preprocessor
         is_request_on_server, request_id = preprocessor.check_if_log_request_already_on_server(
             stream_slice
         )
@@ -73,14 +71,10 @@ class SourceYandexMetrika(AbstractSource):
             for part in preprocessed_slice["processed_parts"]
         ], preprocessed_slice["log_request_id"]
 
-    def postprocess_raw_stream_slice(self, stream_name: str, stream_slice, log_request_id: str):
-        stream_instance_kwargs = getattr(
-            self, self.raw_data_stream_to_field_map[stream_name]["kwargs_field_name"]
-        )
-        preprocessor = getattr(
-            self, self.raw_data_stream_to_field_map[stream_name]["preprocessor_field_name"]
-        )
-        if stream_instance_kwargs["clean_slice_after_successfully_loaded"]:
+    @staticmethod
+    def postprocess_raw_stream_slice(stream_instance: YandexMetrikaRawDataStream, stream_slice, log_request_id: str):
+        preprocessor = stream_instance.preprocessor
+        if stream_instance.clean_slice_after_successfully_loaded:
             logger.info(f"clean_slice_after_successfully_loaded {stream_slice}")
             preprocessor.clean_log_request(log_request_id=log_request_id)
 
@@ -121,7 +115,7 @@ class SourceYandexMetrika(AbstractSource):
             for raw_slice in raw_slices:
                 logger.info(f"Current raw slice: {raw_slice}")
                 preprocessed_slices, log_request_id = self.preprocess_raw_stream_slice(
-                    stream_name=stream_instance.name,
+                    stream_instance=stream_instance,
                     stream_slice=raw_slice,
                     check_log_request_ability=stream_instance.check_log_requests_ability,
                 )
@@ -131,18 +125,12 @@ class SourceYandexMetrika(AbstractSource):
                         chunk["part"]["part_number"] for chunk in preprocessed_slices
                     ]
                 )
-                stream_instance_kwargs = getattr(
-                    self,
-                    self.raw_data_stream_to_field_map[stream_instance.name]["kwargs_field_name"],
-                )
+
                 threads_controller = PreprocessedSlicePartThreadsController(
                     stream_instance=stream_instance,
-                    stream_instance_kwargs=stream_instance_kwargs,
                     raw_slice=raw_slice,
                     preprocessed_slices_batch=preprocessed_slices,
-                    multithreading_threads_count=stream_instance_kwargs[
-                        "multithreading_threads_count"
-                    ],
+                    multithreading_threads_count=stream_instance.multithreading_threads_count,
                     completed_chunks_observer=completed_chunks_observer,
                 )
                 logger.info("Threads controller created")
@@ -161,7 +149,7 @@ class SourceYandexMetrika(AbstractSource):
                     )
 
                 self.postprocess_raw_stream_slice(
-                    stream_name=stream_instance.name,
+                    stream_instance=stream_instance,
                     stream_slice=raw_slice,
                     log_request_id=log_request_id,
                 )
@@ -178,118 +166,36 @@ class SourceYandexMetrika(AbstractSource):
     def check_connection(self, logger, config) -> tuple[bool, any]:
         """Check connection"""
 
-        """Check hits config"""
-        raw_hits_config: dict = config.get("raw_data_hits_report")
-        if raw_hits_config.get("is_enabled") == "enabled":
-            for f in raw_hits_config.get("fields", []):
-                if f not in hits_fields_manager.get_all_fields_values():
-                    return (
-                        False,
-                        f'Сырые отчёты - источник "Просмотры" (hits) не может содержать поле "{f}". См. доступные поля: '
-                        "https://yandex.ru/dev/metrika/doc/api2/logs/fields/hits.html",
-                    )
-
-            for r_f in hits_fields_manager.get_required_fields_names():
-                if r_f not in raw_hits_config.get("fields", []):
-                    return (
-                        False,
-                        'Сырые отчёты - источник "Просмотры" (hits) должен содержать поля "ym:pv:watchID" и "ym:pv:dateTime"',
-                    )
-            replace_old_values: list[str] = [
-                value["old_value"] for value in raw_hits_config.get("field_name_map", {})
-            ]
-            if "ym:pv:watchID" in replace_old_values:
-                return (
-                    False,
-                    'Сырые отчёты - источник "Просмотры" (hits) не допускает переименования поля "ym:pv:watchID"',
-                )
-
-        """Check visits config"""
-        raw_visits_config: dict = config.get("raw_data_visits_report")
-        if raw_visits_config.get("is_enabled") == "enabled":
-            for f in raw_visits_config.get("fields", []):
-                if f not in visits_fields_manager.get_all_fields_values():
-                    return (
-                        False,
-                        f'Сырые отчёты - источник "Визиты" (visits) не может содержать поле "{f}". См. доступные поля: '
-                        "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html",
-                    )
-
-            for r_f in visits_fields_manager.get_required_fields_names():
-                if r_f not in raw_visits_config.get("fields", []):
-                    return (
-                        False,
-                        'Сырые отчёты - источник "Визиты" (visits) должен содержать поля "ym:s:visitID" и "ym:s:dateTime"',
-                    )
-
-            replace_old_values: list[str] = [
-                value["old_value"] for value in raw_visits_config.get("field_name_map", {})
-            ]
-            if "ym:s:visitID" in replace_old_values:
-                return (
-                    False,
-                    'Сырые отчёты - источник "Визиты" (visits) не допускает переименования поля "ym:s:visitID"',
-                )
-
         """Check auth"""
         auth = self.get_auth(config)
         if isinstance(auth, CredentialsCraftAuthenticator):
             auth.check_connection(raise_exception=True)
 
-        self.streams(config)
+        try:
+            streams = self.streams(config, init_for_test=True)
+        except ConfigInvalidError as ex:
+            return False, str(ex)
 
-        for stream_n, stream in enumerate(
-            filter(
-                lambda stream: stream.__class__.__name__ == "AggregateDataYandexMetrikaReport",
-                self.streams(config),
-            )
-        ):
-            test_response = stream.make_test_request()
-            test_response_data = test_response.json()
-            if test_response_data.get("errors"):
-                return False, f"Table #{stream_n} ({stream.name}) error: " + test_response_data.get(
-                    "message"
-                )
-
-        for stream_n, stream in enumerate(
-            filter(
-                lambda stream: stream.__class__.__name__ == "YandexMetrikaRawDataStream",
-                self.streams(config),
-            )
-        ):
-            stream: YandexMetrikaRawDataStream
-            preprocessor = stream.preprocessor
-            if stream.check_log_requests_ability:
-                can_replicate_all_slices, message = preprocessor.check_stream_slices_ability()
-                if not can_replicate_all_slices:
-                    return can_replicate_all_slices, message
+        for stream_number, stream in enumerate(streams):
+            if isinstance(stream, YandexMetrikaRawDataStream):
+                preprocessor = stream.preprocessor
+                if stream.check_log_requests_ability:
+                    can_replicate_all_slices, message = preprocessor.check_stream_slices_ability()
+                    if not can_replicate_all_slices:
+                        return can_replicate_all_slices, message
+            elif isinstance(stream, AggregateDataYandexMetrikaReport):
+                test_response = stream.make_test_request()
+                test_response_data = test_response.json()
+                if test_response_data.get("errors"):
+                    return False, f"Table #{stream_number} ({stream.name}) error: " + test_response_data.get(
+                        "message"
+                    )
 
         return True, None
 
     def transform_config(self, raw_config: dict[str, any]) -> Mapping[str, any]:
-        transformed_config = {
-            "counter_id": int(raw_config["counter_id"]),
-            "aggregate_tables": [
-                ReportConfig(
-                    name=agg_report_config.get("name"),
-                    counter_id=raw_config["counter_id"],
-                    preset_name=agg_report_config.get("preset_name"),
-                    metrics=agg_report_config.get("metrics"),
-                    dimensions=agg_report_config.get("dimensions"),
-                    filters=agg_report_config.get("filters"),
-                    direct_client_logins=agg_report_config.get("direct_client_logins"),
-                    attribution=agg_report_config.get("attribution"),
-                    goal_id=agg_report_config.get("goal_id"),
-                    date_group=agg_report_config.get("date_group"),
-                    currency=agg_report_config.get("currency"),
-                    experiment_ab_id=agg_report_config.get("experiment_ab_id"),
-                )
-                for agg_report_config in raw_config.get("aggregated_reports", [])
-            ],
-        }
-        transformed_config.update(self.transform_date_range(raw_config))
-        raw_config.update(transformed_config)
-
+        raw_config = self.transform_date_range(raw_config)
+        raw_config["counter_id"] = int(raw_config["counter_id"])
         return raw_config
 
     def transform_date_range(self, config: Mapping[str, any]) -> dict[str, any]:
@@ -355,79 +261,36 @@ class SourceYandexMetrika(AbstractSource):
         )
 
     def streams(self, config: Mapping[str, any], init_for_test: bool = False) -> list[Stream]:
+        """Get streams"""
+
+        """Process config and get auth"""
         config = self.transform_config(config)
         auth = self.get_auth(config)
 
-        self.raw_data_stream_to_field_map = {
-            "raw_data_hits": {
-                "kwargs_field_name": "raw_data_hits_stream_kwargs",
-                "in_config_field_name": "raw_data_hits_report",
-                "source": "hits",
-                "preprocessor_field_name": "raw_data_hits_preprocessor",
-            },
-            "raw_data_visits": {
-                "kwargs_field_name": "raw_data_visits_stream_kwargs",
-                "in_config_field_name": "raw_data_visits_report",
-                "source": "visits",
-                "preprocessor_field_name": "raw_data_visits_preprocessor",
-            },
-        }
+        """Add raw data streams"""
         raw_data_streams = []
-        for stream_name in self.raw_data_stream_to_field_map.keys():
-            source_to_stream_config = self.raw_data_stream_to_field_map[stream_name]
-            stream_config = config.get(source_to_stream_config["in_config_field_name"], {})
-            if stream_config["is_enabled"] == "enabled":
-                if not stream_config:
-                    raise Exception(
-                        f"Конфигурация для {source_to_stream_config['in_config_field_name']} не предоставлена."
-                    )
-                setattr(
-                    self,
-                    source_to_stream_config["kwargs_field_name"],
-                    dict(
-                        authenticator=auth,
-                        counter_id=config["counter_id"],
-                        date_from=config["prepared_date_range"]["date_from"],
-                        date_to=config["prepared_date_range"]["date_to"],
-                        split_range_days_count=stream_config.get("split_range_days_count"),
-                        log_source=source_to_stream_config["source"],
-                        fields=stream_config["fields"],
-                        clean_slice_after_successfully_loaded=stream_config.get(
-                            "clean_every_log_request_after_success", False
-                        ),
-                        clean_log_requests_before_replication=stream_config.get(
-                            "clean_log_requests_before_replication", False
-                        ),
-                        check_log_requests_ability=stream_config.get(
-                            "check_log_requests_ability", False
-                        ),
-                        multithreading_threads_count=stream_config.get(
-                            "multithreading_threads_count", 1
-                        ),
-                        created_for_test=init_for_test,
-                    ),
-                )
-
-                stream = YandexMetrikaRawDataStream(
-                    **getattr(
-                        self,
-                        source_to_stream_config["kwargs_field_name"],
-                    ),
-                    field_name_map=self.format_field_name_map(stream_config.get("field_name_map")),
-                    attribution=stream_config.get("attribution", ""),
-                )
-                raw_data_streams.append(stream)
-                setattr(
-                    self, source_to_stream_config["preprocessor_field_name"], stream.preprocessor
-                )
-
-        agg_data_streams = [
-            AggregateDataYandexMetrikaReport(
+        for stream_config in config.get("raw_data_hits_visits_report", []):
+            stream = YandexMetrikaRawDataStream(
+                stream_config=stream_config,
                 authenticator=auth,
-                global_config=config,
-                report_config=stream_config,
+                counter_id=config["counter_id"],
+                date_from=config["prepared_date_range"]["date_from"],
+                date_to=config["prepared_date_range"]["date_to"],
+                log_source=stream_config["report_type"],
+                created_for_test=init_for_test,
                 field_name_map=self.format_field_name_map(stream_config.get("field_name_map")),
             )
-            for stream_config in config.get("aggregated_reports", [])
-        ]
-        return [*raw_data_streams, *agg_data_streams]
+
+            raw_data_streams.append(stream)
+
+        """Add aggregated streams"""
+        aggregated_data_streams = []
+        for stream_config in config.get("aggregated_reports", []):
+            stream = AggregateDataYandexMetrikaReport(
+                authenticator=auth,
+                counter_id=config["counter_id"],
+                stream_config=stream_config,
+                field_name_map=self.format_field_name_map(config.get("field_name_map")),
+            )
+            aggregated_data_streams.append(stream)
+        return [*raw_data_streams, *aggregated_data_streams]

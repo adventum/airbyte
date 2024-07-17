@@ -114,17 +114,19 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     @property
     def name(self) -> str:
-        return f"raw_data_{self.log_source}{('_' + self._name) if self.name else ''}"
+        name = f"raw_data_{self.log_source}"
+        if self._name:
+            name += f"_{self._name}"
+        return name
 
     def get_json_schema(self) -> Mapping[str, any]:
         schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
-            "yandex_metrika_raw_data_stream"
+                "yandex_metrika_raw_data_stream"
         )
-        for key in self.fields:
-            schema["properties"][key] = {"type": ["null", "string"]}
+        for field in self.fields:
+            schema["properties"][field] = {"type": ["null", "string"]}
 
         super().replace_keys(schema["properties"])
-
         return schema
 
     def path(

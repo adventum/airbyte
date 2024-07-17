@@ -5,23 +5,23 @@
     "title" : "Wordstat spec",
     "type" : "object",
     "required" : [
-      "cookies",
+      "curl",
       "region",
-      "device",
+      "devices",
       "keywords",
       "date_range",
       "group_by"
     ],
     "additionalProperties" : false,
     "properties" : {
-      "cookies" : {
+      "curl" : {
         "type" : "string",
-        "title" : "Куки",
-        "description" : "Куки, полученные из консоли разработчика в браузере в формате json",
+        "title" : "curl Запроса",
+        "description" : "Откройте в браузере на странице вордстата консоль разработчика, раздел сеть (network), выьерите Fetch/XHR. Обновите результаты и нажмите на запрос search. Кликните правой кнопкой мыши и выберите скопировать curl. Вставьте полученную строку сюда",
         "airbyte_secret" : true,
         "order" : 0,
         "examples" : [
-          "{\"yandexuid\":\"111222333\", \"Session_id\": \"10\"}"
+          "curl 'https://wordstat.yandex.ru/wordstat/api/search' \\\n-X 'POST' \\\n-H 'Content-Type: application/json' \\\n-H 'Accept: */*' \\\n-H 'Sec-Fetch-Site: same-origin' \\\n-H 'Accept-Language: ru' \\\n-H 'Accept-Encoding: gzip, deflate, br' \\\n-H 'Sec-Fetch-Mode: cors' \\\n-H 'Host: wordstat.yandex.ru' \\\n-H 'Origin: https://wordstat.yandex.ru' \\-data-binary $'{\"something\"}"
         ]
       },
       "region" : {
@@ -34,14 +34,101 @@
             "title" : "Все",
             "description" : "Искать во всех регионах",
             "properties" : {
-              "region_filter" : {
+              "region_type" : {
                 "type" : "string",
                 "const" : "all",
                 "order" : 0
               }
             },
             "required" : [
-              "region_filter"
+              "region_type"
+            ]
+          },
+          {
+            "title" : "Выбрать регионы",
+            "description" : "Выберите из списка страны или регионы, по которым будет осуществляться поиск",
+            "properties" : {
+              "region_type" : {
+                "type" : "string",
+                "const" : "select",
+                "order" : 0
+              },
+              "selected_regions" : {
+                "type" : "array",
+                "items" : {
+                  "title" : "Регионы и страны",
+                  "enum" : [
+                    "Россия",
+                    "Украина",
+                    "Беларусь",
+                    "Казахстан",
+                    "Архангельск",
+                    "Астрахань",
+                    "Барнаул",
+                    "Белгород",
+                    "Благовещенск",
+                    "Брянск",
+                    "Великий Новгород",
+                    "Владивосток",
+                    "Владикавказ",
+                    "Владимир",
+                    "Волгоград",
+                    "Вологда",
+                    "Воронеж",
+                    "Грозный",
+                    "Екатеринбург",
+                    "Иваново",
+                    "Иркутск",
+                    "Йошкар-Ола",
+                    "Казань",
+                    "Калининград",
+                    "Кемерово",
+                    "Кострома",
+                    "Краснодар",
+                    "Красноярск",
+                    "Курган",
+                    "Курск",
+                    "Липецк",
+                    "Махачкала",
+                    "Москва и Московская область",
+                    "Москва",
+                    "Мурманск",
+                    "Назрань",
+                    "Нальчик",
+                    "Нижний Новгород",
+                    "Новосибирск",
+                    "Омск",
+                    "Орел",
+                    "Оренбург",
+                    "Пенза",
+                    "Пермь",
+                    "Псков",
+                    "Ростов-на-Дону",
+                    "Рязань",
+                    "Самара",
+                    "Санкт-Петербург",
+                    "Саранск",
+                    "Смоленск",
+                    "Сочи",
+                    "Ставрополь",
+                    "Сургут",
+                    "Тамбов",
+                    "Тверь",
+                    "Томск",
+                    "Тула",
+                    "Ульяновск",
+                    "Уфа",
+                    "Хабаровск",
+                    "Чебоксары",
+                    "Челябинск",
+                    "Черкесск",
+                    "Ярославль"
+                  ]
+                }
+              }
+            },
+            "required" : [
+              "region_type"
             ]
           }
         ],
@@ -49,15 +136,15 @@
           "region_filter" : "all"
         }
       },
-      "device" : {
-        "title" : "Тип устройства",
+      "devices" : {
+        "title" : "Устройства",
         "order" : 2,
         "type" : "array",
         "items" : {
           "enum" : [
-            "desktop",
-            "phone",
-            "tablet"
+            "Смартфоны",
+            "Планшеты",
+            "Десктопы"
           ]
         }
       },
@@ -76,7 +163,7 @@
       },
       "date_range" : {
         "title" : "Диапазон дат поиска",
-        "description" : "Wordstat не поддерживает выгрузку за слишком большие временные интервалы, поэтому слишком старые даты могут отсекаться",
+        "description" : "Для группировки по дням доступны только данные за последние 2 месяца и не за сегодняшний день",
         "type" : "object",
         "order" : 4,
         "oneOf" : [

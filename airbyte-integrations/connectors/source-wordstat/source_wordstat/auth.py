@@ -1,11 +1,21 @@
 from requests.auth import AuthBase
 
 
-class CookiesAuthenticator(AuthBase):
+class HeadersAuthenticator(AuthBase):
+    """Authenticator that uses browser request headers"""
 
-    def __init__(self, cookies: dict[str, any]):
-        # TODO: simplified authenticator for MVP
-        self._cookies: dict[str, any] = cookies
+    def __init__(self, curl_request: str):
+        self.curl_request = curl_request
+        self.headers: dict[str, any] = {}
 
-    def get_cookies(self) -> dict[str, any]:
-        return self._cookies
+        for line in self.curl_request.split("\n"):
+            if line.startswith("-H"):
+                header: str = line.split("-H")[1]
+                header = header.replace("\\", "").replace("'", "")
+                header_name, header_value = header.split(":")
+                header_name = header_name.strip()
+                header_value = header_value.strip()
+                if header_name not in ["Referer", "Content-Length"]:
+                    self.headers[header_name] = header_value
+
+

@@ -13,6 +13,9 @@
     },
     "keyword": {
       "type": "string"
+    },
+    "text": {
+      "type": "string"
     }
   }
 }

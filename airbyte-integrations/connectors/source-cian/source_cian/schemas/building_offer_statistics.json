@@ -1,0 +1,32 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "url": {
+      "type": ["string", "null"]
+    },
+    "newbuildingId": {
+      "type": ["integer"]
+    },
+    "views": {
+      "type": ["integer"]
+    },
+    "listShows": {
+      "type": ["integer"]
+    },
+    "phoneShows": {
+      "type": ["integer"]
+    },
+    "uniqueVisitors": {
+      "type": ["integer", "null"]
+    },
+    "externalId": {
+      "type": ["string", "null"]
+    }
+  }
+}

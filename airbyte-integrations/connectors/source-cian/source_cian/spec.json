@@ -12,26 +12,65 @@
     "properties" : {
       "token" : {
         "type" : "string",
-        "title" : "Token",
-        "description" : "Cian API token",
+        "title" : "Токен",
+        "description" : "API токен Циан",
         "airbyte_secret" : true,
         "order" : 0
       },
-      "building_id" : {
+      "buildings_ids" : {
         "order" : 1,
-        "type" : "integer",
-        "title" : "ID of housing complex",
-        "description" : "Housing complex id to load data for, get for all if missed"
+        "type" : "object",
+        "title": "ID жилищных комплексов, по которым будут загружаться данные",
+        "required": ["buildings_ids_type"],
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Список ID жилищных комплексов",
+            "required": [
+              "buildings_ids_type",
+              "ids"
+            ],
+            "properties": {
+              "ids": {
+                "title": "ID жилищных комплексов",
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "order": 0
+              },
+              "buildings_ids_type": {
+                "type": "string",
+                "const": "select",
+                "order": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Все доступные жилищные комплексы",
+            "required": [
+              "buildings_ids_type"
+            ],
+            "properties": {
+              "buildings_ids_type": {
+                "type": "string",
+                "const": "all",
+                "order": 0
+              }
+            }
+          }
+        ]
       },
       "date_range": {
-        "title": "Date Range",
-        "description": "Choose date period that must be loaded",
+        "title": "Временной диапазон",
+        "description": "Выберите даты, за которые нужно получить данные",
         "type": "object",
         "order": 3,
         "oneOf": [
           {
             "type": "object",
-            "title": "Custom Date Range",
+            "title": "Кастомный диапазон",
             "required": [
               "date_from",
               "date_to",
@@ -39,7 +78,7 @@
             ],
             "properties": {
               "date_from": {
-                "title": "Start Date",
+                "title": "Дата начала",
                 "type": "string",
                 "description": "Start date in format YYYY-MM-DD.",
                 "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
@@ -51,7 +90,7 @@
                 "order": 0
               },
               "date_to": {
-                "title": "End Date",
+                "title": "Дата конца",
                 "type": "string",
                 "description": "End date in format YYYY-MM-DD.",
                 "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
@@ -64,8 +103,6 @@
               },
               "date_range_type": {
                 "type": "string",
-                "title": "Date Range Type",
-                "description": "Custom Date",
                 "const": "custom_date",
                 "order": 2
               }
@@ -73,7 +110,7 @@
           },
           {
             "type": "object",
-            "title": "Last N Days",
+            "title": "Последние N дней",
             "required": [
               "last_days_count",
               "should_load_today",
@@ -81,9 +118,9 @@
             ],
             "properties": {
               "last_days_count": {
-                "title": "Last Days Count",
+                "title": "Число дней",
                 "type": "integer",
-                "description": "Count of last days exclude today.",
+                "description": "Число дней, не считая сегодня",
                 "minimum": 0,
                 "maximum": 3650,
                 "examples": [
@@ -92,16 +129,14 @@
                 "order": 0
               },
               "should_load_today": {
-                "title": "Load Today?",
+                "title": "Загружать сегодня?",
                 "type": "boolean",
-                "description": "Should connector load today time as End Time? If not, End Time will be yesterday.",
+                "description": "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
                 "order": 1,
                 "default": false
               },
               "date_range_type": {
                 "type": "string",
-                "title": "Date Range Type",
-                "description": "Last N Days",
                 "const": "last_n_days",
                 "order": 2
               }
@@ -109,8 +144,8 @@
           },
           {
             "type": "object",
-            "title": "From Start Date To Today",
-            "description": "Load data from Start Date to Today. Only with this option you can use incremental sync.",
+            "title": "От указанной даты до сегодня",
+            "description": "Загружать данные от даты начала по сегодня не включительно",
             "required": [
               "date_from",
               "should_load_today",
@@ -130,16 +165,14 @@
                 "order": 0
               },
               "should_load_today": {
-                "title": "Load Today?",
+                "title": "Загружать сегодня?",
                 "type": "boolean",
-                "description": "Should connector load today date as End Date? If not, End Date will be yesterday.",
+                "description": "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
                 "order": 1,
                 "default": false
               },
               "date_range_type": {
                 "type": "string",
-                "title": "Date Range Type",
-                "description": "From start date to today",
                 "const": "from_start_date_to_today",
                 "order": 2
               }

@@ -2,6 +2,16 @@
   "$schema" : "http://json-schema.org/draft-07/schema#",
   "type" : "object",
   "properties" : {
+    "id": {
+      "type" : [
+        "integer"
+      ]
+    },
+    "newbuildingId" : {
+      "type" : [
+        "integer"
+      ]
+    },
     "auctionPrice" : {
       "type" : [
         "integer"
@@ -33,11 +43,6 @@
         "boolean"
       ]
     },
-    "id" : {
-      "type" : [
-        "integer"
-      ]
-    },
     "incomingPhone" : {
       "type" : [
         "string"
@@ -51,11 +56,6 @@
     "likeId" : {
       "type" : [
         "null",
-        "integer"
-      ]
-    },
-    "newbuildingId" : {
-      "type" : [
         "integer"
       ]
     },

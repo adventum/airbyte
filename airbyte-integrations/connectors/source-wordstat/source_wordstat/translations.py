@@ -1,10 +1,4 @@
-
-country_codes: dict[str, int] = {
-    "Россия": 225,
-    "Украина": 187,
-    "Беларусь": 149,
-    "Казахстан": 159
-}
+country_codes: dict[str, int] = {"Россия": 225, "Украина": 187, "Беларусь": 149, "Казахстан": 159}
 
 region_codes: dict[str, int] = {
     "Архангельск": 20,
@@ -67,13 +61,13 @@ region_codes: dict[str, int] = {
     "Чебоксары": 45,
     "Челябинск": 56,
     "Черкесск": 1104,
-    "Ярославль": 16
+    "Ярославль": 16,
 }
 
 device_translations: dict[str, str] = {
-    "Смартфоны": "smartphone",
+    "Смартфоны": "phone",
     "Десктопы": "desktop",
-    "Планшеты": "tablet"
+    "Планшеты": "tablet",
 }
 
 region_translations: dict[str, int | str] = {"Все": "all"} | country_codes | region_codes

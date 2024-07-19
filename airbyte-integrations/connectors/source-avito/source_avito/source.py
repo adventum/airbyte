@@ -30,7 +30,8 @@ class AvitoStream(HttpStream, ABC):
 class CallsByTime(AvitoStream):
     http_method = "POST"
     primary_key = "id"
-    record_count = 5
+    records_batch_size = 50
+    offset = 0
 
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
@@ -48,15 +49,11 @@ class CallsByTime(AvitoStream):
         # Just like Avito developers suggest (https://developers.avito.ru/api-catalog/cpa/documentation#operation/chatByActionId)
         response_json: dict[str, any] = response.json()
         calls: list[dict[str, any]] = response_json["result"]["calls"]
-        if len(calls) < self.record_count:
+        if len(calls) < self.records_batch_size:
             return None  # Finished all
 
-        # Add 1 second to prevent duplicates
-        max_start_time: pendulum.date = max([pendulum.parse(call["startTime"]) for call in calls]).add(seconds=1)
-        if max_start_time.date() > self.time_to.date():
-            return None  # Finished all by provided daterange
-        else:
-            return {"dateTimeFrom": max_start_time}
+        self.offset += self.records_batch_size
+        return {"offset": self.offset}
 
     def request_body_json(
         self,
@@ -64,8 +61,14 @@ class CallsByTime(AvitoStream):
         stream_slice: Optional[Mapping[str, Any]] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Optional[Mapping[str, Any]]:
-        start_time: pendulum.datetime = next_page_token["dateTimeFrom"] if next_page_token else self.time_from
-        data: dict[str, any] = {"limit": self.record_count, "dateTimeFrom": start_time.to_rfc3339_string()}
+        """Get request json"""
+        offset: int = next_page_token["offset"] if next_page_token else 0
+
+        data: dict[str, any] = {
+            "limit": self.records_batch_size,
+            "offset": offset,
+            "dateTimeFrom": self.time_from.to_rfc3339_string(),
+        }
         return data
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -77,6 +80,7 @@ class CallsByTime(AvitoStream):
 
         if "calls" not in response_json["result"]:
             raise ValueError(response_json, response.request.body)
+
         for call in response_json["result"]["calls"]:
             if pendulum.parse(call["startTime"]).date() <= self.time_to.date():
                 yield call

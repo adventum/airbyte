@@ -5,6 +5,7 @@
 
 import logging
 from abc import ABC
+from datetime import datetime
 from enum import Enum
 from typing import Iterable, Mapping, MutableMapping, NamedTuple
 
@@ -25,27 +26,6 @@ from ..base_stream import YandexMetrikaStream
 from .supported_fields import aggregated_data_streams_fields_manager
 
 logger = logging.getLogger("airbyte")
-
-
-class DateRangeType(Enum):
-    DATE_RANGE = "date_range"
-    LAST_DAYS = "last_n_days"
-    DAY_ENUM = "day_enum"
-
-
-class DateRangeDay(Enum):
-    NONE = "none"
-    TODAY = "today"
-    YESTERDAY = "yesterday"
-
-
-class DateRange(NamedTuple):
-    date_range_type: DateRangeType
-    date_from: str | None
-    date_to: str | None
-    last_days: int | None
-    load_today: bool | None
-    day: DateRangeDay | None
 
 
 class ReportConfig(NamedTuple):
@@ -74,18 +54,30 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
     def __init__(
         self,
         authenticator: TokenAuthenticator,
-        global_config: dict[str, any],
-        report_config: ReportConfig,
-        field_name_map: dict[str, any] | None = None,
+        stream_config: dict[str, any],
+        counter_id: int,
+        date_from: datetime,
+        date_to: datetime,
+        field_name_map: dict[str, any],
     ):
         super().__init__(field_name_map)
+        self.counter_id = counter_id
         self._authenticator = authenticator
-        self.global_config = global_config
-        self.report_config = report_config
+        self._name = stream_config["name"]
+        self.date_from = date_from
+        self.date_to = date_to
+        self.attribution = attribution_translations.get(stream_config.get("attribution"))
+        self.date_group = date_group_translations.get(stream_config.get("date_group", "день"))
+        self.currency = currency_translations.get(stream_config.get("currency"))
+        self.filters = stream_config.get("filters")
+        self.preset_name = preset_name_translations.get(stream_config.get("preset_name"))
+        self.metrics = stream_config.get("metrics")
+        self.dimensions = stream_config.get("dimensions")
+
 
     @property
     def name(self) -> str:
-        return self.report_config["name"]
+        return self._name
 
     url_base = "https://api-metrika.yandex.net/stat/v1/data"
 
@@ -117,64 +109,47 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         super().replace_keys(schema["properties"])
         return schema
 
-    def make_test_request(self):
-        test_params = self.request_params()
-        test_params["limit"] = 1
-        headers = self._authenticator.get_auth_header()
-        return requests.get(self.url_base + self.path(), params=test_params, headers=headers)
-
     def request_params(
-        self, next_page_token: Mapping[str, any] = {}, *args, **kwargs
+        self, next_page_token: Mapping[str, any] | None = None, *args, **kwargs
     ) -> MutableMapping[str, any]:
         params = {
-            "ids": self.global_config["counter_id"],
+            "ids": self.counter_id,
             "limit": self.limit,
         }
         if next_page_token:
             params["offset"] = next_page_token.get("next_offset")
 
-        if self.report_config.get("metrics"):
-            params["metrics"] = ",".join(self.report_config.get("metrics"))
+        if self.metrics:
+            params["metrics"] = ",".join(self.metrics)
 
-        if self.report_config.get("dimensions"):
-            params["dimensions"] = ",".join(self.report_config.get("dimensions"))
+        if self.dimensions:
+            params["dimensions"] = ",".join(self.dimensions)
 
         params["accuracy"] = "full"
 
-        params["date1"] = self.global_config.get("prepared_date_range", {}).get("date_from").date()
-        params["date2"] = self.global_config.get("prepared_date_range", {}).get("date_to").date()
+        params["date1"] = self.date_from.date()
+        params["date2"] = self.date_to.date()
 
-        if self.report_config.get("direct_client_logins"):
-            params["direct_client_logins"] = ",".join(
-                self.report_config.get("direct_client_logins")
-            )
+        if self.filters:
+            params["filters"] = self.filters
 
-        if self.report_config.get("filters"):
-            params["filters"] = self.report_config.get("filters")
+        if self.preset_name and self.preset_name != "custom_report":
+            params["preset"] = self.preset_name
 
-        preset_name_input = preset_name_translations.get(self.report_config.get("preset_name"))
-        if preset_name_input and preset_name_input != "custom_report":
-            params["preset"] = preset_name_input
+        params["group"] = self.date_group if self.date_group else "day"
 
-        date_group_input = date_group_translations.get(self.report_config.get("date_group", "день"))
-        if date_group_input not in ["day", None]:
-            params["group"] = date_group_input
-        else:
-            params["group"] = "day"
+        if self.attribution not in ["default", "lastsign", None]:
+            params["attribution"] = self.attribution
 
-        attribution_input = attribution_translations.get(self.report_config.get("attribution"))
-        if attribution_input not in ["default", "lastsign", None]:
-            params["attribution"] = attribution_input
+        if self.currency not in ["default", None]:
+            params["currency"] = self.currency
 
-        currency_input = currency_translations.get(self.report_config.get("currency"))
-        if currency_input not in ["default", None]:
-            params["currency"] = currency_input
-
-        if self.report_config.get("experiment_ab_id"):
-            params["experiment_ab"] = self.report_config.get("experiment_ab_id")
-
-        if self.report_config.get("goal_id"):
-            params["goal_id"] = self.report_config.get("goal_id")
+        # TODO: may be implemented later. Now aren't even supported by schema
+        # if self.report_config.get("experiment_ab_id"):
+        #     params["experiment_ab"] = self.report_config.get("experiment_ab_id")
+        #
+        # if self.report_config.get("goal_id"):
+        #     params["goal_id"] = self.report_config.get("goal_id")
 
         return params
 

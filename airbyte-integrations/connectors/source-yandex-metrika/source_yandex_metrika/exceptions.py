@@ -1,0 +1,2 @@
+class ConfigInvalidError(ValueError):
+    pass

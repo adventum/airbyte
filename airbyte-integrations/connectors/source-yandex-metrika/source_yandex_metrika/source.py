@@ -290,6 +290,8 @@ class SourceYandexMetrika(AbstractSource):
                 authenticator=auth,
                 counter_id=config["counter_id"],
                 stream_config=stream_config,
+                date_from=config["prepared_date_range"]["date_from"],
+                date_to=config["prepared_date_range"]["date_to"],
                 field_name_map=self.format_field_name_map(config.get("field_name_map")),
             )
             aggregated_data_streams.append(stream)

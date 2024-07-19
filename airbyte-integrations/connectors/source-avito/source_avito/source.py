@@ -1,94 +1,24 @@
-from abc import ABC
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 import pendulum
 import requests
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 
-
-class AvitoStream(HttpStream, ABC):
-    url_base = "https://api.avito.ru/"
-
-    def __init__(self, authenticator: TokenAuthenticator):
-        super().__init__(authenticator)
-
-    def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> MutableMapping[str, Any]:
-        return {}
-
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield {}
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        return None
-
-
-class CallsByTime(AvitoStream):
-    http_method = "POST"
-    primary_key = "id"
-    records_batch_size = 50
-    offset = 0
-
-    def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> str:
-        return "cpa/v2/callsByTime"
-
-    def __init__(self, authenticator: TokenAuthenticator, time_from: pendulum.datetime, time_to: pendulum.datetime):
-        super().__init__(authenticator)
-        self.time_from: pendulum.datetime = time_from
-        self.time_to: pendulum.date = time_to
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        # Avito api supports offset and limit but does not provide current offset (we can't store it here)
-        # so will send request with start time as max startTime from all received calls
-        # Just like Avito developers suggest (https://developers.avito.ru/api-catalog/cpa/documentation#operation/chatByActionId)
-        response_json: dict[str, any] = response.json()
-        calls: list[dict[str, any]] = response_json["result"]["calls"]
-        if len(calls) < self.records_batch_size:
-            return None  # Finished all
-
-        self.offset += self.records_batch_size
-        return {"offset": self.offset}
-
-    def request_body_json(
-        self,
-        stream_state: Optional[Mapping[str, Any]],
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
-    ) -> Optional[Mapping[str, Any]]:
-        """Get request json"""
-        offset: int = next_page_token["offset"] if next_page_token else 0
-
-        data: dict[str, any] = {
-            "limit": self.records_batch_size,
-            "offset": offset,
-            "dateTimeFrom": self.time_from.to_rfc3339_string(),
-        }
-        return data
-
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        response_json: dict[str, any] = response.json()
-        if "error" in response_json:
-            error_text: str = response_json["error"]["message"]
-            self.logger.info(f"Request failed: {error_text}")
-            raise RuntimeError("Failed to fetch data")
-
-        if "calls" not in response_json["result"]:
-            raise ValueError(response_json, response.request.body)
-
-        for call in response_json["result"]["calls"]:
-            if pendulum.parse(call["startTime"]).date() <= self.time_to.date():
-                yield call
+from .streams import AvitoStream
+from .streams.calls_by_time import CallsByTime
+from .streams.offers import Offers
+from .streams.offers_aggregated import OffersAggregated
 
 
 class SourceAvito(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        self.get_auth(config)  # Will raise exception if something is wrong
+        streams: list[AvitoStream] = self.streams(config)  # Will also check auth when creating streams
+        for stream in streams:
+            check, message = stream.check_config(config)
+            if not check:
+                return False, message
         return True, None
 
     @staticmethod
@@ -100,7 +30,9 @@ class SourceAvito(AbstractSource):
         time_to: Optional[pendulum.datetime] = None
 
         # Meaning is date but storing time since later will use time
-        today_date: pendulum.datetime = pendulum.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_date: pendulum.datetime = pendulum.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
         if date_range_type == "custom_date":
             time_from = pendulum.parse(date_range["date_from"])
@@ -145,13 +77,40 @@ class SourceAvito(AbstractSource):
 
         return TokenAuthenticator(token=response_json["access_token"])
 
-    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
+    def streams(self, config: Mapping[str, Any]) -> List[AvitoStream]:
         config = self.transform_config(config)
         auth: TokenAuthenticator = self.get_auth(config)
-        return [
+
+        streams: List[Stream] = [
             CallsByTime(
                 authenticator=auth,
                 time_from=config["time_from_transformed"],
                 time_to=config["time_to_transformed"],
             )
         ]
+
+        if config["use_offers_stream"]:
+            streams.append(
+                Offers(
+                    authenticator=auth,
+                    time_from=config["time_from_transformed"],
+                    time_to=config["time_to_transformed"],
+                    statuses=config.get("offer_statuses", []),
+                    category=config.get("offer_category"),
+                )
+            )
+
+        if config["use_aggregated_offers_stream"]:
+            streams.append(
+                OffersAggregated(
+                    authenticator=auth,
+                    time_from=config["time_from_transformed"],
+                    time_to=config["time_to_transformed"],
+                    user_id=config["aggregated_offers_user_id"],
+                    item_ids=config["aggregated_offers_item_ids"],
+                    period_grouping=config["aggregated_offers_period_grouping"],
+                    fields=config["aggregated_offers_fields"]
+                )
+            )
+
+        return streams

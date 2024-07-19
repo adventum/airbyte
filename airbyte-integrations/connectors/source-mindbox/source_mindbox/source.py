@@ -208,6 +208,18 @@ class ExportSubAppPushIos(MindboxStream):
     operation_name = "ExportSubAppPushIos"
 
 
+class Abcartabandjul24var1(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "Abcartabandjul24var1"
+
+
+class Abcartabandjul24var2(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "Abcartabandjul24var2"
+
+
 # Source
 class SourceMindbox(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
@@ -280,4 +292,6 @@ class SourceMindbox(AbstractSource):
             ExportSubWebPush(**shared_kwargs),
             ExportSubAppPushAndroid(**shared_kwargs),
             ExportSubAppPushIos(**shared_kwargs),
+            Abcartabandjul24var1(**shared_kwargs),
+            Abcartabandjul24var2(**shared_kwargs),
         ]

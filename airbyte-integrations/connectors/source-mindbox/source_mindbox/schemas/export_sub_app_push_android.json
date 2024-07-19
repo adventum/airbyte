@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "CustomerIdsMindboxId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "CustomerEmail": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "CustomerMobilePhone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "CustomerSegmentationDlyaOtpischikovEmailVDinamike": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

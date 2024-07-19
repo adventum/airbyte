@@ -15,9 +15,7 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.availability_strategy import (
-    HttpAvailabilityStrategy as _HttpAvailabilityStrategy,
-)
+from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabilityStrategy as _HttpAvailabilityStrategy
 
 from .mindbox_service import MindboxService
 
@@ -192,6 +190,36 @@ class ExportSub(MindboxStream):
     operation_name = "ExportSub"
 
 
+class ExportSubWebPush(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "ExportSubWebPush"
+
+
+class ExportSubAppPushAndroid(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "ExportSubAppPushAndroid"
+
+
+class ExportSubAppPushIos(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "ExportSubAppPushIos"
+
+
+class Abcartabandjul24var1(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "Abcartabandjul24var1"
+
+
+class Abcartabandjul24var2(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "Abcartabandjul24var2"
+
+
 # Source
 class SourceMindbox(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
@@ -261,4 +289,9 @@ class SourceMindbox(AbstractSource):
             CustomerSegmentsApppushAndroid(**shared_kwargs),
             CustomerSegmentsApppushIos(**shared_kwargs),
             ExportSub(**shared_kwargs),
+            ExportSubWebPush(**shared_kwargs),
+            ExportSubAppPushAndroid(**shared_kwargs),
+            ExportSubAppPushIos(**shared_kwargs),
+            Abcartabandjul24var1(**shared_kwargs),
+            Abcartabandjul24var2(**shared_kwargs),
         ]

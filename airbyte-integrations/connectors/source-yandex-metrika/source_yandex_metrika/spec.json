@@ -374,12 +374,18 @@
               "default" : "Последний значимый источник",
               "order" : 7
             },
+            "name" : {
+              "type" : "string",
+              "title" : "Название",
+              "description": "Напишите название на английском языке, если хотите использовать нестандартное имя стрима или более 1 стрима для hits или visits. В противном случае не обязательно",
+              "order" : 8
+            },
             "field_name_map" : {
               "title" : "Замена ключей",
               "description" : "Этот параметр заменяет ключи в итоговых записях. Например, если вы хотите заменить поле \"ym:s:watchIDs\" на \"watch_ids\", то укажите в этом параметре \"Старый ключ\" - \"ym:s:watchIDs\", \"Новый ключ\" - \"watch_ids\".",
               "type" : "array",
               "group" : "replace",
-              "order" : 8,
+              "order" : 9,
               "items" : {
                 "type" : "object",
                 "additionalProperties" : false,

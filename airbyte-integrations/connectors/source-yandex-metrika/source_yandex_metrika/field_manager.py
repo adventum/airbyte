@@ -73,28 +73,11 @@ class YandexMetrikaFieldsManager:
         self.fields: list[YandexMetrikaSourceField] = fields
 
     def field_lookup(self, field_name: str) -> str | None:
-        """Find field name is it is supported"""
+        """Find field name if it is supported"""
         for field in self.fields:
-            if field_name in field.variants():
+            if any((re.match(variant, field_name) for variant in field.variants())):
                 return field.field_type
         return None
-
-    def prepare_fields_list(self) -> list[tuple[str, str]]:
-        """Get list of all processed fields with required types"""
-        res: list[tuple[str, str]] = []
-        for field in self.fields:
-            res.extend([(variant, field.field_type) for variant in field.variants()])
-
-        return res
-
-    def get_all_fields(self) -> list[YandexMetrikaSourceField]:
-        return self.fields
-
-    def get_all_fields_values(self) -> list[str]:
-        res: list[str] = []
-        for field in self.fields:
-            res.extend(field.variants())
-        return res
 
     def get_required_fields(self) -> list[YandexMetrikaSourceField]:
         return [field for field in self.fields if field.required]

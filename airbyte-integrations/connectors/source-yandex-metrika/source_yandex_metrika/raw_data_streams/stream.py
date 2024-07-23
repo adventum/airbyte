@@ -80,7 +80,8 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
         field_manager: YandexMetrikaFieldsManager = visits_fields_manager if log_source == "visits" else hits_fields_manager
         for f in self.fields:
-            if f not in field_manager.get_all_fields_values():
+            field_type = field_manager.field_lookup(f)
+            if not field_type:
                 raise ConfigInvalidError(
                     f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"')
 

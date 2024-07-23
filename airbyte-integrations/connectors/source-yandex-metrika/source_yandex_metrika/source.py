@@ -176,6 +176,10 @@ class SourceYandexMetrika(AbstractSource):
         except ConfigInvalidError as ex:
             return False, str(ex)
 
+        """Check names"""
+        if len([stream.name for stream in streams]) != len({stream.name for stream in streams}):
+            return False, "All streams must have unique names! Try adding your own stream names for hits and visits streams"
+
         for stream_number, stream in enumerate(streams):
             if isinstance(stream, YandexMetrikaRawDataStream):
                 preprocessor = stream.preprocessor

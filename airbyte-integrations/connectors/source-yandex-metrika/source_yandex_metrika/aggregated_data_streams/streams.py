@@ -101,8 +101,8 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         for dimension in test_response["query"]["dimensions"]:
             schema["properties"][dimension] = {"type": ["null", "string"]}
         for metric in test_response["query"]["metrics"]:
-            lookup_ok, field_type = aggregated_data_streams_fields_manager.field_lookup(metric)
-            if not lookup_ok:
+            field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
+            if not field_type:
                 raise Exception(f"Field '{metric}' is not supported in the connector")
             schema["properties"][metric] = {"type": [field_type, "null"]}
 

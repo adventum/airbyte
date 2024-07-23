@@ -74,9 +74,9 @@ class YandexMetrikaFieldsManager:
 
     def field_lookup(self, field_name: str) -> str | None:
         """Find field name is it is supported"""
-        for pattern, pattern_field_type in self.fields:
-            if re.match(pattern, field_name):
-                return pattern_field_type
+        for field in self.fields:
+            if field_name in field.variants():
+                return field.field_type
         return None
 
     def prepare_fields_list(self) -> list[tuple[str, str]]:

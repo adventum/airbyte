@@ -106,7 +106,6 @@ class SourceAvito(AbstractSource):
                     authenticator=auth,
                     time_from=config["time_from_transformed"],
                     time_to=config["time_to_transformed"],
-                    user_id=config["aggregated_offers_user_id"],
                     item_ids=config["aggregated_offers_item_ids"],
                     period_grouping=config["aggregated_offers_period_grouping"],
                     fields=config["aggregated_offers_fields"]

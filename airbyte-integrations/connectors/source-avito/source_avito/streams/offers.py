@@ -102,7 +102,6 @@ class Offers(AvitoStream):
 
         if self.category:
             data["category"] = self.category
-        self.logger.info(data)
         return data
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:

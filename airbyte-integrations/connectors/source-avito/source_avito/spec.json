@@ -77,12 +77,6 @@
           ]
         }
       },
-      "aggregated_offers_user_id": {
-        "type": "integer",
-        "title": "User identificator for aggregated offers only",
-        "description": "Required if using this stream",
-        "order": 7
-      },
       "aggregated_offers_item_ids": {
         "type": "array",
         "title": "Item IDs for aggregated offers stream",

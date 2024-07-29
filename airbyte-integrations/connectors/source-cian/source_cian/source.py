@@ -42,14 +42,16 @@ class CianStream(HttpStream, ABC):
     def next_page_token(self, response: requests.Response) -> Mapping[str, any] | None:
         return None
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+    def parse_response(self, response: requests.Response, stream_slice: Mapping[str, any] = None, **kwargs) -> Iterable[Mapping]:
         """
         :return: an iterable containing each record in the response
         """
         response_json: dict[str, any] = response.json()
         status: int = response.status_code
         if 200 <= status < 400:
-            yield from response_json["result"][self.results_field]
+            for record in response_json["result"][self.results_field]:
+                record["date"] = stream_slice["load_date"]
+                yield record
         else:
             error_text: str = response_json["result"]["message"]
             self.logger.info(f"Request failed with status {status}: {error_text}")

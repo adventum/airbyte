@@ -17,6 +17,8 @@ class OffersAggregated(AvitoStream):
         stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> str:
+        if not self.user_id:
+            self.user_id = self._get_user_id()
         return f"stats/v1/accounts/{self.user_id}/items"
 
     def __init__(
@@ -24,7 +26,6 @@ class OffersAggregated(AvitoStream):
         authenticator: TokenAuthenticator,
         time_from: pendulum.datetime,
         time_to: pendulum.datetime,
-        user_id: int,
         item_ids: list[int],
         period_grouping: str,
         fields: list[str]
@@ -32,24 +33,32 @@ class OffersAggregated(AvitoStream):
         super().__init__(authenticator)
         self.time_from: pendulum.datetime = time_from
         self.time_to: pendulum.date = time_to
-        self.user_id = user_id
-        self.item_ids = item_ids
-        self.period_grouping = period_grouping
-        self.fields = fields
+        self.user_id: int | None = None
+        self.item_ids: list[int] = item_ids
+        self.period_grouping: str = period_grouping
+        self.fields: list[str] = fields
 
     @classmethod
     def check_config(cls, config: Mapping[str, Any]) -> tuple[bool, str]:
-        for field_name in ["aggregated_offers_item_ids", "aggregated_offers_user_id", "aggregated_offers_period_grouping", "aggregated_offers_fields"]:
+        for field_name in ["aggregated_offers_item_ids", "aggregated_offers_period_grouping", "aggregated_offers_fields"]:
             if not config.get(field_name):
                 return False, f"{cls.__name__} must have {field_name} value"
 
         return True, ""
 
-    def request_json_body(
+    def _get_user_id(self) -> int:
+        """Get user id with another api request"""
+        response: requests.Response = requests.get(
+            url=self.url_base + "core/v1/accounts/self",
+            headers=self.authenticator.get_auth_header(),
+        )
+        response_json = response.json()
+        user_id: int = response_json["id"]
+        return user_id
+
+    def request_body_json(
         self,
-        stream_state: Optional[Mapping[str, Any]],
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+        **kwargs
     ) -> Optional[Mapping[str, Any]]:
         """
         Request json body

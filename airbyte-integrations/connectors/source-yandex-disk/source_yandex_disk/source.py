@@ -59,6 +59,9 @@ class YandexDiskResource(HttpStream, ABC):
         path_placeholder: str = None,
     ) -> None:
         super().__init__(authenticator=authenticator)
+
+        # Copy of the authenticator has been added for correct operation of authorization via CC
+        self.authenticator_copy = authenticator
         self.stream_name = stream_name
         self.resources_path = resources_path
         self.resources_filename_pattern = re.compile(
@@ -231,7 +234,7 @@ class YandexDiskResource(HttpStream, ABC):
                     'offset': offset,
                     'sort': '-created'
                 },
-                headers=self.authenticator.get_auth_header()
+                headers=self.authenticator_copy.get_auth_header()
             )
             try:
                 resources_response.raise_for_status()
@@ -255,7 +258,7 @@ class YandexDiskResource(HttpStream, ABC):
         sample_record: Dict[str, Any] = next(self.parse_response(
             requests.get(
                 download_file_link,
-                headers=self.authenticator.get_auth_header()
+                headers=self.authenticator_copy.get_auth_header()
             ),
             file_path=sample_file['path']
         ))
@@ -299,7 +302,7 @@ class YandexDiskResource(HttpStream, ABC):
             params={
                 'path': resource['path']
             },
-            headers=self.authenticator.get_auth_header()
+            headers=self.authenticator_copy.get_auth_header()
         )
         download_link_response.raise_for_status()
         download_link_obj = download_link_response.json()
@@ -476,10 +479,6 @@ class SourceYandexDisk(AbstractSource):
 
             stream_config = SourceYandexDisk.transform_file_path_and_files_pattern(stream_config, config)
             stream_config = SourceYandexDisk.transform_file_path_and_files_pattern_for_date(stream_config, config, date_from)
-
-            # Logging entire config
-            logger.info(config)
-            logger.info("_config_" * 100)
 
             streams.append(
                 YandexDiskResource(

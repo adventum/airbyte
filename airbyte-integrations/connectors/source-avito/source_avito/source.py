@@ -3,7 +3,6 @@ from typing import Any, List, Mapping, Optional, Tuple
 import pendulum
 import requests
 from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 
 from .streams import AvitoStream
@@ -14,7 +13,8 @@ from .streams.offers_aggregated import OffersAggregated
 
 class SourceAvito(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        streams: list[AvitoStream] = self.streams(config)  # Will also check auth when creating streams
+        # Creating streams will also check auth when creating streams
+        streams: list[AvitoStream] = self.streams(config)
         for stream in streams:
             check, message = stream.check_config(config)
             if not check:
@@ -81,24 +81,20 @@ class SourceAvito(AbstractSource):
         config = self.transform_config(config)
         auth: TokenAuthenticator = self.get_auth(config)
 
-        streams: List[Stream] = [
+        streams: List[AvitoStream] = [
             CallsByTime(
                 authenticator=auth,
                 time_from=config["time_from_transformed"],
                 time_to=config["time_to_transformed"],
+            ),
+            Offers(
+                authenticator=auth,
+                time_from=config["time_from_transformed"],
+                time_to=config["time_to_transformed"],
+                statuses=config.get("offer_statuses", []),
+                category=config.get("offer_category"),
             )
         ]
-
-        if config["use_offers_stream"]:
-            streams.append(
-                Offers(
-                    authenticator=auth,
-                    time_from=config["time_from_transformed"],
-                    time_to=config["time_to_transformed"],
-                    statuses=config.get("offer_statuses", []),
-                    category=config.get("offer_category"),
-                )
-            )
 
         if config["use_aggregated_offers_stream"]:
             streams.append(
@@ -106,9 +102,15 @@ class SourceAvito(AbstractSource):
                     authenticator=auth,
                     time_from=config["time_from_transformed"],
                     time_to=config["time_to_transformed"],
-                    item_ids=config["aggregated_offers_item_ids"],
-                    period_grouping=config["aggregated_offers_period_grouping"],
-                    fields=config["aggregated_offers_fields"]
+                    period_grouping=config.get("aggregated_offers_period_grouping"),
+                    fields=config.get("aggregated_offers_fields"),
+                    offers_stream=Offers(  # Using the same stream may break object attributes for syncing offers
+                        authenticator=auth,
+                        time_from=config["time_from_transformed"],
+                        time_to=config["time_to_transformed"],
+                        statuses=config.get("offer_statuses", []),
+                        category=config.get("offer_category"),
+                    ),
                 )
             )
 

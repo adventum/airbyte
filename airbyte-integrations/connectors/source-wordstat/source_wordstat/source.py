@@ -20,9 +20,9 @@ class WordstatStream(HttpStream, ABC):
     url_base = "https://wordstat.yandex.ru/wordstat/api/"
 
     def __init__(
-        self,
-        authenticator: HeadersAuthenticator,
-        retry_count: int = 10,
+            self,
+            authenticator: HeadersAuthenticator,
+            retry_count: int = 10,
     ):
         super().__init__(authenticator=authenticator)
         self._authenticator = authenticator
@@ -32,22 +32,23 @@ class WordstatStream(HttpStream, ABC):
         return None
 
     def request_params(
-        self,
-        stream_state: Mapping[str, Any],
-        stream_slice: Mapping[str, any] = None,
-        next_page_token: Mapping[str, Any] = None,
+            self,
+            stream_state: Mapping[str, Any],
+            stream_slice: Mapping[str, any] = None,
+            next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         return {}
 
     @abstractmethod
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]: ...
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        ...
 
     def read_records(
-        self,
-        sync_mode: SyncMode,
-        cursor_field: Optional[List[str]] = None,
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        stream_state: Optional[Mapping[str, Any]] = None,
+            self,
+            sync_mode: SyncMode,
+            cursor_field: Optional[List[str]] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[StreamData]:
         """Get Wordstat API response"""
         attempts_count: int = 0
@@ -91,19 +92,19 @@ class Search(WordstatStream):
     primary_key = None
 
     def path(
-        self,
-        stream_state: Mapping[str, Any] = None,
-        stream_slice: Mapping[str, Any] = None,
-        next_page_token: Mapping[str, Any] = None,
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Mapping[str, Any] = None,
+            next_page_token: Mapping[str, Any] = None,
     ) -> str:
         return "search"
 
     def __init__(
-        self,
-        authenticator: HeadersAuthenticator,
-        config: Mapping[str, Any],
-        date_from: pendulum.datetime,
-        date_to: pendulum.datetime,
+            self,
+            authenticator: HeadersAuthenticator,
+            config: Mapping[str, Any],
+            date_from: pendulum.datetime,
+            date_to: pendulum.datetime,
     ):
         super().__init__(authenticator=authenticator)
         self.group_by: str = config["group_by"]
@@ -133,19 +134,19 @@ class Search(WordstatStream):
                 )
 
     def stream_slices(
-        self,
-        *,
-        sync_mode: SyncMode,
-        cursor_field: Optional[List[str]] = None,
-        stream_state: Optional[Mapping[str, Any]] = None,
+            self,
+            *,
+            sync_mode: SyncMode,
+            cursor_field: Optional[List[str]] = None,
+            stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         yield from ({"keyword": keyword} for keyword in self.keywords)
 
     def request_body_json(
-        self,
-        stream_state: Optional[Mapping[str, Any]],
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
+            self,
+            stream_state: Optional[Mapping[str, Any]],
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Optional[Mapping[str, Any]]:
         """Get request json"""
         data: dict[str, any] = {
@@ -172,6 +173,7 @@ class Search(WordstatStream):
         if isinstance(self.regions, list):
             data["filters"]["region"] = ",".join(map(str, self.regions))
 
+        self.logger.info(data)
         return data
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -260,44 +262,81 @@ class SourceWordstat(AbstractSource):
         group_by: str = config["group_by"]["group_type"]
 
         """Adjust dates for pendulum api requirements"""
-        if group_by == "day":  # No earlier than 60 days ago, no later than yesterday
-            date_from = max(date_from, today_date.subtract(days=60))
-            date_to = min(date_to, today_date.subtract(days=1))
-            if (date_to - date_from).days < 2:
-                date_from = date_from.subtract(days=1)
-        elif (
-            group_by == "week"
-        ):  # Starts on monday, ends on sunday. No earlier than 2 years ago, no later than last sunday
-            nearest_to_start_monday = (
-                date_from.previous(pendulum.MONDAY)
-                if date_from.day_of_week != pendulum.MONDAY
-                else date_from
-            )
-            while nearest_to_start_monday < today_date.subtract(years=2):
-                nearest_to_start_monday = nearest_to_start_monday.add(weeks=1)
+        batch_size: int = 3
 
-            nearest_to_end_sunday = (
-                date_to.next(pendulum.SUNDAY) if date_to.day_of_week != pendulum.SUNDAY else date_to
-            )
-            last_sunday = today_date.previous(pendulum.SUNDAY)
-            while nearest_to_end_sunday > last_sunday:
-                nearest_to_end_sunday = nearest_to_end_sunday.subtract(weeks=1)
+        match group_by:
+            case "day":
+                """No earlier than 60 days ago, no later than yesterday"""
+                sixty_days_ago = today_date.subtract(days=60)
+                yesterday_date = today_date.subtract(days=1)
+                date_from = min(max(date_from, sixty_days_ago), yesterday_date)
+                date_to = max(min(date_to, yesterday_date), sixty_days_ago)
 
-            date_from, date_to = nearest_to_start_monday, nearest_to_end_sunday
-        elif (
-            group_by == "month"
-        ):  # Starts with 1st day of month, ends with last, no later than last month
-            nearest_to_start_first = date_from.start_of("month")
-            four_years_ago = today_date.subtract(years=4)
-            while nearest_to_start_first < four_years_ago:
-                nearest_to_start_first = nearest_to_start_first.add(months=1).start_of("month")
+                delta: int = (date_to - date_from).days
+                if delta < batch_size - 1:
+                    date_from = date_to.subtract(
+                        days=batch_size - 1 - delta
+                    )  # delta is 0 -> the same day -> needs 2 days before
+                    if date_from < sixty_days_ago:
+                        date_from = date_from.add(days=3)
+                        date_to = date_to.add(days=3)
 
-            nearest_to_end_last = date_to.end_of("month")
-            last_day_of_previous_month = today_date.subtract(months=1).end_of("month")
-            while nearest_to_end_last > last_day_of_previous_month:
-                nearest_to_end_last = nearest_to_end_last.subtract(months=1).end_of("month")
+            case "week":
+                """
+                Starts on monday, ends on sunday.
+                No earlier than 1st month of year 6 years ago from tomorrow date
+                (now is 2024 means no older than january 2018)
+                """
+                min_date_from = (
+                    today_date.subtract(years=6).set(month=1, day=1).start_of("week")
+                )
+                if min_date_from.year != today_date.year - 6:  # Got previous year
+                    min_date_from = min_date_from.add(
+                        weeks=1
+                    )
 
-            date_from, date_to = nearest_to_start_first, nearest_to_end_last
+                end_of_last_week = today_date.subtract(weeks=1).end_of("week")
+
+                date_from = min(
+                    max(date_from.start_of("week"), min_date_from),
+                    today_date.start_of("week"),
+                )
+
+                # Sunday, no more than last sunday, no less than 6 years ago
+                date_to = max(
+                    min(date_to.end_of("week"), end_of_last_week),
+                    today_date.subtract(years=6).set(month=1, day=1).end_of("week"),
+                )
+
+                delta: int = (date_to - date_from).weeks
+                if delta < batch_size - 1:
+                    date_from = date_from.subtract(
+                        weeks=batch_size - 1 - delta
+                    )  # delta is 0 -> the same week -> need also 2 weeks before
+                    if date_from < min_date_from:
+                        date_from = date_from.add(weeks=3)
+                        date_to = date_to.add(weeks=3)
+            case "month":
+                """
+                Starts with 1st day of month, ends with last, no later than last month
+                """
+                min_date_from = today_date.subtract(years=6).start_of("year")
+                date_from = min(
+                    max(date_from.start_of("month"), min_date_from), today_date.start_of("month")
+                )
+
+                end_of_previous_month = today_date.subtract(months=1).end_of("month")
+                date_to = max(
+                    min(date_to.end_of("month"), end_of_previous_month),
+                    today_date.subtract(years=6).set(month=1).end_of("month")
+                )
+
+                delta: int = (date_to - date_from).months
+                if delta < batch_size - 1:
+                    date_from = date_from.subtract(months=batch_size - 1 - delta)
+                    if date_from < min_date_from:
+                        date_from = date_from.add(months=3)
+                        date_to = date_to.add(months=3)
 
         config["date_from_transformed"], config["date_to_transformed"] = date_from, date_to
         return config

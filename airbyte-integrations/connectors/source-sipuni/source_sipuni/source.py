@@ -4,203 +4,266 @@
 
 
 from abc import ABC
+from hashlib import md5
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
+import pendulum
 import requests
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
+from airbyte_cdk.sources.streams.core import package_name_from_class
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
+from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 
-"""
-TODO: Most comments in this class are instructive and should be deleted after the source is implemented.
-
-This file provides a stubbed example of how to use the Airbyte CDK to develop both a source connector which supports full refresh or and an
-incremental syncs from an HTTP API.
-
-The various TODOs are both implementation hints and steps - fulfilling all the TODOs should be sufficient to implement one basic and one incremental
-stream from a source. This pattern is the same one used by Airbyte internally to implement connectors.
-
-The approach here is not authoritative, and devs are free to use their own judgement.
-
-There are additional required TODOs in the files within the integration_tests folder and the spec.yaml file.
-"""
+from .auth import SipuniAuthenticator, CredentialsCraftAuthenticator
+from .mappings import call_type_map, state_map
 
 
-# Basic full refresh stream
 class SipuniStream(HttpStream, ABC):
-    """
-    TODO remove this comment
-
-    This class represents a stream output by the connector.
-    This is an abstract base class meant to contain all the common functionality at the API level e.g: the API base URL, pagination strategy,
-    parsing responses etc..
-
-    Each stream should extend this class (or another abstract subclass of it) to specify behavior unique to that stream.
-
-    Typically for REST APIs each stream corresponds to a resource in the API. For example if the API
-    contains the endpoints
-        - GET v1/customers
-        - GET v1/employees
-
-    then you should have three classes:
-    `class SipuniStream(HttpStream, ABC)` which is the current class
-    `class Customers(SipuniStream)` contains behavior to pull data for customers using v1/customers
-    `class Employees(SipuniStream)` contains behavior to pull data for employees using v1/employees
-
-    If some streams implement incremental sync, it is typical to create another class
-    `class IncrementalSipuniStream((SipuniStream), ABC)` then have concrete stream implementations extend it. An example
-    is provided below.
-
-    See the reference docs for the full list of configurable options.
-    """
-
-    # TODO: Fill in the url base. Required.
-    url_base = "https://example-api.com/v1/"
+    url_base: str = "https://sipuni.com/api/"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        """
-        TODO: Override this method to define a pagination strategy. If you will not be using pagination, no action is required - just return None.
-
-        This method should return a Mapping (e.g: dict) containing whatever information required to make paginated requests. This dict is passed
-        to most other methods in this class to help you form headers, request bodies, query params, etc..
-
-        For example, if the API accepts a 'page' parameter to determine which page of the result to return, and a response from the API contains a
-        'page' number, then this method should probably return a dict {'page': response.json()['page'] + 1} to increment the page count by 1.
-        The request_params method should then read the input next_page_token and set the 'page' param to next_page_token['page'].
-
-        :param response: the most recent response from the API
-        :return If there is another page in the result, a mapping (e.g: dict) containing information needed to query the next page in the response.
-                If there are no more pages in the result, return None.
-        """
         return None
 
     def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
-        """
-        TODO: Override this method to define any query parameters to be set. Remove this method if you don't need to define request params.
-        Usually contains common params e.g. pagination size etc.
-        """
         return {}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        """
-        TODO: Override this method to define how a response is parsed.
-        :return an iterable containing each record in the response
-        """
         yield {}
 
 
-class Customers(SipuniStream):
-    """
-    TODO: Change class name to match the table/data source this stream corresponds to.
-    """
-
-    # TODO: Fill in the primary key. Required. This is usually a unique field in the stream, like an ID or a timestamp.
+class CallStats(SipuniStream):
     primary_key = "customer_id"
+    date_format = "DD.MM.YYYY"
+
+    def __init__(
+        self,
+        authenticator: SipuniAuthenticator,
+        user: str,
+        date_from: pendulum.date,
+        date_to: pendulum.date,
+        call_type: int = 0,
+        state: int = 1,
+        tree: str = "",
+        show_tree_id: bool = False,
+        from_number: str = "",
+        to_number: str = "",
+        show_numbers_ringed: bool = False,
+        show_numbers_involved: bool = False,
+        show_names: bool = False,
+        show_outgoing_line: bool = False,
+        to_answer: str = "",
+        anonymous: bool = False,
+        first_time: bool = False,
+        show_dtmf_user_answers: bool = False,
+    ):
+        super().__init__(authenticator)
+        self.raw_token: str = authenticator.raw_token
+        self.user: str = user
+        self.date_from: pendulum.date = date_from
+        self.date_to: pendulum.date = date_to
+
+        self.anonymous: bool = anonymous
+        self.first_time: bool = first_time
+        self.from_number: str = from_number
+        self.state: int = state
+        self.to_answer: str = to_answer
+        self.to_number: str = to_number
+        self.tree: str = tree
+        self.call_type: int = call_type
+        self.show_tree_id: bool = show_tree_id
+        self.show_numbers_ringed: bool = show_numbers_ringed
+        self.show_numbers_involved: bool = show_numbers_involved
+        self.show_names: bool = show_names
+        self.show_outgoing_line: bool = show_outgoing_line
+        self.show_dtmf_user_answers: bool = show_dtmf_user_answers
 
     def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+        self,
+        **kwargs,
     ) -> str:
-        """
-        TODO: Override this method to define the path this stream corresponds to. E.g. if the url is https://example-api.com/v1/customers then this
-        should return "customers". Required.
-        """
-        return "customers"
+        return "statistic/export"
 
+    def make_hash(self, date_from: pendulum.date, date_to: pendulum.date) -> str:
+        hash_str = "+".join(  # DO NOT REORDER!!! USE Sipuni api docs!
+            map(
+                str,
+                [
+                    int(self.anonymous),
+                    int(self.show_dtmf_user_answers),
+                    int(self.first_time),
+                    date_from.format(self.date_format),
+                    self.from_number,
+                    int(self.show_names),
+                    int(self.show_numbers_involved),
+                    int(self.show_numbers_ringed),
+                    int(self.show_outgoing_line),
+                    int(self.show_tree_id),
+                    self.state,
+                    date_to.format(self.date_format),
+                    self.to_answer,
+                    self.to_number,
+                    self.tree,
+                    self.call_type,
+                    self.user,
+                    self.raw_token,
+                ],
+            )
+        )
+        return md5(hash_str.encode("utf-8")).hexdigest()
 
-# Basic incremental stream
-class IncrementalSipuniStream(SipuniStream, ABC):
-    """
-    TODO fill in details of this class to implement functionality related to incremental syncs for your connector.
-         if you do not need to implement incremental sync for any streams, remove this class.
-    """
+    def request_params(self, **kwargs) -> MutableMapping[str, Any]:
+        params = {
+            "user": self.user,
+            "from": self.date_from.format(self.date_format),
+            "to": self.date_to.format(self.date_format),
+            "type": self.call_type,
+            "state": self.state,
+            "tree": self.tree,
+            "showTreeId": int(self.show_tree_id),
+            "fromNumber": self.from_number,
+            "toNumber": self.to_number,
+            "numbersRinged": int(self.show_numbers_ringed),
+            "numbersInvolved": int(self.show_numbers_involved),
+            "names": int(self.show_names),
+            "outgoingLine": int(self.show_outgoing_line),
+            "toAnswer": self.to_answer,
+            "anonymous": int(self.anonymous),
+            "firstTime": int(self.first_time),
+            "dtmfUserAnswers": int(self.show_dtmf_user_answers),
+            "hash": self.make_hash(date_from=self.date_from, date_to=self.date_to),
+        }
+        return params
 
-    # TODO: Fill in to checkpoint stream reads after N records. This prevents re-reading of data if the stream fails for any reason.
-    state_checkpoint_interval = None
+    def make_test_request(self, **kwargs) -> requests.Response:
+        date_to = pendulum.now().subtract(days=1).date()
+        date_from = pendulum.now().subtract(days=2).date()
 
-    @property
-    def cursor_field(self) -> str:
-        """
-        TODO
-        Override to return the cursor field used by this stream e.g: an API entity might always use created_at as the cursor field. This is
-        usually id or date based. This field's presence tells the framework this in an incremental stream. Required for incremental.
+        params = self.request_params(**kwargs) | {
+            "from": date_from.format(self.date_format),
+            "to": date_to.format(self.date_format),
+            "hash": self.make_hash(date_from=date_from, date_to=date_to),
+        }
+        return requests.post(url=self.url_base + self.path(), params=params)
 
-        :return str: The name of the cursor field.
-        """
-        return []
+    def get_json_schema(self) -> Mapping[str, any]:
+        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("call_stats")
 
-    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
-        """
-        Override to determine the latest state after reading the latest record. This typically compared the cursor_field from the latest record and
-        the current state and picks the 'most' recent cursor. This is how a stream's state is determined. Required for incremental.
-        """
-        return {}
+        test_response = self.make_test_request()
+        raise ValueError(test_response.text)
+        if test_response.get("errors"):
+            raise Exception(test_response["message"])
+        # for dimension in test_response["query"]["dimensions"]:
+        #     schema["properties"][dimension] = {"type": ["null", "string"]}
+        # for metric in test_response["query"]["metrics"]:
+        #     field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
+        #     if not field_type:
+        #         raise Exception(f"Field '{metric}' is not supported in the connector")
+        #     schema["properties"][metric] = {"type": [field_type, "null"]}
+        #
+        # super().replace_keys(schema["properties"])
+        return schema
 
-
-class Employees(IncrementalSipuniStream):
-    """
-    TODO: Change class name to match the table/data source this stream corresponds to.
-    """
-
-    # TODO: Fill in the cursor_field. Required.
-    cursor_field = "start_date"
-
-    # TODO: Fill in the primary key. Required. This is usually a unique field in the stream, like an ID or a timestamp.
-    primary_key = "employee_id"
-
-    def path(self, **kwargs) -> str:
-        """
-        TODO: Override this method to define the path this stream corresponds to. E.g. if the url is https://example-api.com/v1/employees then this should
-        return "single". Required.
-        """
-        return "employees"
-
-    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-        """
-        TODO: Optionally override this method to define this stream's slices. If slicing is not needed, delete this method.
-
-        Slices control when state is saved. Specifically, state is saved after a slice has been fully read.
-        This is useful if the API offers reads by groups or filters, and can be paired with the state object to make reads efficient. See the "concepts"
-        section of the docs for more information.
-
-        The function is called before reading any records in a stream. It returns an Iterable of dicts, each containing the
-        necessary data to craft a request for a slice. The stream state is usually referenced to determine what slices need to be created.
-        This means that data in a slice is usually closely related to a stream's cursor_field and stream_state.
-
-        An HTTP request is made for each returned slice. The same slice can be accessed in the path, request_params and request_header functions to help
-        craft that specific request.
-
-        For example, if https://example-api.com/v1/employees offers a date query params that returns data for that particular day, one way to implement
-        this would be to consult the stream state object for the last synced date, then return a slice containing each date from the last synced date
-        till now. The request_params function would then grab the date from the stream_slice and make it part of the request by injecting it into
-        the date query param.
-        """
-        raise NotImplementedError("Implement stream slices or delete this method!")
+    def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
+        raise NotImplementedError(response.content.decode("utf-8"))
+        for record in response.json()["data"]["series"]:
+            yield self.add_constants_to_record(
+                {"date": record["point"]["range_a"]["name"], "community_cid": stream_slice["community_cid"], **record["params"]}
+            )
 
 
 # Source
 class SourceSipuni(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        """
-        TODO: Implement a connection check to validate that the user-provided config can be used to connect to the underlying API
-
-        See https://github.com/airbytehq/airbyte/blob/master/airbyte-integrations/connectors/source-stripe/source_stripe/source.py#L232
-        for an example.
-
-        :param config:  the user-input config object conforming to the connector's spec.yaml
-        :param logger:  logger object
-        :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
-        """
+        # TODO: no check connection implemented
         return True, None
 
-    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
-        """
-        TODO: Replace the streams below with your own streams.
+    @staticmethod
+    def transform_config_date_range(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        date_range: Mapping[str, Any] = config.get("date_range", {})
+        date_range_type: str = date_range.get("date_range_type")
 
-        :param config: A Mapping of the user input configuration as defined in the connector spec.
+        date_from: Optional[pendulum.datetime] = None
+        date_to: Optional[pendulum.datetime] = None
+
+        # Meaning is date but storing time since later will use time
+        today_date: pendulum.datetime = pendulum.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        if date_range_type == "custom_date":
+            date_from = pendulum.parse(date_range["date_from"])
+            date_to = pendulum.parse(date_range["date_to"])
+        elif date_range_type == "from_start_date_to_today":
+            date_from = pendulum.parse(date_range["date_from"])
+            if date_range.get("should_load_today"):
+                date_to = today_date
+            else:
+                date_to = today_date.subtract(days=1)
+        elif date_range_type == "last_n_days":
+            date_from = today_date.subtract(days=date_range.get("last_days_count"))
+            if date_range.get("should_load_today"):
+                date_to = today_date
+            else:
+                date_to = today_date.subtract(days=1)
+
+        config["date_from_transformed"], config["date_to_transformed"] = date_from.date(), date_to.date()
+        return config
+
+    @staticmethod
+    def transform_config(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        config = SourceSipuni.transform_config_date_range(config)
+        config["call_type"] = call_type_map[config["type"]]
+        config["state"] = state_map[config["state"]]
+
+        return config
+
+    @staticmethod
+    def get_authenticator(config: Mapping[str, Any]) -> SipuniAuthenticator | CredentialsCraftAuthenticator:
         """
-        # TODO remove the authenticator if not required.
-        auth = TokenAuthenticator(token="api_key")  # Oauth2Authenticator is also available if you need oauth support
-        return [Customers(authenticator=auth), Employees(authenticator=auth)]
+        Get authenticator instance.
+
+        :param config: user input configuration as defined in the connector spec.
+        """
+        auth_type = config["credentials"]["auth_type"]
+        if auth_type == "access_token_auth":
+            auth = SipuniAuthenticator(token=config["credentials"]["access_token"])
+        elif auth_type == "credentials_craft_auth":
+            auth = CredentialsCraftAuthenticator(
+                credentials_craft_host=config["credentials"]["credentials_craft_host"],
+                credentials_craft_token=config["credentials"]["credentials_craft_token"],
+                credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
+            )
+        else:
+            raise Exception(
+                f"Invalid Auth type {auth_type}. Available: access_token_auth and credentials_craft_auth",
+            )
+        return auth
+
+    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
+        config = self.transform_config(config)
+        auth: SipuniAuthenticator | CredentialsCraftAuthenticator = self.get_authenticator(config)
+        call_stat_stream: CallStats = CallStats(
+            authenticator=auth,
+            user=config["user"],
+            date_from=config["date_from_transformed"],
+            date_to=config["date_to_transformed"],
+            call_type=config.get("call_type", 0),
+            state=config.get("state", 1),
+            tree=config.get("tree", ""),
+            show_tree_id=config.get("show_tree_id", False),
+            from_number=config.get("from_number", ""),
+            to_number=config.get("to_number", ""),
+            show_numbers_ringed=config.get("show_numbers_ringed", False),
+            show_numbers_involved=config.get("show_numbers_involved", False),
+            show_names=config.get("show_names", False),
+            show_outgoing_line=config.get("show_outgoing_line", False),
+            to_answer=config.get("to_answer", ""),
+            anonymous=config.get("anonymous", False),
+            first_time=config.get("first_time", False),
+            show_dtmf_user_answers=config.get("dtmf_user_answers", False),
+        )
+        return [call_stat_stream]

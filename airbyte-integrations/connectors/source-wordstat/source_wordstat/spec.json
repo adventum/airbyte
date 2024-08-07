@@ -9,8 +9,8 @@
       "region",
       "devices",
       "keywords",
-      "group_by",
-      "date_range"
+      "date_range",
+      "group_by"
     ],
     "additionalProperties" : false,
     "properties" : {
@@ -171,60 +171,11 @@
           ]
         }
       },
-      "group_by" : {
-        "title" : "Тип группировки",
-        "order" : 4,
-        "type" : "object",
-        "oneOf" : [
-          {
-            "title" : "По дням",
-            "description" : "Группировка по дням",
-            "properties" : {
-              "group_type" : {
-                "type" : "string",
-                "const" : "day",
-                "order" : 0
-              }
-            },
-            "required" : [
-              "group_type"
-            ]
-          },
-          {
-            "title" : "По неделям",
-            "description" : "Группировка по неделям",
-            "properties" : {
-              "group_type" : {
-                "type" : "string",
-                "const" : "week",
-                "order" : 0
-              }
-            },
-            "required" : [
-              "group_type"
-            ]
-          },
-          {
-            "title" : "По месяцам",
-            "description" : "Группировка по месяцам",
-            "properties" : {
-              "group_type" : {
-                "type" : "string",
-                "const" : "month",
-                "order" : 0
-              }
-            },
-            "required" : [
-              "group_type"
-            ]
-          }
-        ]
-      },
       "date_range" : {
         "title" : "Диапазон дат поиска",
         "description" : "Для группировки по дням доступны только данные за последние 60 дней и не новее, чем за вчера. Для группировки по неделям -- от января года, который бал 6 лет назад и не позднее последнего воскресенья. Для группировки по месяцам -- от января года, который был 6 лет назад, но не позднее последнего числа предыдущего месяца. Можно ввести любые даты, но при выходе за указанные рамки данные за желаемый период могут быть недоступны. Также минимальный ращмер выборки -- 3 (дня/недели/месяца, так что программа будет выгружать дополнительные записи для маленьких выборок). Примечание: вордстат не всегда отдает данные на границах промежутка. При группировке по дням данные за вчера могут просто не прийти.",
         "type" : "object",
-        "order" : 5,
+        "order" : 4,
         "oneOf" : [
           {
             "type" : "object",
@@ -325,6 +276,55 @@
                 "order" : 2
               }
             }
+          }
+        ]
+      },
+      "group_by" : {
+        "title" : "Тип группировки",
+        "order" : 5,
+        "type" : "object",
+        "oneOf" : [
+          {
+            "title" : "По дням",
+            "description" : "Группировка по дням",
+            "properties" : {
+              "group_type" : {
+                "type" : "string",
+                "const" : "day",
+                "order" : 0
+              }
+            },
+            "required" : [
+              "group_type"
+            ]
+          },
+          {
+            "title" : "По неделям",
+            "description" : "Группировка по неделям",
+            "properties" : {
+              "group_type" : {
+                "type" : "string",
+                "const" : "week",
+                "order" : 0
+              }
+            },
+            "required" : [
+              "group_type"
+            ]
+          },
+          {
+            "title" : "По месяцам",
+            "description" : "Группировка по месяцам",
+            "properties" : {
+              "group_type" : {
+                "type" : "string",
+                "const" : "month",
+                "order" : 0
+              }
+            },
+            "required" : [
+              "group_type"
+            ]
           }
         ]
       }

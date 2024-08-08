@@ -74,6 +74,8 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         self.metrics = stream_config.get("metrics")
         self.dimensions = stream_config.get("dimensions")
 
+        # Caching explicitly json schema because read_records uses get_json_schema that makes extra requests
+        self.stream_schema_json: dict[str, any] | None = None
 
     @property
     def name(self) -> str:
@@ -91,23 +93,28 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         return {"next_offset": data["query"]["offset"] + self.limit}
 
     def get_json_schema(self) -> Mapping[str, any]:
-        schema = ResourceSchemaLoader(
-            package_name_from_class(self.__class__),
-        ).get_schema("yandex_metrika_agg_data_stream")
+        # Caching schema For better performance on record validation
+        # Airbyte may call multiple get_json_schema() with multiple test requests
+        if not self.stream_schema_json:
+            schema = ResourceSchemaLoader(
+                package_name_from_class(self.__class__),
+            ).get_schema("yandex_metrika_agg_data_stream")
 
-        test_response = self.make_test_request().json()
-        if test_response.get("errors"):
-            raise Exception(test_response["message"])
-        for dimension in test_response["query"]["dimensions"]:
-            schema["properties"][dimension] = {"type": ["null", "string"]}
-        for metric in test_response["query"]["metrics"]:
-            field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
-            if not field_type:
-                raise Exception(f"Field '{metric}' is not supported in the connector")
-            schema["properties"][metric] = {"type": [field_type, "null"]}
+            test_response = self.make_test_request().json()
+            if test_response.get("errors"):
+                raise Exception(test_response["message"])
+            for dimension in test_response["query"]["dimensions"]:
+                schema["properties"][dimension] = {"type": ["null", "string"]}
+            for metric in test_response["query"]["metrics"]:
+                field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
+                if not field_type:
+                    raise Exception(f"Field '{metric}' is not supported in the connector")
+                schema["properties"][metric] = {"type": [field_type, "null"]}
 
-        super().replace_keys(schema["properties"])
-        return schema
+            super().replace_keys(schema["properties"])
+            self.stream_schema_json = schema
+
+        return self.stream_schema_json
 
     def request_params(
         self, next_page_token: Mapping[str, any] | None = None, *args, **kwargs

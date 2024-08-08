@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2022 Airbyte, Inc., all rights reserved.
-#
+# ¬
 
 
 from setuptools import find_packages, setup
 
-MAIN_REQUIREMENTS = ["airbyte-cdk~=0.90", "pendulum>=2.1, <3"]
+MAIN_REQUIREMENTS = ["airbyte-cdk>=4.3, <5.0", "pendulum>=2.1, <3", "pandas>=2.2.0, <3.0.0", "unidecode"]
 
 TEST_REQUIREMENTS = [
     "pytest~=6.2",

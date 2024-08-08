@@ -1,8 +1,11 @@
 #
 # Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
-
-
+from io import StringIO
+import re
+from unidecode import unidecode
+import pandas as pd
+import numpy as np
 from abc import ABC
 from hashlib import md5
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
@@ -21,6 +24,7 @@ from .mappings import call_type_map, state_map
 
 class SipuniStream(HttpStream, ABC):
     url_base: str = "https://sipuni.com/api/"
+    http_method = "POST"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
@@ -36,9 +40,18 @@ class SipuniStream(HttpStream, ABC):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield {}
 
+    def translate_name(self, name: str):
+        """Sipuni uses cyrillic column names that can cause problems when loading data"""
+        name = str(name)
+        name = re.sub("[^A-Za-z0-9\s]+", "", unidecode(name))
+        name = name.strip()
+        name = re.sub("[\s]", "_", name)
+        name = re.sub("_{2,}", "_", name)
+        return name.lower()
+
 
 class CallStats(SipuniStream):
-    primary_key = "customer_id"
+    primary_key = None
     date_format = "DD.MM.YYYY"
 
     def __init__(
@@ -71,7 +84,7 @@ class CallStats(SipuniStream):
         self.anonymous: bool = anonymous
         self.first_time: bool = first_time
         self.from_number: str = from_number
-        self.state: int = state
+        self.request_state: int = state  # Airbyte CDK overrides stream.state
         self.to_answer: str = to_answer
         self.to_number: str = to_number
         self.tree: str = tree
@@ -83,6 +96,9 @@ class CallStats(SipuniStream):
         self.show_outgoing_line: bool = show_outgoing_line
         self.show_dtmf_user_answers: bool = show_dtmf_user_answers
 
+        # Caching explicitly json schema because read_records uses get_json_schema that makes extra requests
+        self.stream_schema_json: dict[str, any] | None = None
+
     def path(
         self,
         **kwargs,
@@ -90,7 +106,8 @@ class CallStats(SipuniStream):
         return "statistic/export"
 
     def make_hash(self, date_from: pendulum.date, date_to: pendulum.date) -> str:
-        hash_str = "+".join(  # DO NOT REORDER!!! USE Sipuni api docs!
+        # DO NOT REORDER!!! USE Sipuni api docs!!!
+        hash_str = "+".join(
             map(
                 str,
                 [
@@ -104,7 +121,7 @@ class CallStats(SipuniStream):
                     int(self.show_numbers_ringed),
                     int(self.show_outgoing_line),
                     int(self.show_tree_id),
-                    self.state,
+                    self.request_state,
                     date_to.format(self.date_format),
                     self.to_answer,
                     self.to_number,
@@ -123,7 +140,7 @@ class CallStats(SipuniStream):
             "from": self.date_from.format(self.date_format),
             "to": self.date_to.format(self.date_format),
             "type": self.call_type,
-            "state": self.state,
+            "state": self.request_state,
             "tree": self.tree,
             "showTreeId": int(self.show_tree_id),
             "fromNumber": self.from_number,
@@ -141,46 +158,73 @@ class CallStats(SipuniStream):
         return params
 
     def make_test_request(self, **kwargs) -> requests.Response:
-        date_to = pendulum.now().subtract(days=1).date()
-        date_from = pendulum.now().subtract(days=2).date()
+        date = pendulum.now().subtract(days=1).date()
 
         params = self.request_params(**kwargs) | {
-            "from": date_from.format(self.date_format),
-            "to": date_to.format(self.date_format),
-            "hash": self.make_hash(date_from=date_from, date_to=date_to),
+            "from": date.format(self.date_format),
+            "to": date.format(self.date_format),
+            "hash": self.make_hash(date_from=date, date_to=date),
         }
         return requests.post(url=self.url_base + self.path(), params=params)
 
     def get_json_schema(self) -> Mapping[str, any]:
-        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("call_stats")
+        if not self.stream_schema_json:
+            schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema("call_stats")
 
-        test_response = self.make_test_request()
-        raise ValueError(test_response.text)
-        if test_response.get("errors"):
-            raise Exception(test_response["message"])
-        # for dimension in test_response["query"]["dimensions"]:
-        #     schema["properties"][dimension] = {"type": ["null", "string"]}
-        # for metric in test_response["query"]["metrics"]:
-        #     field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
-        #     if not field_type:
-        #         raise Exception(f"Field '{metric}' is not supported in the connector")
-        #     schema["properties"][metric] = {"type": [field_type, "null"]}
-        #
-        # super().replace_keys(schema["properties"])
-        return schema
+            test_response = self.make_test_request()
+            if test_response.status_code > 204:
+                raise Exception(f"Failed to fetch data. Response got status {test_response.status_code}")
+
+            data = test_response.content.decode("utf-8-sig")
+            df: pd.DataFrame = pd.read_csv(StringIO(data), delimiter=";", low_memory=False)
+            df.rename(columns={old_name: self.translate_name(old_name) for old_name in df.columns}, inplace=True)
+            types: dict[str, np.dtype] = dict(df.dtypes)
+            for col_name, col_type in types.items():
+                if isinstance(col_type, np.dtypes.IntDType):
+                    schema["properties"][col_name] = {"type": ["null", "integer"]}
+                elif isinstance(col_type, np.dtypes.BoolDType):
+                    schema["properties"][col_name] = {"type": ["null", "boolean"]}
+                elif (
+                    isinstance(col_type, np.dtypes.Float64DType)
+                    or isinstance(col_type, np.dtypes.Float16DType)
+                    or isinstance(col_type, np.dtypes.Float32DType)
+                ):
+                    schema["properties"][col_name] = {"type": ["null", "number"]}
+                else:
+                    schema["properties"][col_name] = {"type": ["null", "string"]}
+            self.stream_schema_json = schema
+        return self.stream_schema_json
 
     def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
-        raise NotImplementedError(response.content.decode("utf-8"))
-        for record in response.json()["data"]["series"]:
-            yield self.add_constants_to_record(
-                {"date": record["point"]["range_a"]["name"], "community_cid": stream_slice["community_cid"], **record["params"]}
-            )
+        if response.status_code > 204:
+            raise Exception(f"Failed to fetch data. Response got status {response.status_code}")
+        data = response.content.decode("utf-8-sig")
+        df: pd.DataFrame = pd.read_csv(StringIO(data), delimiter=";", low_memory=False)
+        df = df.replace(np.nan, None)
+        df.rename(columns={old_name: self.translate_name(old_name) for old_name in df.columns}, inplace=True)
+        yield from df.to_dict(orient="records")
 
 
 # Source
 class SourceSipuni(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        # TODO: no check connection implemented
+        config = self.transform_config(config)
+        auth: SipuniAuthenticator | CredentialsCraftAuthenticator = self.get_authenticator(config)
+        call_stat_stream: CallStats = CallStats(
+            authenticator=auth,
+            user=config["user"],
+            date_from=config["date_from_transformed"],
+            date_to=config["date_to_transformed"],
+        )
+        test_response = call_stat_stream.make_test_request()
+        if test_response.status_code > 204:
+            return False, f"Failed to fetch data. Response got status {test_response.status_code}"
+
+        try:
+            data = test_response.content.decode("utf-8-sig")
+            pd.read_csv(StringIO(data), delimiter=";", low_memory=False)
+        except Exception as ex:
+            return False, str(ex)
         return True, None
 
     @staticmethod

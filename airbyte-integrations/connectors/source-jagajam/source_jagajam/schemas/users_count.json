@@ -2,6 +2,8 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "date": { "type": ["string", "null"] },
+    "community_cid": { "type": ["string", "null"] },
     "date_from": { "type": ["string", "null"] },
     "date_to": { "type": ["string", "null"] },
     "last_users_count_a": { "type": ["null", "integer"] },

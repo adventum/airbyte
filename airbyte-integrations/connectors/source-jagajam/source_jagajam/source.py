@@ -5,7 +5,6 @@
 
 from datetime import datetime, timedelta
 import json
-from time import strptime
 from typing import Any, List, Mapping, Tuple
 
 from airbyte_cdk.sources import AbstractSource
@@ -27,12 +26,12 @@ class SourceJagajam(AbstractSource):
         from_user_date_format = "%Y-%m-%d"
 
         if date_range_type == "custom_date":
-            date_from = strptime(date_range.get(
+            date_from = datetime.strptime(date_range.get(
                 'date_from'), from_user_date_format)
-            date_to = strptime(date_range.get(
+            date_to = datetime.strptime(date_range.get(
                 'date_to'), from_user_date_format)
         elif date_range_type == 'from_start_date_to_today':
-            date_from = strptime(date_range.get(
+            date_from = datetime.strptime(date_range.get(
                 'date_from'), from_user_date_format)
             if date_range.get('should_load_today'):
                 date_to = today_date

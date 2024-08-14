@@ -17,7 +17,6 @@ from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
 
 from .aggregated_data_streams.streams import (
     AggregateDataYandexMetrikaReport,
-    ReportConfig,
 )
 from .auth import CredentialsCraftAuthenticator
 from .exceptions import ConfigInvalidError
@@ -40,7 +39,9 @@ class SourceYandexMetrika(AbstractSource):
         stream_slice: Mapping[str, any],
         check_log_request_ability: bool = False,
     ) -> tuple[list[Mapping[str, any]], str]:
-        logger.info(f"Preprocessing raw stream slice {stream_slice} for stream {stream_instance.name}...")
+        logger.info(
+            f"Preprocessing raw stream slice {stream_slice} for stream {stream_instance.name}..."
+        )
 
         preprocessor = stream_instance.preprocessor
         is_request_on_server, request_id = preprocessor.check_if_log_request_already_on_server(
@@ -72,7 +73,9 @@ class SourceYandexMetrika(AbstractSource):
         ], preprocessed_slice["log_request_id"]
 
     @staticmethod
-    def postprocess_raw_stream_slice(stream_instance: YandexMetrikaRawDataStream, stream_slice, log_request_id: str):
+    def postprocess_raw_stream_slice(
+        stream_instance: YandexMetrikaRawDataStream, stream_slice, log_request_id: str
+    ):
         preprocessor = stream_instance.preprocessor
         if stream_instance.clean_slice_after_successfully_loaded:
             logger.info(f"clean_slice_after_successfully_loaded {stream_slice}")
@@ -156,7 +159,9 @@ class SourceYandexMetrika(AbstractSource):
 
                 for thread in threads_controller.threads:
                     records_generator = thread.records_generator()
-                    yield from (self._get_message(record, stream_instance) for record in records_generator)
+                    yield from (
+                        self._get_message(record, stream_instance) for record in records_generator
+                    )
             yield from []
         else:
             yield from super()._read_full_refresh(
@@ -178,7 +183,10 @@ class SourceYandexMetrika(AbstractSource):
 
         """Check names"""
         if len([stream.name for stream in streams]) != len({stream.name for stream in streams}):
-            return False, "All streams must have unique names! Try adding your own stream names for hits and visits streams"
+            return (
+                False,
+                "All streams must have unique names! Try adding your own stream names for hits and visits streams",
+            )
 
         for stream_number, stream in enumerate(streams):
             if isinstance(stream, YandexMetrikaRawDataStream):
@@ -191,8 +199,10 @@ class SourceYandexMetrika(AbstractSource):
                 test_response = stream.make_test_request()
                 test_response_data = test_response.json()
                 if test_response_data.get("errors"):
-                    return False, f"Table #{stream_number} ({stream.name}) error: " + test_response_data.get(
-                        "message"
+                    return (
+                        False,
+                        f"Table #{stream_number} ({stream.name}) error: "
+                        + test_response_data.get("message"),
                     )
 
         return True, None

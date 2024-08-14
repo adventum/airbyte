@@ -23,7 +23,11 @@ from ..utils import (
     random_output_filename,
 )
 from ..exceptions import ConfigInvalidError
-from ..raw_data_streams.supported_fields import hits_fields_manager, visits_fields_manager, YandexMetrikaFieldsManager
+from ..raw_data_streams.supported_fields import (
+    hits_fields_manager,
+    visits_fields_manager,
+    YandexMetrikaFieldsManager,
+)
 
 if typing.TYPE_CHECKING:
     from airbyte_cdk.sources import Source
@@ -35,15 +39,15 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
     url_base = "https://api-metrika.yandex.net/management/v1/"
 
     def __init__(
-            self,
-            stream_config: dict[str, any],
-            authenticator: TokenAuthenticator,
-            counter_id: int,
-            date_from: datetime,
-            date_to: datetime,
-            log_source: str,
-            field_name_map: dict[str, str],
-            created_for_test: bool = False,
+        self,
+        stream_config: dict[str, any],
+        authenticator: TokenAuthenticator,
+        counter_id: int,
+        date_from: datetime,
+        date_to: datetime,
+        log_source: str,
+        field_name_map: dict[str, str],
+        created_for_test: bool = False,
     ):
         """Load basic attributes"""
         super().__init__(field_name_map)
@@ -59,15 +63,21 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         self._name = stream_config.get("name")
         self.split_range_days_count = stream_config.get("split_range_days_count", False)
         self.multithreading_threads_count = stream_config.get("multithreading_threads_count", 1)
-        self.clean_slice_after_successfully_loaded = stream_config.get("clean_slice_after_successfully_loaded", False)
-        self.clean_log_requests_before_replication = stream_config.get("clean_log_requests_before_replication", False)
+        self.clean_slice_after_successfully_loaded = stream_config.get(
+            "clean_slice_after_successfully_loaded", False
+        )
+        self.clean_log_requests_before_replication = stream_config.get(
+            "clean_log_requests_before_replication", False
+        )
         self.check_log_requests_ability = stream_config.get("check_log_requests_ability", False)
 
         """Load and check fields"""
         self.fields = stream_config.get("fields", [])
         attribution: str | None = stream_config.get("attribution")
         if not attribution and any(("<attribution>" in field for field in self.fields)):
-            raise ConfigInvalidError("В полях отчета используется <attribution>, при этом аттрибуция не задана")
+            raise ConfigInvalidError(
+                "В полях отчета используется <attribution>, при этом аттрибуция не задана"
+            )
 
         if attribution:
             attribution = attribution_translations.get(attribution)
@@ -78,17 +88,21 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
             if "<attribution>" in field:
                 self.fields[i] = field.replace("<attribution>", attribution)
 
-        field_manager: YandexMetrikaFieldsManager = visits_fields_manager if log_source == "visits" else hits_fields_manager
+        field_manager: YandexMetrikaFieldsManager = (
+            visits_fields_manager if log_source == "visits" else hits_fields_manager
+        )
         for f in self.fields:
             field_type = field_manager.field_lookup(f)
             if not field_type:
                 raise ConfigInvalidError(
-                    f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"')
+                    f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"'
+                )
 
         for f in visits_fields_manager.get_required_fields_names():
             if f not in self.fields:
                 raise ConfigInvalidError(
-                    f'Сырые отчёты - источник {log_source} должен содержать поля {" ".join(field_manager.get_required_fields_names())}')
+                    f'Сырые отчёты - источник {log_source} должен содержать поля {" ".join(field_manager.get_required_fields_names())}'
+                )
 
         if self.primary_key in self.field_name_map.keys():
             raise ConfigInvalidError(f"Поле {self.primary_key} не может быть переименовано")
@@ -122,7 +136,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     def get_json_schema(self) -> Mapping[str, any]:
         schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
-                "yandex_metrika_raw_data_stream"
+            "yandex_metrika_raw_data_stream"
         )
         for field in self.fields:
             schema["properties"][field] = {"type": ["null", "string"]}
@@ -131,17 +145,19 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         return schema
 
     def path(
-            self,
-            next_page_token: Mapping[str, any] = None,
-            stream_slice: Mapping[str, any] = None,
-            *args,
-            **kwargs,
+        self,
+        next_page_token: Mapping[str, any] = None,
+        stream_slice: Mapping[str, any] = None,
+        *args,
+        **kwargs,
     ) -> str:
         path = f"counter/{self.counter_id}/logrequest/{stream_slice['log_request_id']}/part/{stream_slice['part']['part_number']}/download"
         logger.info(f"Path: {path}")
         return path
 
-    def check_availability(self, logger: logging.Logger, source: Optional["Source"] = None) -> Tuple[bool, Optional[str]]:
+    def check_availability(
+        self, logger: logging.Logger, source: Optional["Source"] = None
+    ) -> Tuple[bool, Optional[str]]:
         # Custom stream used custom read that fails to check it
         return True, None
 
@@ -149,7 +165,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         return None
 
     def request_params(
-            self, stream_slice: Mapping[str, any] = None, *args, **kwargs
+        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
     ) -> MutableMapping[str, any]:
         return {
             "date1": datetime.strftime(stream_slice["date_from"], "%Y-%m-%d"),
@@ -167,11 +183,11 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         return response.status_code in [429, 400] or 500 <= response.status_code < 600
 
     def parse_response(
-            self,
-            response: requests.Response,
-            stream_slice: Mapping[str, str],
-            *args,
-            **kwargs,
+        self,
+        response: requests.Response,
+        stream_slice: Mapping[str, str],
+        *args,
+        **kwargs,
     ) -> Iterable:
         logger.info(f"parse_response {response.url}")
         try:

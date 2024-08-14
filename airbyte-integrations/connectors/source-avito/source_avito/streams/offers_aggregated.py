@@ -3,8 +3,10 @@ from typing import Any, Iterable, Mapping, Optional
 import pendulum
 import requests
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
+from airbyte_protocol.models import SyncMode
 
 from . import AvitoStream
+from .offers import Offers
 
 
 class OffersAggregated(AvitoStream):
@@ -12,35 +14,36 @@ class OffersAggregated(AvitoStream):
     primary_key = "id"
 
     def path(
-        self,
-        stream_state: Mapping[str, Any] = None,
-        stream_slice: Mapping[str, Any] = None,
-        next_page_token: Mapping[str, Any] = None,
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Mapping[str, Any] = None,
+            next_page_token: Mapping[str, Any] = None,
     ) -> str:
         if not self.user_id:
             self.user_id = self._get_user_id()
         return f"stats/v1/accounts/{self.user_id}/items"
 
     def __init__(
-        self,
-        authenticator: TokenAuthenticator,
-        time_from: pendulum.datetime,
-        time_to: pendulum.datetime,
-        item_ids: list[int],
-        period_grouping: str,
-        fields: list[str]
+            self,
+            authenticator: TokenAuthenticator,
+            time_from: pendulum.datetime,
+            time_to: pendulum.datetime,
+            period_grouping: str,
+            fields: list[str],
+            offers_stream: Offers,
     ):
         super().__init__(authenticator)
         self.time_from: pendulum.datetime = time_from
         self.time_to: pendulum.date = time_to
         self.user_id: int | None = None
-        self.item_ids: list[int] = item_ids
         self.period_grouping: str = period_grouping
         self.fields: list[str] = fields
+        self.offers_stream: Offers = offers_stream
+        self.item_ids: list[int] | None = None
 
     @classmethod
     def check_config(cls, config: Mapping[str, Any]) -> tuple[bool, str]:
-        for field_name in ["aggregated_offers_item_ids", "aggregated_offers_period_grouping", "aggregated_offers_fields"]:
+        for field_name in ["aggregated_offers_period_grouping", "aggregated_offers_fields"]:
             if not config.get(field_name):
                 return False, f"{cls.__name__} must have {field_name} value"
 
@@ -56,13 +59,26 @@ class OffersAggregated(AvitoStream):
         user_id: int = response_json["id"]
         return user_id
 
+    def _get_item_ids(self) -> list[int]:
+        """Get items ids from Offers stream"""
+        offers_ids: set[int] = set()
+        offers = self.offers_stream.read_records(
+            sync_mode=SyncMode.full_refresh,
+        )
+        offers_ids.update(offer["id"] for offer in offers)
+        self.logger.info(f"Got {len(offers_ids)} offers ids")
+        return list(offers_ids)
+
     def request_body_json(
-        self,
-        **kwargs
+            self,
+            **kwargs
     ) -> Optional[Mapping[str, Any]]:
         """
         Request json body
         """
+
+        if not self.item_ids:
+            self.item_ids = self._get_item_ids()
 
         data: dict[str, any] = {
             "dateFrom": self.time_from.date().isoformat(),
@@ -102,4 +118,3 @@ class OffersAggregated(AvitoStream):
                     new_record[field] = stat.get(field)
 
                 yield new_record
-

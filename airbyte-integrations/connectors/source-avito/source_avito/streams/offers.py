@@ -46,7 +46,7 @@ class Offers(AvitoStream):
         # All fields are optional
         return True, ""
 
-    def _load_oldest_forbidden_records(self):
+    def _load_oldest_forbidden_records(self) -> int | None:
         """Get records after date_from to identify self.id_border"""
         request_params = self.request_params(stream_state=None, stream_slice=None)
         request_params["updatedAtFrom"] = self.time_to.add(days=1).date().isoformat()
@@ -60,8 +60,9 @@ class Offers(AvitoStream):
         )
         response_json = response.json()
         ids: set[int] = {record["id"] for record in response_json["resources"]}
-        self.id_border = min(ids)
-        self.logger.info(f"Set id border: {self.id_border}")
+        id_border: int | None = min(ids) if ids else None
+        self.logger.info(f"Set id border: {id_border}")
+        return id_border
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         # Sadly, Avito does not send any offer(item) timings, so we have to check create time for them separately
@@ -70,10 +71,10 @@ class Offers(AvitoStream):
             return None
 
         if self.id_border is None:
-            self._load_oldest_forbidden_records()
+            self.id_border = self._load_oldest_forbidden_records()
 
         # Loaded records later than date_to
-        if self.id_border < any((record["id"] for record in response_json["resources"])):
+        if self.id_border and self.id_border < any((record["id"] for record in response_json["resources"])):
             self.logger.info(f"Found id border in pagination")
             return None
 
@@ -82,9 +83,8 @@ class Offers(AvitoStream):
 
     def request_params(
         self,
-        stream_state: Optional[Mapping[str, Any]],
-        stream_slice: Optional[Mapping[str, Any]] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
+        **kwargs
     ) -> Optional[Mapping[str, Any]]:
         """
         Request parameters
@@ -116,10 +116,10 @@ class Offers(AvitoStream):
             raise ValueError(response_json, response.request.body)
 
         if self.id_border is None:
-            self._load_oldest_forbidden_records()
+            self.id_border = self._load_oldest_forbidden_records()
 
         for record in response_json["resources"]:
-            if record["id"] < self.id_border:
+            if not self.id_border or record["id"] < self.id_border:
                 record["category_id"] = record["category"]["id"]
                 record["category_name"] = record["category"]["name"]
                 yield record

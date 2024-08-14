@@ -7,7 +7,6 @@
     "required" : [
       "client_id",
       "client_secret",
-      "use_offers_stream",
       "use_aggregated_offers_stream",
       "date_range"
     ],
@@ -26,18 +25,11 @@
         "airbyte_secret" : true,
         "order" : 1
       },
-      "use_offers_stream": {
-        "type": "boolean",
-        "title": "Use Avito Offers stream?",
-        "description": "Avito offers stream requires some extra fields. You can skip them if you don't need this stream",
-        "default": false,
-        "order": 2
-      },
       "offer_statuses": {
         "type": "array",
-        "title": "Offer statuses for Offers stream (set empty to skip status filters)",
+        "title": "Offer statuses (set empty to skip status filters)",
         "description": "Optional if using this stream, not supported and not used in Aggregated offers stream",
-        "order": 3,
+        "order": 2,
         "items": {
           "type": "string",
           "enum": [
@@ -51,23 +43,23 @@
       },
       "offer_category": {
         "type": "integer",
-        "title": "Offer Category for Offers stream",
-        "description": "Optional if using this stream",
+        "title": "Offer Category",
+        "description": "Optional",
         "examples": [111],
-        "order": 4
+        "order": 3
       },
       "use_aggregated_offers_stream": {
         "type": "boolean",
         "title": "Use Avito Aggregated offers stream?",
-        "description": "Avito aggregated offers stream requires some extra fields. You can skip them if you don't need this stream",
+        "description": "Avito aggregated offers stream requires some extra fields. You can skip them if you don't use this stream",
         "default": false,
-        "order": 5
+        "order": 4
       },
       "aggregated_offers_fields": {
         "type": "array",
         "title": "Fields for aggregated offers stream",
         "description": "Required if using this stream",
-        "order": 6,
+        "order": 5,
         "items": {
           "type": "string",
           "enum": [
@@ -77,20 +69,11 @@
           ]
         }
       },
-      "aggregated_offers_item_ids": {
-        "type": "array",
-        "title": "Item IDs for aggregated offers stream",
-        "description": "Required if using this stream",
-        "order": 8,
-        "items": {
-          "type": "integer"
-        }
-      },
       "aggregated_offers_period_grouping": {
         "type": "string",
         "title": "Period grouping for aggregated offers stream",
         "description": "Required if using this stream",
-        "order": 9,
+        "order": 6,
         "enum": [
           "day",
           "week",
@@ -101,7 +84,7 @@
         "title": "Date Range",
         "description": "Choose date period that must be loaded",
         "type": "object",
-        "order": 10,
+        "order": 7,
         "oneOf": [
           {
             "type": "object",

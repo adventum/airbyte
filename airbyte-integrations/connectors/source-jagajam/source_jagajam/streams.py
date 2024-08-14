@@ -225,6 +225,7 @@ class DateRangeCommunitiesDetailsStream(DateRangeStream, CommunitiesDetailsStrea
                 community_details['access_retrospective'], '%Y-%m-%dT%H:%M:%S.%fZ'
             )
             date_from = self.date_from
+            print('community_min_date', community_min_date, 'date_from',date_from )
             if community_min_date > self.date_from:
                 self.logger.info(
                     f'Min date for {community_details["cid"]} community '

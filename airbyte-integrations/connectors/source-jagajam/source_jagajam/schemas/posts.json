@@ -32,6 +32,7 @@
     "time_comments": { "type": ["string", "null"] },
     "comments": { "type": ["integer", "null"] },
     "date": { "type": ["string", "null"] },
+    "community_cid": { "type": ["string", "null"] },
     "from_id": { "type": ["string", "null"] },
     "from_owner": { "type": ["boolean", "null"] },
     "interactions": { "type": ["integer", "null"] },

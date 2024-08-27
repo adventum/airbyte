@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["null", "integer"] },
+    "project_id": { "type": ["null", "integer"] },
+    "title": { "type": ["null", "string"] },
+    "type": { "type": ["null", "string"] },
+    "street": { "type": ["null", "string"] },
+    "number": { "type": ["null", "string"] },
+    "facing": { "type": ["null", "string"] },
+    "material": { "type": ["null", "string"] },
+    "building_state": { "type": ["null", "string"] },
+    "development_start_quarter_month": { "type": ["null", "string"] },
+    "development_start_quarter_year": { "type": ["null", "string"] },
+    "development_end_quarter_month": { "type": ["null", "string"] },
+    "development_end_quarter_year": { "type": ["null", "string"] },
+    "sales_start_year": { "type": ["null", "string"] },
+    "sales_start_month": { "type": ["null", "string"] },
+    "sales_end_year": { "type": ["null", "string"] },
+    "sales_end_month": { "type": ["null", "string"] },
+    "is_deleted": { "type": ["null", "boolean"] }
+  }
+}

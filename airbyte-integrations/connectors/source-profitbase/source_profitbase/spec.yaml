@@ -4,8 +4,18 @@ connectionSpecification:
   title: Profitbase Spec
   type: object
   required:
-    - fix-me
+    - account_number
+    - api_key
   properties:
-    fix-me:
+    account_number:
       type: string
-      description: describe me
+      title: Номер Аккаунта ProfitBase
+      description: Для корректного подключения через API, нужен номер аккаунта, который можно найти в личном кабинете
+      airbyte_secret: true
+      order: 0
+    api_key:
+      type: string
+      title: API Ключ
+      description: В этом поле указывается API ключ для аутентификации (Пример ключа- app-74b6b5734m56). Также, чтобы получить доступ к API, нужно чтобы IP откуда идет запрос, должен быть в WhiteList'e клиента, которому выгружаются данные. Подсказка поддержки ProfitBase - В целях безопасности мы добавляем IP адреса в список разрешенных только по запросу с е-мейла пользователя на нашу почту support@profitbase.ru, обладающего полными правами доступа в кабинете Profitbase. Другими словами должно быть выполнено два условия - E-mail должен быть добавлен в список пользователей вашего кабинета Profitbase.У пользователя с этим e-mail должны быть полные права доступа к кабинету Profitbase В письме необходимо указать номер аккаунта Profitbase (его можно увидеть в адресной строке в формате pb###... .), а также список IP, которые необходимо добавить.
+      airbyte_secret: true
+      order: 1

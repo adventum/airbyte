@@ -20,8 +20,20 @@ from airbyte_cdk.models import (
 )
 from airbyte_cdk.sources import Source
 
+from airbyte_cdk.sources import Source
+from airbyte_cdk.models import AirbyteCatalog, AirbyteStream
+from airbyte_cdk.logger import AirbyteLogger
+from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
+from airbyte_cdk.sources.streams.core import package_name_from_class
+from airbyte_cdk.models import SyncMode
+
 
 class SourceProfitbase(Source):
+
+    def __init__(self):
+        # Инициализация загрузчика схем
+        self.schema_loader = ResourceSchemaLoader(package_name_from_class(self.__class__))
+
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         """
         Tests if the input configuration can be used to successfully connect to the integration
@@ -42,34 +54,15 @@ class SourceProfitbase(Source):
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"An exception occurred: {str(e)}")
 
     def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
-        """
-        Returns an AirbyteCatalog representing the available streams and fields in this integration.
-        For example, given valid credentials to a Postgres database,
-        returns an Airbyte catalog where each postgres table is a stream, and each table column is a field.
-
-        :param logger: Logging object to display debug/info/error to the logs
-            (logs will not be accessible via airbyte UI if they are not passed to this logger)
-        :param config: Json object containing the configuration of this source, content of this json is as specified in
-        the properties of the spec.yaml file
-
-        :return: AirbyteCatalog is an object describing a list of all available streams in this source.
-            A stream is an AirbyteStream object that includes:
-            - its stream name (or table name in the case of Postgres)
-            - json_schema providing the specifications of expected schema for this stream (a list of columns described
-            by their names and types)
-        """
         streams = []
+        for stream_name in ["projects", "houses", "properties"]:
+            json_schema = self.schema_loader.get_schema(stream_name)
+            streams.append(AirbyteStream(
+                name=stream_name,
+                json_schema=json_schema,
+                supported_sync_modes=[SyncMode.full_refresh, SyncMode.incremental]
+            ))
 
-        stream_name = "TableName"  # Example
-        json_schema = {  # Example
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "object",
-            "properties": {"columnName": {"type": "string"}},
-        }
-
-        # Not Implemented
-
-        streams.append(AirbyteStream(name=stream_name, json_schema=json_schema))
         return AirbyteCatalog(streams=streams)
 
     def read(

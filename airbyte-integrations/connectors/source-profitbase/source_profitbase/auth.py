@@ -16,25 +16,26 @@ class ProfitbaseAuthenticator(TokenAuthenticator):
         return self._auth_header
 
     @staticmethod
-    def get_access_token(api_key, account_number):
-        base_auth_url = f"https://pb{account_number}.profitbase.ru/api/v4/json/authentication"
-        data = {
+    def get_access_token(api_key, account_number) -> str:
+        base_auth_url: str = f"https://pb{account_number}.profitbase.ru/api/v4/json/authentication"
+        data: dict[Any, Any] = {
             "type": "api-app",
             "credentials": {
                 "pb_api_key": str(api_key)
             }
         }
-        headers = {
+        headers: dict[str, Any] = {
             "Content-Type": "application/json"
         }
 
         result = requests.post(
             url=base_auth_url,
-            data=data,
+            json=data,
             headers=headers
         )
 
-        return result.json()["access_token"]
+        response_json = result.json()
+        return response_json.get("access_token")
 
     @property
     def raw_token(self) -> str:
@@ -51,8 +52,8 @@ class ProfitbaseAuthenticator(TokenAuthenticator):
         auth_method: str = "Bearer",
         auth_header: str = "Authorization",
     ):
-        self.account_number = account_number
-        self.apikey = api_key
-        self._auth_header = auth_header
-        self._auth_method = auth_method
-        self._token = self.get_access_token(api_key, account_number)
+        self.account_number: str = account_number
+        self.api_key: str = api_key
+        self._auth_header: str = auth_header
+        self._auth_method: str = auth_method
+        self._token: str = self.get_access_token(api_key, account_number)

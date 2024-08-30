@@ -11,6 +11,6 @@
     "developer": { "type": ["null", "string"] },
     "banks": { "type": ["null", "string"] },
     "currency": { "type": ["null", "string"] },
-    "is_deleted": { "type": ["null", "boolean"] }
+    "isDeleted": { "type": ["null", "boolean"] }
   }
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["null", "integer"] },
+    "title": { "type": ["null", "string"] },
+    "type": { "type": ["null", "string"] },
+    "region": { "type": ["null", "string"] },
+    "district": { "type": ["null", "string"] },
+    "locality": { "type": ["null", "string"] },
+    "developer": { "type": ["null", "string"] },
+    "banks": { "type": ["null", "string"] },
+    "currency": { "type": ["null", "string"] },
+    "isDeleted": { "type": ["null", "boolean"] }
+  }
+}

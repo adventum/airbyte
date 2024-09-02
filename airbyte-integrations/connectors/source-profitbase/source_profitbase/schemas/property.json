@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["null", "integer"] },
+    "house_id": { "type": ["null", "integer"] },
+    "number": { "type": ["null", "string"] },
+    "rooms_amount": { "type": ["null", "integer"] },
+    "section": { "type": ["null", "string"] },
+    "floor": { "type": ["null", "integer"] },
+    "studio": { "type": ["null", "boolean"] },
+    "free_layout": { "type": ["null", "boolean"] },
+    "propertyType": { "type": ["null", "string"] },
+    "typePurpose": { "type": ["null", "string"] },
+    "area": { "type": ["null", "object"] },
+    "status": { "type": ["null", "string"] },
+    "customStatusId": { "type": ["null", "integer"] },
+    "price": { "type": ["null", "number"] },
+    "attributes": { "type": ["null", "object"] },
+    "preset": { "type": ["null", "string"] },
+    "presetId": { "type": ["null", "integer"] },
+    "customerName": { "type": ["null", "string"] },
+    "isDeleted": { "type": ["null", "boolean"] }
+  }
+}

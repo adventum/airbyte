@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["null", "integer"] },
+    "projectId": { "type": ["null", "integer"] },
+    "title": { "type": ["null", "string"] },
+    "type": { "type": ["null", "string"] },
+    "street": { "type": ["null", "string"] },
+    "number": { "type": ["null", "string"] },
+    "facing": { "type": ["null", "string"] },
+    "material": { "type": ["null", "string"] },
+    "buildingState": { "type": ["null", "string"] },
+    "developmentStartQuarter": { "type": ["null", "object"] },
+    "salesStart": { "type": ["null", "object"] },
+    "salesEnd": { "type": ["null", "object"] },
+    "developmentEndQuarter": { "type": ["null", "object"] },
+    "developmentStartQuarterMonth": { "type": ["null", "string"] },
+    "developmentStartQuarterYear": { "type": ["null", "string"] },
+    "developmentEndQuarterMonth": { "type": ["null", "string"] },
+    "developmentEndQuarterYear": { "type": ["null", "string"] },
+    "salesStartYear": { "type": ["null", "string"] },
+    "salesStartMonth": { "type": ["null", "string"] },
+    "salesEndYear": { "type": ["null", "string"] },
+    "salesEndMonth": { "type": ["null", "string"] },
+    "isDeleted": { "type": ["null", "boolean"] }
+  }
+}

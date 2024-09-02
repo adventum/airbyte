@@ -27,6 +27,7 @@ class ProfitBaseStream(HttpStream, ABC):
         request_params: dict = {
             "access_token": self.auth_token,
             "full": True,
+            "isArchive": False,
             "offset": offset
         }
 

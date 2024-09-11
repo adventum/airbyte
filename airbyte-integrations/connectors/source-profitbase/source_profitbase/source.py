@@ -102,8 +102,8 @@ class SourceProfitbase(Source):
                     if stream_name == "history":
                         property_ids = config["history_stream"]["property_ids"]
                         house_ids = config["history_stream"]["house_ids"]
-                        date_from = config["history_stream"]["date_range"]["date_from"]
-                        date_to = config["history_stream"]["date_range"]["date_to"]
+                        date_from = config["history_stream"]["date_from"]
+                        date_to = config["history_stream"]["date_to"]
                         deal_id = config["history_stream"]["dealId"]
 
                         # Здесь get_data отправляет POST запрос,т.к переопределена в streams

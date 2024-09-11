@@ -83,7 +83,7 @@
       "agent_account": {
         "type": "boolean",
         "title": "Агентский аккаунт",
-        "description": "Если аккаунт агентский, обязательно будет использоваться client_login",
+        "description": "Если аккаунт агентский, обязательно будет использоваться client_*9+login",
         "default": true,
         "order": 1
       },

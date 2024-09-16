@@ -6,8 +6,8 @@
 import sys
 
 from airbyte_cdk.entrypoint import launch
-from source_amocrm import SourceAmocrm
+from source_amocrm import SourceAmoCrm
 
 if __name__ == "__main__":
-    source = SourceAmocrm()
+    source = SourceAmoCrm()
     launch(source, sys.argv[1:])

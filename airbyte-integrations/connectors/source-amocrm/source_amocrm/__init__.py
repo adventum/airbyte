@@ -3,6 +3,6 @@
 #
 
 
-from .source import SourceAmocrm
+from .source import SourceAmoCrm
 
-__all__ = ["SourceAmocrm"]
+__all__ = ["SourceAmoCrm"]

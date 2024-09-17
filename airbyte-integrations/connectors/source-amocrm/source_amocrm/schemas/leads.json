@@ -1,0 +1,113 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "name" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "price" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "responsible_user_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "group_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "status_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "pipeline_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "loss_reason_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "source_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "created_by" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "created_at" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "updated_by" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "updated_at" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "closest_task_at" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "is_deleted" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "custom_fields_values" : {
+      "type" : [
+        "array",
+        "null"
+      ]
+    },
+    "score" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "account_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "labor_cost" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "is_price_modified_by_robot" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "_embedded" : {
+      "type" : [
+        "object"
+      ]
+    }
+  }
+}

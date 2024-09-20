@@ -15,14 +15,6 @@
     "salesStart": { "type": ["null", "object"] },
     "salesEnd": { "type": ["null", "object"] },
     "developmentEndQuarter": { "type": ["null", "object"] },
-    "developmentStartQuarterMonth": { "type": ["null", "string"] },
-    "developmentStartQuarterYear": { "type": ["null", "string"] },
-    "developmentEndQuarterMonth": { "type": ["null", "string"] },
-    "developmentEndQuarterYear": { "type": ["null", "string"] },
-    "salesStartYear": { "type": ["null", "string"] },
-    "salesStartMonth": { "type": ["null", "string"] },
-    "salesEndYear": { "type": ["null", "string"] },
-    "salesEndMonth": { "type": ["null", "string"] },
     "isDeleted": { "type": ["null", "boolean"] }
   }
 }

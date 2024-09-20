@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict, Generator
 
 from .auth import ProfitbaseAuthenticator
-from .streams import House, Projects, Property
+from .streams import House, Projects, Property, Statuses, History
 
 from airbyte_cdk.models import (
     AirbyteCatalog,
@@ -36,6 +36,8 @@ streams_classes_mapping = {
     "house": House,
     "projects": Projects,
     "property": Property,
+    "statuses": Statuses,
+    "history": History
 }
 
 
@@ -65,7 +67,7 @@ class SourceProfitbase(Source):
 
     def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
         streams = []
-        for stream_name in ["house", "projects", "property"]:
+        for stream_name in ["house", "projects", "property", "statuses", "history"]:
             json_schema = self.schema_loader.get_schema(stream_name)
             streams.append(AirbyteStream(
                 name=stream_name,
@@ -81,6 +83,7 @@ class SourceProfitbase(Source):
 
         api_key = config.get("api_key")
         account_number = config.get("account_number")
+        crm = config.get("crm")
         authenticator = ProfitbaseAuthenticator(api_key=api_key, account_number=account_number)
 
         auth_token = authenticator.raw_token
@@ -94,17 +97,36 @@ class SourceProfitbase(Source):
 
                 offset = 99
                 while True:
-                    data = stream.get_data(offset)["data"] if stream_name != "projects" \
-                                                           else stream.get_data(offset)
+                    # Стрим history использует POST запрос, в отличии от других,
+                    # поэтому другая обработка запроса
+                    if stream_name == "history":
+                        property_ids = config.get("history_stream").get("property_ids")
+                        house_ids = config.get("history_stream").get("house_ids")
+                        date_from = config.get("history_stream").get("date_from")
+                        date_to = config.get("history_stream").get("date_to")
+                        deal_id = config.get("history_stream").get("dealId")
 
-                    # json_schema = configured_stream.stream.json_schema
-                    # required_fields = json_schema.get("properties").keys()
+                        # Здесь get_data отправляет POST запрос,т.к переопределена в streams
+                        data = stream.get_data(
+                            property_ids=property_ids,
+                            house_ids=house_ids,
+                            date_from=date_from,
+                            date_to=date_to,
+                            deal_id=deal_id
+                        )["response"]
+
+                    else:
+                        # Для других стримов с GET запросом: projects, house и тд
+                        data = stream.get_data(offset, crm)["data"] if stream_name != "projects" \
+                                                               else stream.get_data(offset, crm)
+
+                        if stream_name == "statuses":
+                            data = stream.get_data(offset, crm)["data"]["customStatuses"]
+
                     if not data:
                         break
 
                     for record in data:
-                        # filtered_data = {key: value for key, value in record.items() if key in required_fields}
-
                         yield AirbyteMessage(
                             type=Type.RECORD,
                             record=AirbyteRecordMessage(

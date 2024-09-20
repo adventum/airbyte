@@ -176,6 +176,6 @@ class History(ProfitBaseStream, ABC):
             "to": date_to,
             "dealId": deal_id
         }
-        response = requests.post(url, headers=headers, params=request_params, data=data)
+        response = requests.post(url, headers=headers, params=request_params, json=data)
         response.raise_for_status()
         return response.json()

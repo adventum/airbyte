@@ -100,11 +100,11 @@ class SourceProfitbase(Source):
                     # Стрим history использует POST запрос, в отличии от других,
                     # поэтому другая обработка запроса
                     if stream_name == "history":
-                        property_ids = config["history_stream"]["property_ids"]
-                        house_ids = config["history_stream"]["house_ids"]
-                        date_from = config["history_stream"]["date_from"]
-                        date_to = config["history_stream"]["date_to"]
-                        deal_id = config["history_stream"]["dealId"]
+                        property_ids = config.get("history_stream").get("property_ids")
+                        house_ids = config.get("history_stream").get("house_ids")
+                        date_from = config.get("history_stream").get("date_from")
+                        date_to = config.get("history_stream").get("date_to")
+                        deal_id = config.get("history_stream").get("dealId")
 
                         # Здесь get_data отправляет POST запрос,т.к переопределена в streams
                         data = stream.get_data(
@@ -120,14 +120,13 @@ class SourceProfitbase(Source):
                         data = stream.get_data(offset, crm)["data"] if stream_name != "projects" \
                                                                else stream.get_data(offset, crm)
 
-                    # json_schema = configured_stream.stream.json_schema
-                    # required_fields = json_schema.get("properties").keys()
+                        if stream_name == "statuses":
+                            data = stream.get_data(offset, crm)["data"]["customStatuses"]
+
                     if not data:
                         break
 
                     for record in data:
-                        # filtered_data = {key: value for key, value in record.items() if key in required_fields}
-
                         yield AirbyteMessage(
                             type=Type.RECORD,
                             record=AirbyteRecordMessage(

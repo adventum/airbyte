@@ -5,31 +5,173 @@ connectionSpecification:
   type: object
   required:
     - account_number
-    - api_key
   properties:
+    credentials:
+      title: Способ авторизации
+      order: 0
+      type: object
+      oneOf:
+        - title: Авторизация с использованием API-ключа
+          type: object
+          properties:
+            auth_type:
+              title: Тип авторизации
+              const: access_token_auth
+              order: 0
+              type: string
+            access_token:
+              airbyte_secret: true
+              description: API-ключ ProfitBase получается в личном кабинете в формате "app-*разные_символы*"
+              order: 0
+              title: API-токен
+              type: string
+          required:
+            - auth_type
+            - access_token
+        - title: Авторизация через CredentialsCraft
+          type: object
+          properties:
+            auth_type:
+              title: Тип авторизации
+              const: credentials_craft_auth
+              order: 0
+              type: string
+            credentials_craft_host:
+              title: Хост CredentialsCraft
+              description: Хост CredentialsCraft.
+              examples:
+                - https://credentialscraft.mysite.com
+              type: string
+            credentials_craft_token:
+              title: Токен CredentialsCraft
+              description: Долгосрочный токен доступа CredentialsCraft.
+              type: string
+              airbyte_secret: true
+            credentials_craft_token_id:
+              title: Идентификатор токена Profitbase в CredentialsCraft
+              description: Идентификатор токена Profitbase в CredentialsCraft
+              examples:
+                - 123
+              type: integer
+          required:
+            - auth_type
+            - credentials_craft_host
+            - credentials_craft_token
+            - credentials_craft_token_id
     account_number:
       type: string
       title: Номер Аккаунта ProfitBase
       description: Для корректного подключения через API, нужен номер аккаунта, который можно найти в личном кабинете
       airbyte_secret: true
-      order: 0
-    api_key:
-      type: string
-      title: API Ключ
-      description: В этом поле указывается API ключ для аутентификации (Пример ключа - app-74b6b5734m56).
-      airbyte_secret: true
       order: 1
+    date_range:
+      title: Период дат
+      description: Выберите период дат, который необходимо загрузить
+      type: object
+      order: 2
+      oneOf:
+        - title: Пользовательский период дат
+          type: object
+          required:
+            - date_from
+            - date_to
+            - date_range_type
+          properties:
+            date_from:
+              title: Начальная дата
+              type: string
+              description: Начальная дата в формате YYYY-MM-DD.
+              pattern: "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+              pattern_descriptor: YYYY-MM-DD
+              examples:
+                - "2023-01-01"
+              format: date
+              order: 0
+            date_to:
+              title: Конечная дата
+              type: string
+              description: Конечная дата в формате YYYY-MM-DD.
+              pattern: "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+              examples:
+                - "2023-01-30"
+              pattern_descriptor: YYYY-MM-DD
+              format: date
+              order: 1
+            date_range_type:
+              type: string
+              title: Тип периода дат
+              description: Пользовательская дата
+              const: custom_date
+              order: 2
+        - title: Последние N дней
+          type: object
+          required:
+            - last_days
+            - should_load_today
+            - date_range_type
+          properties:
+            last_days:
+              title: Количество последних дней
+              type: integer
+              description: Количество последних дней, исключая сегодняшний.
+              minimum: 0
+              maximum: 3650
+              examples:
+                - 30
+              order: 0
+            should_load_today:
+              title: Загрузить сегодняшний день?
+              type: boolean
+              description: Нужно ли загружать сегодняшнее время как конечную дату? Если нет, конечная дата будет вчера.
+              order: 1
+              default: false
+            date_range_type:
+              type: string
+              title: Тип периода дат
+              description: Последние N дней
+              const: last_n_days
+              order: 1
+        - title: От начальной даты до сегодняшнего дня
+          description: Загрузить данные от начальной даты до сегодняшнего дня
+          type: object
+          required:
+            - date_from
+            - should_load_today
+            - date_range_type
+          properties:
+            date_from:
+              title: Начальная дата
+              type: string
+              description: Начальная дата в формате YYYY-MM-DD.
+              pattern: "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+              pattern_descriptor: YYYY-MM-DD
+              examples:
+                - "2023-01-01"
+              format: date
+              order: 0
+            should_load_today:
+              title: Загрузить сегодняшний день?
+              type: boolean
+              description: Нужно ли загружать сегодняшнюю дату как конечную? Если нет, конечная дата будет вчера.
+              order: 1
+              default: false
+            date_range_type:
+              type: string
+              title: Тип периода дат
+              description: От начальной даты до сегодняшнего дня
+              const: from_start_date_to_today
+              order: 1
     crm:
       type: string
       title: Идентификатор crm (amo или bitrix) (Стрим Statuses)
-      description: Этот параметр используется для стрима Statuses. Обязателен для получения стрима Statuses
+      description: Этот параметр используется для стрима Statuses. Обязателен для получения стрима Statuses (Значение по умолчанию - amo)
       airbyte_secret: true
-      order: 2
+      order: 3
     history_stream:
       type: object
       title: Стрим History
       description: Параметры для выгрузки данных стрима history.
-      order: 3
+      order: 4
       properties:
         property_ids:
           description: Приоритетный параметр для фильтрации по помещениям. Рекомендуемый к заполнению, если нужно получить данные стрима History (У парметра property_ids приоретет выше т.е при одновременной передаче пареметров фильтрации property_ids и house_ids, пареметр house_ids учитываться не будет)
@@ -45,26 +187,10 @@ connectionSpecification:
           examples:
             - ["763563", "654524", "125245"]
           order: 1
-        date_from:
-          title: Начало периода (Стрим History)
-          description: Начало периода в формате YYYY-MM-DD. Необязателен к заполнению, Используется для того, чтобы отфильтровать записи по дате
-          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-          examples:
-            - '2023-05-01'
-          order: 2
-          type: string
-        date_to:
-          title: Конец периода (Стрим History)
-          description: Конец периода в формате YYYY-MM-DD. Необязателен к заполнению, Используется для того, чтобы отфильтровать записи по дате
-          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-          examples:
-            - '2023-05-02'
-          order: 3
-          type: string
         dealId:
           type: string
           title: ID сделки (Стрим History)
           examples:
             - '352356'
           description: Идентификатор сделки в CRM системе. Необязателен к заполнению. Используется для того, чтобы получить данные с определенным id сделки, если не будет указано, то парситься будут все сделки, связанные с помещениями
-          order: 4
+          order: 2

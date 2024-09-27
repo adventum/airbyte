@@ -128,9 +128,23 @@
         },
         "order": 5
       },
+      "events_filters": {
+        "type": "array",
+        "title": "Фильтры для стрима событий",
+        "description": "Добавьте фильтры к стриму событий согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
+        "items": {
+          "type": "string",
+          "title": "Фильтр",
+          "examples": [
+            "filter[custom_fields_values][111222][from]=333",
+            "filter[pipeline_id][1]=123456"
+          ]
+        },
+        "order": 5
+      },
       "date_range": {
         "title": "Фильтрация объектов по времени создания",
-        "description": "Выберите период дат, который должен быть загружен",
+        "description": "Выберите период дат, который должен быть загружен (Стрим воронок Pipelines не поддерживает фильтрацию по времени)",
         "type": "object",
         "order": 6,
         "oneOf": [

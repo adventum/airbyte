@@ -1,0 +1,57 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "type" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "entity_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "entity_type" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "created_by" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "created_at" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "value_after" : {
+      "type" : [
+        "array"
+      ]
+    },
+    "value_before" : {
+      "type" : [
+        "array"
+      ]
+    },
+    "account_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "_embedded" : {
+      "type" : [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

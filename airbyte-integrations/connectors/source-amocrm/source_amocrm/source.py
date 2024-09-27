@@ -16,8 +16,13 @@ from .auth import CredentialsCraftAuthenticator, AmoCrmAuthenticator
 
 
 class AmoCrmStream(HttpStream, ABC):
+    response_data_field: str | None = None
 
-    def __init__(self, config: Mapping[str, Any], authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator):
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
+    ):
         super().__init__(authenticator=None)
         self._authenticator = authenticator
         self._subdomain = config["subdomain"]
@@ -44,7 +49,10 @@ class AmoCrmStream(HttpStream, ABC):
         }
 
     def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         page: int = next_page_token["page_number"] if next_page_token else 1
 
@@ -70,11 +78,25 @@ class AmoCrmStream(HttpStream, ABC):
 
         return params
 
+    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+        if len(response.json()["_embedded"][self.response_data_field]) < self._limit:
+            return None
+        return {"page_number": response.json()["_page"] + 1}
+
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        self.logger.info(self.__class__.__name__)
+        yield from response.json()["_embedded"][self.response_data_field]
+
 
 class Contacts(AmoCrmStream):
     primary_key = "id"
+    response_data_field = "contacts"
 
-    def __init__(self, config: Mapping[str, Any], authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None):
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+    ):
         super().__init__(config, authenticator)
         self._custom_filters = config.get("contacts_filters", [])
         # Add all possible with values to load full data
@@ -82,40 +104,92 @@ class Contacts(AmoCrmStream):
         self._query = config.get("contacts_query", None)
 
     def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
     ) -> str:
         return "v4/contacts"
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        if len(response.json()["_embedded"]["contacts"]) < self._limit:
-            return None
-        return {"page_number": response.json()["_page"] + 1}
-
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield from response.json()["_embedded"]["contacts"]
 
 
 class Leads(AmoCrmStream):
     primary_key = "id"
+    response_data_field = "leads"
 
-    def __init__(self, config: Mapping[str, Any], authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None):
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+    ):
         super().__init__(config, authenticator)
         self._custom_filters = config.get("leads_filters", [])
-        self._with = ",".join(["catalog_elements", "is_price_modified_by_robot", "loss_reason", "contacts", "source_id"])
+        self._with = ",".join(
+            [
+                "catalog_elements",
+                "is_price_modified_by_robot",
+                "loss_reason",
+                "contacts",
+                "source_id",
+            ]
+        )
         self._query = config.get("leads_query", None)
 
     def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
     ) -> str:
         return "v4/leads"
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        if len(response.json()["_embedded"]["leads"]) < self._limit:
-            return None
-        return {"page_number": response.json()["_page"] + 1}
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield from response.json()["_embedded"]["leads"]
+class Events(AmoCrmStream):
+    primary_key = "id"
+    response_data_field = "events"
+
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+    ):
+        super().__init__(config, authenticator)
+        self._custom_filters = config.get("events_filters", [])
+
+    def path(
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> str:
+        return "v4/events"
+
+
+class Pipelines(AmoCrmStream):
+    primary_key = "id"
+    response_data_field = "pipelines"
+
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+    ):
+        super().__init__(config, authenticator)
+
+    def path(
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> str:
+        return "v4/leads/pipelines"
+
+    def request_params(
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        return {}  # No request args are supported
 
 
 class SourceAmoCrm(AbstractSource):
@@ -129,7 +203,9 @@ class SourceAmoCrm(AbstractSource):
         time_to: Optional[pendulum.datetime] = None
 
         # Meaning is date but storing time since later will use time
-        today_date: pendulum.datetime = pendulum.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_date: pendulum.datetime = pendulum.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
         if date_range_type == "custom_date":
             time_from = pendulum.parse(date_range["date_from"])
@@ -167,10 +243,12 @@ class SourceAmoCrm(AbstractSource):
                 credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
             )
         else:
-            raise Exception("Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
+            raise Exception(
+                "Invalid Auth type. Available: access_token_auth and credentials_craft_auth"
+            )
 
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        streams = self.streams(config)
+        streams = self.streams(config)  # Check data correctness for all streams
         for stream in streams:
             stream._limit = 1  # Decrease amount of loaded values to speed up check
             try:
@@ -183,6 +261,10 @@ class SourceAmoCrm(AbstractSource):
     def streams(self, config: Mapping[str, Any]) -> List[AmoCrmStream]:
         config = self.transform_config(config)
         auth = self.get_auth(config)
+
         contacts_stream = Contacts(config, auth)
         leads_stream = Leads(config, auth)
-        return [contacts_stream, leads_stream]
+        events_stream = Events(config, auth)
+        pipelines_stream = Pipelines(config, auth)
+
+        return [contacts_stream, leads_stream, events_stream, pipelines_stream]

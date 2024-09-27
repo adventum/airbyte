@@ -1,0 +1,47 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "name" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "sort" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "is_main" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "is_unsorted_on" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "is_archive" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "account_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "_embedded" : {
+      "type" : [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

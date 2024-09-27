@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "dealId": { "type": ["null", "string"] },
+    "actionKey": { "type": ["null", "string"] },
+    "date": { "type": ["null", "string"] },
+    "propertyStatus": { "type": ["null", "string"] },
+    "propertyStatusKey": { "type": ["null", "string"] },
+    "dealStatus": { "type": ["null", "string"] },
+    "dealName": { "type": ["null", "string"] },
+    "responsibleName": { "type": ["null", "string"] },
+    "responsibleId": { "type": ["null", "string"] },
+    "contactName": { "type": ["null", "string"] },
+    "contactPhone": { "type": ["null", "boolean"] },
+    "contactId": { "type": ["null", "string"] },
+    "propertyId": { "type": ["null", "boolean"] }
+  }
+}

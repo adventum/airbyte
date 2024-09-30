@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, Generator
 
 from .auth import get_authenticator, CredentialsCraftAuthenticator, ProfitbaseAuthenticator
-from .streams import House, Projects, Property, Statuses, History, ProfitBaseStream
+from .streams import House, Projects, Property, Statuses, HistoryProperty, HistoryHouse, ProfitBaseStream
 
 from airbyte_cdk.models import (
     AirbyteCatalog,
@@ -38,7 +38,8 @@ streams_classes_mapping = {
     "projects": Projects,
     "property": Property,
     "statuses": Statuses,
-    "history": History
+    "history_house": HistoryHouse,
+    "history_property": HistoryProperty,
 }
 
 
@@ -97,7 +98,7 @@ class SourceProfitbase(Source):
 
     def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
         streams = []
-        for stream_name in ["house", "projects", "property", "statuses", "history"]:
+        for stream_name in ["house", "projects", "property", "statuses", "history_house", "history_property"]:
             json_schema = self.schema_loader.get_schema(stream_name)
             streams.append(AirbyteStream(
                 name=stream_name,
@@ -117,6 +118,10 @@ class SourceProfitbase(Source):
 
         auth_token: str = authenticator.token
 
+        # В этих списках собираются айдишники во время прохождения стримов House и property
+        # Затем эти ids используятся в стримах history_house, history_property
+        house_ids = []
+        property_ids = []
         for configured_stream in catalog.streams:
             stream_name = configured_stream.stream.name
 
@@ -129,28 +134,42 @@ class SourceProfitbase(Source):
                 while True:
                     # Стрим history использует POST запрос, в отличии от других,
                     # поэтому другая обработка запроса
-                    if stream_name == "history":
-                        property_ids = config.get("history_stream").get("property_ids")
-                        house_ids = config.get("history_stream").get("house_ids")
-                        # date_from = config.get("history_stream").get("date_from")
-                        # date_to = config.get("history_stream").get("date_to")
+                    if stream_name.startswith("history"):
                         date_from = date.get("date_from")
                         date_to = date.get("date_to")
                         deal_id = config.get("history_stream").get("dealId")
 
-                        # Здесь get_data отправляет POST запрос,т.к переопределена в streams
-                        data = stream.get_data(
-                            property_ids=property_ids,
-                            house_ids=house_ids,
-                            date_from=date_from,
-                            date_to=date_to,
-                            deal_id=deal_id
-                        )["response"]
+                        if stream_name == "history_house":
+                            # Здесь get_data отправляет POST запрос,т.к переопределена в streams
+                            house_ids = config.get("history_stream").get("house_ids", house_ids)
+
+                            data = stream.get_data(
+                                house_ids=house_ids,
+                                date_from=date_from,
+                                date_to=date_to,
+                                deal_id=deal_id
+                            )["response"]
+
+                        if stream_name == "history_property":
+                            property_ids = config.get("history_stream").get("property_ids", property_ids)
+
+                            data = stream.get_data(
+                                property_ids=property_ids,
+                                date_from=date_from,
+                                date_to=date_to,
+                                deal_id=deal_id
+                            )["response"]
 
                     else:
                         # Для других стримов с GET запросом: projects, house и тд
                         data = stream.get_data(offset, crm)["data"] if stream_name != "projects" \
                                                                else stream.get_data(offset, crm)
+
+                        if stream_name == "house":
+                            house_ids.extend([house_id["id"] for house_id in data])
+
+                        if stream_name == "property":
+                            property_ids.extend([property_id["id"] for property_id in data])
 
                         if stream_name == "statuses":
                             data = stream.get_data(offset, crm)["data"]["customStatuses"]

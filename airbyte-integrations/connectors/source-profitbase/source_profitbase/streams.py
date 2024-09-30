@@ -128,6 +128,7 @@ class Statuses(ProfitBaseStream, ABC):
         return None
 
 
+# От этого стрима наследуется history_property и history_house, которые используюся в выгрузке
 class History(ProfitBaseStream, ABC):
     primary_key: str = "dealId"
 
@@ -179,3 +180,13 @@ class History(ProfitBaseStream, ABC):
         response = requests.post(url, headers=headers, params=request_params, json=data)
         response.raise_for_status()
         return response.json()
+
+
+class HistoryProperty(History, ABC):
+    # Этот класс нужен для выгрузки стрима history используя propery_ids
+    pass
+
+
+class HistoryHouse(History, ABC):
+    # Этот класс нужен для выгрузки стрима history используя house_ids
+    pass

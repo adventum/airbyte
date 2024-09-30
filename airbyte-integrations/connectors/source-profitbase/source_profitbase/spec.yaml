@@ -72,10 +72,10 @@ connectionSpecification:
       oneOf:
         - title: Пользовательский период дат
           type: object
-          required:
-            - date_from
-            - date_to
-            - date_range_type
+#          required:
+#            - date_from
+#            - date_to
+#            - date_range_type
           properties:
             date_from:
               title: Начальная дата
@@ -105,10 +105,10 @@ connectionSpecification:
               order: 2
         - title: Последние N дней
           type: object
-          required:
-            - last_days
-            - should_load_today
-            - date_range_type
+#          required:
+#            - last_days
+#            - should_load_today
+#            - date_range_type
           properties:
             last_days:
               title: Количество последних дней
@@ -134,10 +134,10 @@ connectionSpecification:
         - title: От начальной даты до сегодняшнего дня
           description: Загрузить данные от начальной даты до сегодняшнего дня
           type: object
-          required:
-            - date_from
-            - should_load_today
-            - date_range_type
+#          required:
+#            - date_from
+#            - should_load_today
+#            - date_range_type
           properties:
             date_from:
               title: Начальная дата
@@ -174,16 +174,16 @@ connectionSpecification:
       order: 4
       properties:
         property_ids:
-          description: Приоритетный параметр для фильтрации по помещениям. Рекомендуемый к заполнению, если нужно получить данные стрима History (У парметра property_ids приоретет выше т.е при одновременной передаче пареметров фильтрации property_ids и house_ids, пареметр house_ids учитываться не будет)
+          description: Приоритетный параметр для фильтрации по помещениям. Если поле не будет заполнено, то будут взяты данные из стрима property(в случае если он включен, если нет, то будет ошибка)
           examples:
             - ["563563", "254524", "525245"]
           type: array
-          title: Идентификаторы помещений (Стрим History). Примечание - чтобы получать данные со стрима History, необходимо заполнить или Идентификаторы помещений или Идентификаторы домов
+          title: Идентификаторы помещений (Стрим History).
           order: 0
         house_ids:
           type: array
           title: Идентификаторы домов (Стрим History)
-          description: Необязателен к заполнению. Используется для получения записей, с данными id домов. Чтобы коннектор получал данные со стрима History, нужно использовать Идентификаторы помещений или домов (У парметра property_ids приоретет выше т.е при одновременной передаче пареметров фильтрации property_ids и house_ids, пареметр house_ids учитываться не будет)
+          description: Необязателен к заполнению. Используется для получения записей, с данными id домов. Если поле не будет заполнено, то будут взяты данные из стрима House(в случае если он включен, если нет, то будет ошибка)
           examples:
             - ["763563", "654524", "125245"]
           order: 1

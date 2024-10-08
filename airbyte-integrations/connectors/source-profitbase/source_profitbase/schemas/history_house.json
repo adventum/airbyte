@@ -12,8 +12,8 @@
     "responsibleName": { "type": ["null", "string"] },
     "responsibleId": { "type": ["null", "string"] },
     "contactName": { "type": ["null", "string"] },
-    "contactPhone": { "type": ["null", "boolean"] },
+    "contactPhone": { "type": ["null", "string"] },
     "contactId": { "type": ["null", "string"] },
-    "propertyId": { "type": ["null", "boolean"] }
+    "propertyId": { "type": ["null", "integer"] }
   }
 }

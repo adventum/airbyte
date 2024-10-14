@@ -1,0 +1,243 @@
+{
+  "documentationUrl" : "https://docs.airbyte.com/integrations/sources/adjust",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "1C Spec",
+    "type" : "object",
+    "required" : [
+      "credentials",
+      "base_url",
+      "streams",
+      "date_range"
+    ],
+    "additionalProperties" : false,
+    "properties" : {
+      "credentials" : {
+        "title" : "Метод авторизации",
+        "order" : 0,
+        "type" : "object",
+        "oneOf" : [
+          {
+            "title" : "Авторизация по логину и паролю",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "password",
+                "order" : 0,
+                "type" : "string"
+              },
+              "login" : {
+                "description" : "Логин 1C",
+                "order" : 1,
+                "title" : "Логин",
+                "type" : "string"
+              },
+              "password" : {
+                "airbyte_secret" : true,
+                "description" : "Пароль от 1C",
+                "order" : 2,
+                "title" : "Пароль",
+                "type" : "string"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "password",
+              "login"
+            ]
+          },
+          {
+            "title" : "CredentialsCraft",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "credentials_craft_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "credentials_craft_host" : {
+                "title" : "CredentialsCraft Host",
+                "description" : "CredentialsCraft Host.",
+                "examples" : [
+                  "https://credentialscraft.mysite.com"
+                ],
+                "type" : "string"
+              },
+              "credentials_craft_token" : {
+                "title" : "Токен CredentialsCraft",
+                "description" : "(Пока не поддерживается) Долгосрочный токен доступа к CredentialsCraft (Не токен 1C)",
+                "type" : "string",
+                "airbyte_secret" : true
+              },
+              "credentials_craft_token_id" : {
+                "title" : "ID токена 1C в CredentialsCraft",
+                "examples" : [
+                  123
+                ],
+                "type" : "integer"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
+            ]
+          }
+        ]
+      },
+      "base_url": {
+        "title": "Базовый URL",
+        "description": "Базовый URL для работы с api",
+        "type": "string",
+        "order": 1,
+        "examples": ["http://1.2.3.4:8000", "https://hub.docker.com"]
+      },
+      "streams": {
+        "title": "Стримы",
+        "description": "1C имеет не унифицированное api, поэтому в разделе стримов при создании коннектора нужно вручную указать их пути",
+        "order": 2,
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "title": "Стрим",
+          "order": 0,
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "title": "Адрес стрима",
+              "order": 0,
+              "examples": ["intalev_work/hs/kachestvoGO/KachestvoUstraneniy"]
+            },
+            "name": {
+              "title": "Название стрима",
+              "order": 1,
+              "description": "Название будет автоматически преобразовано к подходящему имени таблицы. Если название нет, будет использован path. Названия стримов должны быть уникальными."
+            }
+          }
+        }
+      },
+      "date_range": {
+        "title": "Временной диапазон",
+        "description": "Выберите даты, за которые нужно получить данные",
+        "type": "object",
+        "order": 2,
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Кастомный диапазон",
+            "required": [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_from": {
+                "title": "Дата начала",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "date_to": {
+                "title": "Дата конца",
+                "type": "string",
+                "description": "End date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples": [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor": "YYYY-MM-DD",
+                "format": "date",
+                "order": 1
+              },
+              "date_range_type": {
+                "type": "string",
+                "const": "custom_date",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Последние N дней",
+            "required": [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "last_days_count": {
+                "title": "Число дней",
+                "type": "integer",
+                "description": "Число дней, не считая сегодня",
+                "minimum": 0,
+                "maximum": 3650,
+                "examples": [
+                  30
+                ],
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Загружать сегодня?",
+                "type": "boolean",
+                "description": "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "const": "last_n_days",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "От указанной даты до сегодня",
+            "description": "Загружать данные от даты начала по сегодня не включительно",
+            "required": [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Загружать сегодня?",
+                "type": "boolean",
+                "description": "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "const": "from_start_date_to_today",
+                "order": 2
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

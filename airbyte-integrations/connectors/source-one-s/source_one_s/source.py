@@ -72,7 +72,10 @@ class OneSStream(HttpStream):
         yield from response.json()["Data"]
 
     def make_test_request(self) -> requests.Response:
-        test_params = self.request_params({})
+        test_params = self.request_params({}) | {
+            "StartDate": pendulum.now().format("YYYYMMDD"),
+            "EndDate": pendulum.now().format("YYYYMMDD"),
+        }
         return requests.get(
             self.url_base + self.path(),
             params=test_params,

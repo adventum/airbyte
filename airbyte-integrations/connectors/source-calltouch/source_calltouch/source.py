@@ -65,11 +65,13 @@ class Calls(CalltouchStream):
         site_id: str,
         calls_bind_to: Optional[str],
         calls_attribution: Optional[int],
+        with_map_visits: bool = False,
     ):
         super().__init__(authenticator, date_from, date_to)
         self._site_id: str = site_id
         self._calls_bind_to: Optional[str] = calls_bind_to
         self._calls_attribution: Optional[int] = calls_attribution
+        self._with_map_visits: bool = with_map_visits
 
     def request_params(self, **kwargs) -> MutableMapping[str, Any]:
         params = super().request_params(**kwargs)
@@ -80,6 +82,9 @@ class Calls(CalltouchStream):
 
         if self._calls_attribution:
             params["attribution"] = self._calls_attribution
+
+        if self._with_map_visits:
+            params["withMapVisits"] = True
 
         return params
 
@@ -197,6 +202,7 @@ class SourceCalltouch(AbstractSource):
                 site_id=config["site_id"],
                 calls_attribution=config.get("calls_attribution"),
                 calls_bind_to=config.get("callsBindTo"),
+                with_map_visits=config.get("with_map_visits")
             ),
             Requests(authenticator=auth, date_from=config["dateFrom"], date_to=config["dateTo"]),
         ]

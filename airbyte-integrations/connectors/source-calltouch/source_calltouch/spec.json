@@ -227,6 +227,13 @@
         "type": "integer",
         "order": 4,
         "default": 1
+      },
+      "with_map_visits": {
+        "title": "Load caller visits history for Calls stream",
+        "description": "withMapVisits flag from api (https://www.calltouch.ru/support/api-metod-vygruzki-zhurnala-zvonkov/#input_parameters)",
+        "type": "boolean",
+        "default": false,
+        "order": 5
       }
     }
   }

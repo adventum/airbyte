@@ -5,7 +5,6 @@
 
 import logging
 import shutil
-from datetime import datetime, timedelta
 from typing import Iterator, Mapping, MutableMapping
 
 from airbyte_cdk.models import AirbyteMessage
@@ -26,6 +25,7 @@ from .raw_data_streams.threads import (
     PreprocessedSlicePartThreadsController,
     YandexMetrikaRawSliceMissingChunksObserver,
 )
+from .utils import get_config_date_range
 
 logger = logging.getLogger("airbyte")
 CONFIG_DATE_FORMAT = "%Y-%m-%d"
@@ -188,64 +188,37 @@ class SourceYandexMetrika(AbstractSource):
                 "All streams must have unique names! Try adding your own stream names for hits and visits streams",
             )
 
-        for stream_number, stream in enumerate(streams):
-            if isinstance(stream, YandexMetrikaRawDataStream):
-                preprocessor = stream.preprocessor
-                if stream.check_log_requests_ability:
-                    can_replicate_all_slices, message = preprocessor.check_stream_slices_ability()
-                    if not can_replicate_all_slices:
-                        return can_replicate_all_slices, message
-            elif isinstance(stream, AggregateDataYandexMetrikaReport):
-                test_response = stream.make_test_request()
-                test_response_data = test_response.json()
-                if test_response_data.get("errors"):
-                    return (
-                        False,
-                        f"Table #{stream_number} ({stream.name}) error: "
-                        + test_response_data.get("message"),
-                    )
+        """Check connection for first stream"""
+        stream = streams[0]
+
+        if isinstance(stream, YandexMetrikaRawDataStream):
+            preprocessor = stream.preprocessor
+            if stream.check_log_requests_ability:
+                can_replicate_all_slices, message = preprocessor.check_stream_slices_ability()
+                if not can_replicate_all_slices:
+                    return can_replicate_all_slices, message
+
+        elif isinstance(stream, AggregateDataYandexMetrikaReport):
+            test_response = stream.make_test_request()
+            test_response_data = test_response.json()
+            if test_response_data.get("errors"):
+                return (
+                    False,
+                    f"Stream #({stream.name}) error: "
+                    + test_response_data.get("message"),
+                )
 
         return True, None
 
     def transform_config(self, raw_config: dict[str, any]) -> Mapping[str, any]:
-        raw_config = self.transform_date_range(raw_config)
+        date_from, date_to = get_config_date_range(raw_config)
+
+        raw_config["prepared_date_range"] = {
+            "date_from": date_from.format("YYYY-MM-DD"),
+            "date_to": date_to.format("YYYY-MM-DD"),
+        }
         raw_config["counter_id"] = int(raw_config["counter_id"])
         return raw_config
-
-    def transform_date_range(self, config: Mapping[str, any]) -> dict[str, any]:
-        date_range = config["date_range"]
-        range_type = config["date_range"]["date_range_type"]
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        prepared_range = {}
-        if range_type == "custom_date":
-            prepared_range["date_from"] = date_range["date_from"]
-            prepared_range["date_to"] = date_range["date_to"]
-        elif range_type == "from_date_from_to_today":
-            prepared_range["date_from"] = date_range["date_from"]
-            if date_range["should_load_today"]:
-                prepared_range["date_to"] = today
-            else:
-                prepared_range["date_to"] = today - timedelta(days=1)
-        elif range_type == "last_n_days":
-            prepared_range["date_from"] = today - timedelta(days=date_range["last_days"])
-            if date_range.get("should_load_today", False):
-                prepared_range["date_to"] = today
-            else:
-                prepared_range["date_to"] = today - timedelta(days=1)
-        else:
-            raise ValueError("Invalid date_range_type")
-
-        if isinstance(prepared_range["date_from"], str):
-            prepared_range["date_from"] = datetime.strptime(
-                prepared_range["date_from"], CONFIG_DATE_FORMAT
-            )
-
-        if isinstance(prepared_range["date_to"], str):
-            prepared_range["date_to"] = datetime.strptime(
-                prepared_range["date_to"], CONFIG_DATE_FORMAT
-            )
-        config["prepared_date_range"] = prepared_range
-        return config
 
     def get_auth(self, config: Mapping[str, any]) -> TokenAuthenticator:
         if config["credentials"]["auth_type"] == "access_token_auth":

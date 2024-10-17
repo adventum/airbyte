@@ -5,6 +5,7 @@
 
 import logging
 import shutil
+from datetime import datetime
 from typing import Iterator, Mapping, MutableMapping
 
 from airbyte_cdk.models import AirbyteMessage
@@ -181,6 +182,10 @@ class SourceYandexMetrika(AbstractSource):
         except ConfigInvalidError as ex:
             return False, str(ex)
 
+        """Check streams exists"""
+        if not streams:
+            return False, "No streams available"
+
         """Check names"""
         if len([stream.name for stream in streams]) != len({stream.name for stream in streams}):
             return (
@@ -214,8 +219,8 @@ class SourceYandexMetrika(AbstractSource):
         date_from, date_to = get_config_date_range(raw_config)
 
         raw_config["prepared_date_range"] = {
-            "date_from": date_from.format("YYYY-MM-DD"),
-            "date_to": date_to.format("YYYY-MM-DD"),
+            "date_from": datetime.fromisoformat(date_from.isoformat()),  # lazy pendulum to datetime conversion
+            "date_to": datetime.fromisoformat(date_to.isoformat()),
         }
         raw_config["counter_id"] = int(raw_config["counter_id"])
         return raw_config

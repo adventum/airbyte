@@ -6,7 +6,6 @@
 import logging
 from abc import ABC
 from datetime import datetime
-from enum import Enum
 from typing import Iterable, Mapping, MutableMapping, NamedTuple
 
 import requests

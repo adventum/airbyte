@@ -30,6 +30,7 @@ class OneSStream(HttpStream):
         self._start_date = start_date
         self._end_date = end_date
         self._stream_name = translate_name(stream_name or stream_path)
+        self._schema_json: Mapping[str, any] | None = None
 
         # Calling super().__init__(...) before setting _stream_name fails source
         # because super needs name property which can not be used before full init
@@ -69,28 +70,30 @@ class OneSStream(HttpStream):
     def parse_response(
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
+        response.encoding = "utf-8"
         yield from response.json()["Data"]
 
     def make_test_request(self) -> requests.Response:
-        test_params = self.request_params({}) | {
-            "StartDate": pendulum.now().format("YYYYMMDD"),
-            "EndDate": pendulum.now().format("YYYYMMDD"),
-        }
-        return requests.get(
+        test_params = self.request_params({})
+        request = requests.get(
             self.url_base + self.path(),
             params=test_params,
             headers={self._authenticator.auth_header: self._authenticator.token},
         )
+        request.encoding = "utf-8"
+        return request
 
     def get_json_schema(self) -> Mapping[str, any]:
-        data: dict[str, any] = self.make_test_request().json()
-        fields: list[str] = list(data["Data"][0].keys())
-        schema = ResourceSchemaLoader(
-            package_name_from_class(self.__class__)
-        ).get_schema("one_s_stream")
-        for field in fields:
-            schema["properties"][field] = {"type": ["null", "string"]}
-        return schema
+        if self._schema_json is None:
+            data: dict[str, any] = self.make_test_request().json()
+            fields: list[str] = list(data["Data"][0].keys())
+            schema = ResourceSchemaLoader(
+                package_name_from_class(self.__class__)
+            ).get_schema("one_s_stream")
+            for field in fields:
+                schema["properties"][field] = {"type": ["null", "string"]}
+            self._schema_json = schema
+        return self._schema_json
 
 
 class SourceOneS(AbstractSource):

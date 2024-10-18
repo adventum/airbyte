@@ -23,14 +23,16 @@ class OneSStream(HttpStream):
         start_date: pendulum.DateTime,
         end_date: pendulum.DateTime,
         stream_name: str | None = None,
+        use_name_translation: bool = False,
     ):
-        self._authenticator = authenticator
-        self._base_url = base_url
-        self._stream_path = stream_path
-        self._start_date = start_date
-        self._end_date = end_date
-        self._stream_name = translate_name(stream_name or stream_path)
+        self._authenticator: BasicHttpAuthenticator = authenticator
+        self._base_url: str = base_url
+        self._stream_path: str = stream_path
+        self._start_date: pendulum.DateTime= start_date
+        self._end_date: pendulum.DateTime= end_date
+        self._stream_name: str = translate_name(stream_name or stream_path)
         self._schema_json: Mapping[str, any] | None = None
+        self._use_name_translation: bool = use_name_translation
 
         # Calling super().__init__(...) before setting _stream_name fails source
         # because super needs name property which can not be used before full init
@@ -71,7 +73,10 @@ class OneSStream(HttpStream):
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
         response.encoding = "utf-8"
-        yield from response.json()["Data"]
+        for record in response.json()["Data"]:
+            if self._use_name_translation:
+                record = {translate_name(key): value for key, value in record.items()}
+            yield record
 
     def make_test_request(self) -> requests.Response:
         test_params = self.request_params({})
@@ -91,7 +96,8 @@ class OneSStream(HttpStream):
                 package_name_from_class(self.__class__)
             ).get_schema("one_s_stream")
             for field in fields:
-                schema["properties"][field] = {"type": ["null", "string"]}
+                field_name = field if not self._use_name_translation else translate_name(field)
+                schema["properties"][field_name] = {"type": ["null", "string"]}
             self._schema_json = schema
         return self._schema_json
 
@@ -99,9 +105,7 @@ class OneSStream(HttpStream):
 class SourceOneS(AbstractSource):
     @staticmethod
     def transform_config(config: Mapping[str, any]) -> Mapping[str, any]:
-        config["time_from_transformed"], config["time_to_transformed"] = (
-            get_config_date_range(config)
-        )
+        # TODO: may be used in the nearest future
         return config
 
     def check_connection(self, logger, config) -> tuple[bool, any]:
@@ -125,6 +129,8 @@ class SourceOneS(AbstractSource):
 
     def streams(self, config: Mapping[str, any]) -> list[OneSStream]:
         config = self.transform_config(config)
+        start_date, end_date = get_config_date_range(config)
+
         match config["credentials"]["auth_type"]:
             case "password":
                 auth = BasicHttpAuthenticator(
@@ -142,9 +148,10 @@ class SourceOneS(AbstractSource):
                 authenticator=auth,
                 base_url=config["base_url"],
                 stream_path=stream_data["path"],
-                start_date=config["time_from_transformed"],
-                end_date=config["time_to_transformed"],
+                start_date=start_date,
+                end_date=end_date,
                 stream_name=stream_data.get("name"),
+                use_name_translation=config.get("use_name_translation", False),
             )
             streams.append(stream)
 

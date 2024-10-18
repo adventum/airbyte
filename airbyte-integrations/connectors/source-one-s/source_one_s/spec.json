@@ -120,11 +120,18 @@
           }
         }
       },
+      "use_name_translation": {
+        "title": "Переводить названия полей",
+        "description": "Переводить названия полей стримов в латиницу. Полезно, если СУБД не поддерживает кириллицу",
+        "order": 3,
+        "type": "boolean",
+        "default": false
+      },
       "date_range": {
         "title": "Временной диапазон",
         "description": "Выберите даты, за которые нужно получить данные",
         "type": "object",
-        "order": 2,
+        "order": 4,
         "oneOf": [
           {
             "type": "object",

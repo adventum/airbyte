@@ -136,9 +136,9 @@ def parse_all_ads(ads_page_response: requests.Response) -> Generator[dict[str, A
                 row_data["title"] = cell.select("a")[0].contents[0]
             if cell_n == 1:
                 row_data["views"] = cell.select("a")[0].contents[0].replace(",", "")
-            if cell_n == 11:
-                row_data["status"] = cell.select("a")[0].contents[0].lower()
             if cell_n == 12:
+                row_data["status"] = cell.select("a")[0].contents[0].lower()
+            if cell_n == 13:
                 row_data["date_added"] = datetime.strptime(
                     cell.select("a")[0].contents[0],
                     "%d %b %y %H:%M",

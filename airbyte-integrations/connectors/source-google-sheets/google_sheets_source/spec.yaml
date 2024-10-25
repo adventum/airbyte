@@ -27,6 +27,30 @@ connectionSpecification:
               guide</a> for more details.
             examples:
               - https://docs.google.com/spreadsheets/d/1hLd9Qqti3UyLXZB2aFfUWDT7BG-arw2xy4HR3D-dwUb/edit
+          field_name_map_stream:
+            title: "Замена стрима(Листа)"
+            description: 'Этот параметр заменяет имя стрима в итоговых записях. Например, если вы хотите заменить имя "Лист1" на "День", 
+                          то укажите в этом параметре "Старый стрим" - "Лист1", "Новый стрим" - "День".'
+            type: "array"
+            group: "replace"
+            items:
+              type: "object"
+              additionalProperties: false
+              required:
+                - "old_value_stream"
+                - "new_value_stream"
+              title: "Замена стримов"
+              description: "Пара: старый и новый стрим"
+              properties:
+                old_value_stream:
+                  type: "string"
+                  title: "Старый стрим"
+                  order: 0
+                new_value_stream:
+                  type: "string"
+                  title: "Новый стрим"
+                  order: 1
+
     credentials:
       type: object
       title: Authentication
@@ -128,30 +152,34 @@ connectionSpecification:
           old_value:
             type: "string"
             title: "Старое поле"
+            order: 0
           new_value:
             type: "string"
             title: "Новое поле"
-    field_name_map_stream:
-      title: "Замена стрима(Листа)"
-      description: 'Этот параметр заменяет имя стрима в итоговых записях. Например, если вы хотите заменить имя "Лист1" на "День", 
-                    то укажите в этом параметре "Старый стрим" - "Лист1", "Новый стрим" - "День".'
-      type: "array"
-      group: "replace"
-      items:
-        type: "object"
-        additionalProperties: false
-        required:
-          - "old_value_stream"
-          - "new_value_stream"
-        title: "Замена стримов"
-        description: "Пара: старый и новый стрим"
-        properties:
-          old_value_stream:
-            type: "string"
-            title: "Старый стрим"
-          new_value_stream:
-            type: "string"
-            title: "Новый стрим"
+            order: 1
+#    field_name_map_stream:
+#      title: "Замена стрима(Листа)"
+#      description: 'Этот параметр заменяет имя стрима в итоговых записях. Например, если вы хотите заменить имя "Лист1" на "День",
+#                    то укажите в этом параметре "Старый стрим" - "Лист1", "Новый стрим" - "День".'
+#      type: "array"
+#      group: "replace"
+#      items:
+#        type: "object"
+#        additionalProperties: false
+#        required:
+#          - "old_value_stream"
+#          - "new_value_stream"
+#        title: "Замена стримов"
+#        description: "Пара: старый и новый стрим"
+#        properties:
+#          old_value_stream:
+#            type: "string"
+#            title: "Старый стрим"
+#            order: 0
+#          new_value_stream:
+#            type: "string"
+#            title: "Новый стрим"
+#            order: 1
     path_placeholder:
       title: "Path Placeholder"
       type: "string"

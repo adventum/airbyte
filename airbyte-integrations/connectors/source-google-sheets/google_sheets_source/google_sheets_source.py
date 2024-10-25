@@ -56,14 +56,14 @@ class GoogleSheetsSource(Source):
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"Please use valid credentials json file. Error: {e}")
 
-        logger.info(config)
+        # logger.info(config)
         spreadsheets = config.get("spreadsheets")
         for spreadsheet_id in spreadsheets:
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
-            logger.info("##"*20)
-            logger.info(spreadsheets)
-            logger.info(spreadsheet_id)
-            logger.info("##"*20)
+            # logger.info("##"*20)
+            # logger.info(spreadsheets)
+            # logger.info(spreadsheet_id)
+            # logger.info("##"*20)
 
             # Replace part of spreadsheet_id if placeholder in spreadsheet_id
             if self.contains_placeholder(spreadsheet_id):
@@ -141,7 +141,10 @@ class GoogleSheetsSource(Source):
             spreadsheet_id = Helpers.get_spreadsheet_id(spreadsheet_id)
             try:
                 self.field_name_map = self.get_field_name_map(config=config)
-                self.field_name_map_stream = self.get_field_name_map_stream(config=config)
+                self.field_name_map_stream = self.get_field_name_map_stream(
+                    config=config,
+                    spreadsheet_id=spreadsheet_id
+                )
 
                 logger.info(f"Running discovery on sheet {spreadsheet_id}")
                 spreadsheet_metadata = Spreadsheet.parse_obj(client.get(spreadsheetId=spreadsheet_id, includeGridData=False))
@@ -193,7 +196,7 @@ class GoogleSheetsSource(Source):
             available_sheets = Helpers.get_sheets_in_spreadsheet(client, spreadsheet_id)
 
             old_fields = self.get_field_name_map(config=config)
-            renamed_sheets = self.get_field_name_map_stream(config=config)
+            renamed_sheets = self.get_field_name_map_stream(config=config, spreadsheet_id=spreadsheet_id)
 
             # Добавление исходных названий листов, для их транслитерации
             for available_sheet in available_sheets:
@@ -218,13 +221,13 @@ class GoogleSheetsSource(Source):
                 client, spreadsheet_id, restored_sheet_to_column_name, renamed_sheets
             )
 
-            logger.info(f"Sheet_to_column_index_to_name_keys: {sheet_to_column_index_to_name.keys()}")
-            logger.info(f"Sheet_to_column_index_to_name_values: {sheet_to_column_index_to_name.values()}")
+            # logger.info(f"Sheet_to_column_index_to_name_keys: {sheet_to_column_index_to_name.keys()}")
+            # logger.info(f"Sheet_to_column_index_to_name_values: {sheet_to_column_index_to_name.values()}")
             sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
-            logger.info(f"Row counts: {sheet_row_counts}")
+            # logger.info(f"Row counts: {sheet_row_counts}")
 
             # Union duplicates sheets
-            logger.info(f"sheet_to_column_index_to_name (Name_of_sheet: dict(index: [column_names])) - {sheet_to_column_index_to_name}")
+            # logger.info(f"sheet_to_column_index_to_name (Name_of_sheet: dict(index: [column_names])) - {sheet_to_column_index_to_name}")
 
             for sheet, columns in sheet_to_column_name.items():
                 if sheet_to_column_name[sheet] not in unique.values():
@@ -300,13 +303,13 @@ class GoogleSheetsSource(Source):
             return {item["old_value"]: item["new_value"] for item in field_name_map}
 
     @staticmethod
-    def get_field_name_map_stream(config: Mapping[str, any]) -> dict[str, str]:
-        """Get values that needs to be replaced and their replacements"""
-        field_name_map_stream: list[dict[str, str]] | None
-        if not (field_name_map_stream := config.get("field_name_map_stream")):
-            return {}
-        else:
-            return {item["old_value_stream"]: item["new_value_stream"] for item in field_name_map_stream}
+    def get_field_name_map_stream(config: Mapping[str, any], spreadsheet_id: str) -> dict[str, str]:
+        """Get values that needs to be replaced and their replacements for specific spreadsheet"""
+        for spreadsheet in config.get("spreadsheets", []):
+            if spreadsheet_id in spreadsheet.get("spreadsheet_id"):
+                field_name_map_stream = spreadsheet.get("field_name_map_stream", [])
+                return {item["old_value_stream"]: item["new_value_stream"] for item in field_name_map_stream}
+        return {}
 
     @staticmethod
     def contains_placeholder(file_path: str) -> bool:

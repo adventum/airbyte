@@ -32,7 +32,9 @@ class AmoCrmAuthenticator(TokenAuthenticator):
         additional_headers: Optional[dict] = None,
     ):
         super().__init__(token, auth_method, auth_header)
-        self.additional_headers = additional_headers if additional_headers is not None else {}
+        self.additional_headers = (
+            additional_headers if additional_headers is not None else {}
+        )
 
 
 class CredentialsCraftAuthenticator(TokenAuthenticator):
@@ -73,10 +75,10 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             auth_header.update(self.additional_headers)
         return auth_header
 
-    def check_connection(self) -> tuple[bool, str]:
+    def check_connection(self) -> tuple[bool, str | None]:
         try:
             requests.get(self._cc_host, timeout=15)
-        except:
+        except Exception:
             return False, f"Connection to {self._cc_host} timed out"
 
         data: dict[str, Any] = requests.get(

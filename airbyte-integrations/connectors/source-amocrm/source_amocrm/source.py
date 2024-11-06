@@ -13,6 +13,7 @@ from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_protocol.models import SyncMode
 
 from .auth import CredentialsCraftAuthenticator, AmoCrmAuthenticator
+from .utils import parse_date_range, get_auth
 
 
 class AmoCrmStream(HttpStream, ABC):
@@ -20,16 +21,18 @@ class AmoCrmStream(HttpStream, ABC):
 
     def __init__(
         self,
-        config: Mapping[str, Any],
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
+        config: Mapping[str, Any],
+        time_from: pendulum.DateTime,
+        time_to: pendulum.DateTime,
     ):
         super().__init__(authenticator=None)
         self._authenticator = authenticator
         self._subdomain = config["subdomain"]
         self._limit: int = 250  # default for most AmoCrm urls
         self._query: int | str | None = None
-        self._time_from: pendulum.DateTime = config["time_from_transformed"]
-        self._time_to: pendulum.DateTime = config["time_to_transformed"]
+        self._time_from: pendulum.DateTime = time_from
+        self._time_to: pendulum.DateTime = time_to
         self._with: str = ""
         self._custom_filters: list[str] = []
 
@@ -51,12 +54,12 @@ class AmoCrmStream(HttpStream, ABC):
     def request_params(
         self,
         stream_state: Mapping[str, Any],
-        stream_slice: Mapping[str, any] = None,
+        stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         page: int = next_page_token["page_number"] if next_page_token else 1
 
-        params: dict[str, any] = {
+        params: dict[str, Any] = {
             "page": page,
             "limit": self._limit,
             "order[id]": "asc",
@@ -73,17 +76,23 @@ class AmoCrmStream(HttpStream, ABC):
                 params[field] = value
 
         # Add created date filter
-        params["filter[created_at][from]"] = self._time_from.timestamp()
+        # Loading data that was created or updated in this period
+        # Created_at >= updated_at
+        params["filter[updated_at][from]"] = self._time_from.timestamp()
         params["filter[created_at][to]"] = self._time_to.timestamp()
 
         return params
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         if len(response.json()["_embedded"][self.response_data_field]) < self._limit:
             return None
         return {"page_number": response.json()["_page"] + 1}
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+    def parse_response(
+        self, response: requests.Response, **kwargs
+    ) -> Iterable[Mapping]:
         self.logger.info(self.__class__.__name__)
         yield from response.json()["_embedded"][self.response_data_field]
 
@@ -94,10 +103,12 @@ class Contacts(AmoCrmStream):
 
     def __init__(
         self,
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+        time_from: pendulum.DateTime,
+        time_to: pendulum.DateTime,
     ):
-        super().__init__(config, authenticator)
+        super().__init__(authenticator, config, time_from, time_to)
         self._custom_filters = config.get("contacts_filters", [])
         # Add all possible with values to load full data
         self._with = ",".join(["catalog_elements", "leads", "customers"])
@@ -118,10 +129,12 @@ class Leads(AmoCrmStream):
 
     def __init__(
         self,
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+        time_from: pendulum.DateTime,
+        time_to: pendulum.DateTime,
     ):
-        super().__init__(config, authenticator)
+        super().__init__(authenticator, config, time_from, time_to)
         self._custom_filters = config.get("leads_filters", [])
         self._with = ",".join(
             [
@@ -149,10 +162,12 @@ class Events(AmoCrmStream):
 
     def __init__(
         self,
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+        time_from: pendulum.DateTime,
+        time_to: pendulum.DateTime,
     ):
-        super().__init__(config, authenticator)
+        super().__init__(authenticator, config, time_from, time_to)
         self._custom_filters = config.get("events_filters", [])
 
     def path(
@@ -163,6 +178,22 @@ class Events(AmoCrmStream):
     ) -> str:
         return "v4/events"
 
+    def request_params(
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        params: MutableMapping[str, Any] = super().request_params(
+            stream_state, stream_slice, next_page_token
+        )
+
+        # Events do not support updated_at
+        del params["filter[updated_at][from]"]
+        params["filter[created_at][from]"] = self._time_from.timestamp()
+
+        return params
+
 
 class Pipelines(AmoCrmStream):
     primary_key = "id"
@@ -170,10 +201,12 @@ class Pipelines(AmoCrmStream):
 
     def __init__(
         self,
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator = None,
+        time_from: pendulum.DateTime,
+        time_to: pendulum.DateTime,
     ):
-        super().__init__(config, authenticator)
+        super().__init__(authenticator, config, time_from, time_to)
 
     def path(
         self,
@@ -186,68 +219,19 @@ class Pipelines(AmoCrmStream):
     def request_params(
         self,
         stream_state: Mapping[str, Any],
-        stream_slice: Mapping[str, any] = None,
+        stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         return {}  # No request args are supported
 
 
 class SourceAmoCrm(AbstractSource):
-
-    @staticmethod
-    def transform_config_date_range(config: Mapping[str, Any]) -> Mapping[str, Any]:
-        date_range: Mapping[str, Any] = config.get("date_range", {})
-        date_range_type: str = date_range.get("date_range_type")
-
-        time_from: Optional[pendulum.datetime] = None
-        time_to: Optional[pendulum.datetime] = None
-
-        # Meaning is date but storing time since later will use time
-        today_date: pendulum.datetime = pendulum.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-
-        if date_range_type == "custom_date":
-            time_from = pendulum.parse(date_range["date_from"])
-            time_to = pendulum.parse(date_range["date_to"])
-        elif date_range_type == "from_start_date_to_today":
-            time_from = pendulum.parse(date_range["date_from"])
-            if date_range.get("should_load_today"):
-                time_to = today_date
-            else:
-                time_to = today_date.subtract(days=1)
-        elif date_range_type == "last_n_days":
-            time_from = today_date.subtract(days=date_range.get("last_days"))
-            if date_range.get("should_load_today"):
-                time_to = today_date
-            else:
-                time_to = today_date.subtract(days=1)
-
-        config["time_from_transformed"], config["time_to_transformed"] = time_from, time_to
-        return config
-
     @staticmethod
     def transform_config(config: Mapping[str, Any]) -> Mapping[str, Any]:
-        config = SourceAmoCrm.transform_config_date_range(config)
         # For future improvements
         return config
 
-    @staticmethod
-    def get_auth(config: Mapping[str, Any]) -> CredentialsCraftAuthenticator | AmoCrmAuthenticator:
-        if config["credentials"]["auth_type"] == "access_token_auth":
-            return AmoCrmAuthenticator(token=config["credentials"]["access_token"])
-        elif config["credentials"]["auth_type"] == "credentials_craft_auth":
-            return CredentialsCraftAuthenticator(
-                credentials_craft_host=config["credentials"]["credentials_craft_host"],
-                credentials_craft_token=config["credentials"]["credentials_craft_token"],
-                credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
-            )
-        else:
-            raise Exception(
-                "Invalid Auth type. Available: access_token_auth and credentials_craft_auth"
-            )
-
-    def check_connection(self, logger, config) -> Tuple[bool, any]:
+    def check_connection(self, logger, config) -> Tuple[bool, Any]:
         streams = self.streams(config)  # Check data correctness for all streams
         for stream in streams:
             stream._limit = 1  # Decrease amount of loaded values to speed up check
@@ -260,11 +244,12 @@ class SourceAmoCrm(AbstractSource):
 
     def streams(self, config: Mapping[str, Any]) -> List[AmoCrmStream]:
         config = self.transform_config(config)
-        auth = self.get_auth(config)
+        auth = get_auth(config)
+        time_from, time_to = parse_date_range(config)
 
-        contacts_stream = Contacts(config, auth)
-        leads_stream = Leads(config, auth)
-        events_stream = Events(config, auth)
-        pipelines_stream = Pipelines(config, auth)
+        contacts_stream = Contacts(auth, config, time_from, time_to)
+        leads_stream = Leads(auth, config, time_from, time_to)
+        events_stream = Events(auth, config, time_from, time_to)
+        pipelines_stream = Pipelines(auth, config, time_from, time_to)
 
         return [contacts_stream, leads_stream, events_stream, pipelines_stream]

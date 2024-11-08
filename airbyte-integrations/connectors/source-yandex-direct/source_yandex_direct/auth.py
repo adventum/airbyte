@@ -36,7 +36,7 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             return False, f"Connection to {self._cc_host} timed out"
 
         token_resp = requests.get(self._url, headers={"Authorization": f"Bearer {self._cc_token}"})
-        print("token_resp.request.url", token_resp.request.url)
+        # print("token_resp.request.url", token_resp.request.url)
         try:
             token_resp_data = token_resp.json()
             if token_resp_data.get("error"):

@@ -18,7 +18,7 @@ if __name__ == "__main__":
     try:
         source = SourceAppmetricaLogsApi()
         launch(source, sys.argv[1:])
-    except:
+    except Exception:
         raise
     finally:
         logger.info("Finally clean ouput folder")

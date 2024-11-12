@@ -11,9 +11,15 @@ from source_appmetrica_logs_api.source import IncrementalAppmetricaLogsApiStream
 @fixture
 def patch_incremental_base_class(mocker):
     # Mock abstract methods to enable instantiating abstract class
-    mocker.patch.object(IncrementalAppmetricaLogsApiStream, "path", "v0/example_endpoint")
-    mocker.patch.object(IncrementalAppmetricaLogsApiStream, "primary_key", "test_primary_key")
-    mocker.patch.object(IncrementalAppmetricaLogsApiStream, "__abstractmethods__", set())
+    mocker.patch.object(
+        IncrementalAppmetricaLogsApiStream, "path", "v0/example_endpoint"
+    )
+    mocker.patch.object(
+        IncrementalAppmetricaLogsApiStream, "primary_key", "test_primary_key"
+    )
+    mocker.patch.object(
+        IncrementalAppmetricaLogsApiStream, "__abstractmethods__", set()
+    )
 
 
 def test_cursor_field(patch_incremental_base_class):
@@ -42,7 +48,9 @@ def test_stream_slices(patch_incremental_base_class):
 
 
 def test_supports_incremental(patch_incremental_base_class, mocker):
-    mocker.patch.object(IncrementalAppmetricaLogsApiStream, "cursor_field", "dummy_field")
+    mocker.patch.object(
+        IncrementalAppmetricaLogsApiStream, "cursor_field", "dummy_field"
+    )
     stream = IncrementalAppmetricaLogsApiStream()
     assert stream.supports_incremental
 

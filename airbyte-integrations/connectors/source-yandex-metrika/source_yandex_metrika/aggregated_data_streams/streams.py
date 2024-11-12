@@ -65,11 +65,17 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         self._name = stream_config["name"]
         self.date_from = date_from
         self.date_to = date_to
-        self.attribution = attribution_translations.get(stream_config.get("attribution"))
-        self.date_group = date_group_translations.get(stream_config.get("date_group", "день"))
+        self.attribution = attribution_translations.get(
+            stream_config.get("attribution")
+        )
+        self.date_group = date_group_translations.get(
+            stream_config.get("date_group", "день")
+        )
         self.currency = currency_translations.get(stream_config.get("currency"))
         self.filters = stream_config.get("filters")
-        self.preset_name = preset_name_translations.get(stream_config.get("preset_name"))
+        self.preset_name = preset_name_translations.get(
+            stream_config.get("preset_name")
+        )
         self.metrics = stream_config.get("metrics")
         self.dimensions = stream_config.get("dimensions")
 
@@ -105,9 +111,13 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
             for dimension in test_response["query"]["dimensions"]:
                 schema["properties"][dimension] = {"type": ["null", "string"]}
             for metric in test_response["query"]["metrics"]:
-                field_type: str | None = aggregated_data_streams_fields_manager.field_lookup(metric)
+                field_type: str | None = (
+                    aggregated_data_streams_fields_manager.field_lookup(metric)
+                )
                 if not field_type:
-                    raise Exception(f"Field '{metric}' is not supported in the connector")
+                    raise Exception(
+                        f"Field '{metric}' is not supported in the connector"
+                    )
                 schema["properties"][metric] = {"type": [field_type, "null"]}
 
             super().replace_keys(schema["properties"])
@@ -159,7 +169,9 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
 
         return params
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+    def parse_response(
+        self, response: requests.Response, **kwargs
+    ) -> Iterable[Mapping]:
         logger.info(f"Request url with params: {response.request.url}")
         response_data = response.json()
         data = response_data["data"]
@@ -172,6 +184,8 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         for row in data:
             row_values = []
             for dimension_value in row["dimensions"]:
-                row_values.append(dimension_value.get("id") or dimension_value.get("name"))
+                row_values.append(
+                    dimension_value.get("id") or dimension_value.get("name")
+                )
             row_values += row["metrics"]
             yield dict(zip(keys, row_values))

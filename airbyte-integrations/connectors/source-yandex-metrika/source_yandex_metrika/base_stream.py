@@ -27,4 +27,6 @@ class YandexMetrikaStream(HttpStream, ABC):
         test_params = self.request_params()
         test_params["limit"] = 1
         headers = self._authenticator.get_auth_header()
-        return requests.get(self.url_base + self.path(), params=test_params, headers=headers)
+        return requests.get(
+            self.url_base + self.path(), params=test_params, headers=headers
+        )

@@ -86,11 +86,15 @@ hits_fields: list[YandexMetrikaSourceField] = [
 ]
 
 visits_fields: list[YandexMetrikaSourceField] = [
-    YandexMetrikaSourceField(field_name="ym:s:visitID", field_type="integer", required=True),
+    YandexMetrikaSourceField(
+        field_name="ym:s:visitID", field_type="integer", required=True
+    ),
     YandexMetrikaSourceField(field_name="ym:s:counterID", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:watchIDs", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:date", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:dateTime", field_type="string", required=True),
+    YandexMetrikaSourceField(
+        field_name="ym:s:dateTime", field_type="string", required=True
+    ),
     YandexMetrikaSourceField(field_name="ym:s:dateTimeUTC", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:isNewUser", field_type="boolean"),
     YandexMetrikaSourceField(field_name="ym:s:startURL", field_type="string"),
@@ -112,21 +116,37 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:goalsPrice", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:goalsOrder", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:goalsCurrency", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>TrafficSource", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>AdvEngine", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>ReferalSource", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>SearchEngineRoot", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>SearchEngine", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>SocialNetwork", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>TrafficSource", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>AdvEngine", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>ReferalSource", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>SearchEngineRoot", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>SearchEngine", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>SocialNetwork", field_type="string"
+    ),
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>SocialNetworkProfile", field_type="string"
     ),
     YandexMetrikaSourceField(field_name="ym:s:referer", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickOrder", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectClickOrder", field_type="integer"
+    ),
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>DirectBannerGroup", field_type="integer"
     ),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectClickBanner", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectClickBanner", field_type="string"
+    ),
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>DirectClickOrderName", field_type="string"
     ),
@@ -142,22 +162,46 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>DirectPlatformType", field_type="string"
     ),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>DirectPlatform", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>DirectPlatform", field_type="string"
+    ),
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>DirectConditionType", field_type="string"
     ),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>CurrencyID", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>CurrencyID", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:from", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMCampaign", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMContent", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMMedium", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMSource", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>UTMTerm", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>openstatAd", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>openstatCampaign", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>openstatService", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>openstatSource", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>hasGCLID", field_type="boolean"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>UTMCampaign", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>UTMContent", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>UTMMedium", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>UTMSource", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>UTMTerm", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>openstatAd", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>openstatCampaign", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>openstatService", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>openstatSource", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>hasGCLID", field_type="boolean"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:<attribution>GCLID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:browserLanguage", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:browserCountry", field_type="string"),
@@ -165,16 +209,30 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:deviceCategory", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:mobilePhone", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:mobilePhoneModel", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:operatingSystemRoot", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:operatingSystemRoot", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:operatingSystem", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:browser", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:browserMajorVersion", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:browserMinorVersion", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserMajorVersion", field_type="integer"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserMinorVersion", field_type="integer"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:browserEngine", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:browserEngineVersion1", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:browserEngineVersion2", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:browserEngineVersion3", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:browserEngineVersion4", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserEngineVersion1", field_type="integer"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserEngineVersion2", field_type="integer"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserEngineVersion3", field_type="integer"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:browserEngineVersion4", field_type="integer"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:cookieEnabled", field_type="boolean"),
     YandexMetrikaSourceField(field_name="ym:s:javascriptEnabled", field_type="boolean"),
     YandexMetrikaSourceField(field_name="ym:s:screenFormat", field_type="string"),
@@ -182,37 +240,73 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:screenOrientation", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:screenWidth", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:screenHeight", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:physicalScreenWidth", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:physicalScreenHeight", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:physicalScreenWidth", field_type="integer"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:physicalScreenHeight", field_type="integer"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:windowClientWidth", field_type="integer"),
-    YandexMetrikaSourceField(field_name="ym:s:windowClientHeight", field_type="integer"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:windowClientHeight", field_type="integer"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:purchaseID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:purchaseDateTime", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:purchaseAffiliation", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:purchaseAffiliation", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:purchaseRevenue", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:purchaseTax", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:purchaseShipping", field_type="integer"),
     YandexMetrikaSourceField(field_name="ym:s:purchaseCoupon", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:purchaseCurrency", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:purchaseProductQuantity", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:purchaseProductQuantity", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductList", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductBrand", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory1", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory2", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory3", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory4", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCategory5", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductVariant", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductPosition", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory1", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory2", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory3", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory4", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCategory5", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductVariant", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductPosition", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductPrice", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCurrency", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductCoupon", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductQuantity", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductEventTime", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCurrency", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductCoupon", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductQuantity", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductEventTime", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductType", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:eventsProductDiscount", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:eventsProductDiscount", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:eventsProductName", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:productsPurchaseID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:productsID", field_type="string"),
@@ -234,36 +328,80 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(field_name="ym:s:productsEventTime", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:productsDiscount", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:impressionsURL", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsDateTime", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductID", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductName", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductBrand", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory1", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory2", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory3", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory4", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCategory5", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductVariant", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductPrice", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCurrency", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductCoupon", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductList", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductQuantity", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductEventTime", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:impressionsProductDiscount", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsDateTime", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductID", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductName", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductBrand", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory1", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory2", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory3", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory4", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCategory5", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductVariant", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductPrice", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCurrency", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductCoupon", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductList", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductQuantity", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductEventTime", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:impressionsProductDiscount", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:promotionID", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:promotionName", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:promotionCreative", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:promotionPosition", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:promotionCreativeSlot", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:promotionCreativeSlot", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:promotionEventTime", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:promotionType", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:offlineCallTalkDuration", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:offlineCallHoldDuration", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:offlineCallTalkDuration", field_type="string"
+    ),
+    YandexMetrikaSourceField(
+        field_name="ym:s:offlineCallHoldDuration", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:offlineCallMissed", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:offlineCallTag", field_type="string"),
-    YandexMetrikaSourceField(field_name="ym:s:offlineCallFirstTimeCaller", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:offlineCallFirstTimeCaller", field_type="string"
+    ),
     YandexMetrikaSourceField(field_name="ym:s:offlineCallURL", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:parsedParamsKey1", field_type="string"),
     YandexMetrikaSourceField(field_name="ym:s:parsedParamsKey2", field_type="string"),
@@ -278,8 +416,14 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>RecommendationSystem", field_type="string"
     ),
-    YandexMetrikaSourceField(field_name="ym:s:<attribution>Messenger", field_type="string"),
+    YandexMetrikaSourceField(
+        field_name="ym:s:<attribution>Messenger", field_type="string"
+    ),
 ]
 
-hits_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(fields=hits_fields)
-visits_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(fields=visits_fields)
+hits_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(
+    fields=hits_fields
+)
+visits_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(
+    fields=visits_fields
+)

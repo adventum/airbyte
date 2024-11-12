@@ -26,11 +26,16 @@ Can replace id with real value (on later steps), create fields for all currencie
 
 format_funcs: dict[str, Callable[[str], list[str]]] = {
     "<attribution>": lambda field_name: [
-        field_name.replace("<attribution>", attribution) for attribution in attribution_values
+        field_name.replace("<attribution>", attribution)
+        for attribution in attribution_values
     ],
     "<goal_id>": lambda field_name: [field_name.replace("<goal_id>", "\d+")],
-    "<group>": lambda field_name: [field_name.replace("<group>", group) for group in group_values],
-    "<experiment_ab>": lambda field_name: [field_name.replace("<experiment_ab>", "\d+")],
+    "<group>": lambda field_name: [
+        field_name.replace("<group>", group) for group in group_values
+    ],
+    "<experiment_ab>": lambda field_name: [
+        field_name.replace("<experiment_ab>", "\d+")
+    ],
     "<currency>": lambda field_name: [
         field_name.replace("<currency>", currency) for currency in currency_values
     ],
@@ -40,7 +45,9 @@ format_funcs: dict[str, Callable[[str], list[str]]] = {
 class YandexMetrikaSourceField:
     """Field for yandex metrika source"""
 
-    def __init__(self, field_name: str, field_type: str = "string", required: bool = False):
+    def __init__(
+        self, field_name: str, field_type: str = "string", required: bool = False
+    ):
         self.field_name: str = field_name
         self.field_type: str = field_type
         self.required: bool = required

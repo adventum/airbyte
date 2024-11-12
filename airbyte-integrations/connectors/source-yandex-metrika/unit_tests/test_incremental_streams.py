@@ -12,7 +12,9 @@ from source_yandex_metrika.source import IncrementalYandexMetrikaStream
 def patch_incremental_base_class(mocker):
     # Mock abstract methods to enable instantiating abstract class
     mocker.patch.object(IncrementalYandexMetrikaStream, "path", "v0/example_endpoint")
-    mocker.patch.object(IncrementalYandexMetrikaStream, "primary_key", "test_primary_key")
+    mocker.patch.object(
+        IncrementalYandexMetrikaStream, "primary_key", "test_primary_key"
+    )
     mocker.patch.object(IncrementalYandexMetrikaStream, "__abstractmethods__", set())
 
 

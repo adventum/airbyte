@@ -62,19 +62,23 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
         self._name = stream_config.get("name")
         self.split_range_days_count = stream_config.get("split_range_days_count", False)
-        self.multithreading_threads_count = stream_config.get("multithreading_threads_count", 1)
+        self.multithreading_threads_count = stream_config.get(
+            "multithreading_threads_count", 1
+        )
         self.clean_slice_after_successfully_loaded = stream_config.get(
             "clean_slice_after_successfully_loaded", False
         )
         self.clean_log_requests_before_replication = stream_config.get(
             "clean_log_requests_before_replication", False
         )
-        self.check_log_requests_ability = stream_config.get("check_log_requests_ability", False)
+        self.check_log_requests_ability = stream_config.get(
+            "check_log_requests_ability", False
+        )
 
         """Load and check fields"""
         self.fields = stream_config.get("fields", [])
         attribution: str | None = stream_config.get("attribution")
-        if not attribution and any(("<attribution>" in field for field in self.fields)):
+        if not attribution and any("<attribution>" in field for field in self.fields):
             raise ConfigInvalidError(
                 "В полях отчета используется <attribution>, при этом аттрибуция не задана"
             )
@@ -91,21 +95,20 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         field_manager: YandexMetrikaFieldsManager = (
             visits_fields_manager if log_source == "visits" else hits_fields_manager
         )
-        for f in self.fields:
-            field_type = field_manager.field_lookup(f)
-            if not field_type:
-                raise ConfigInvalidError(
-                    f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"'
-                )
+        if any(field_manager.field_lookup(field) is None for field in self.fields):
+            raise ConfigInvalidError(
+                f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"'
+            )
 
-        for f in visits_fields_manager.get_required_fields_names():
-            if f not in self.fields:
-                raise ConfigInvalidError(
-                    f'Сырые отчёты - источник {log_source} должен содержать поля {" ".join(field_manager.get_required_fields_names())}'
-                )
+        if any(f not in self.fields for f in field_manager.get_required_fields_names()):
+            raise ConfigInvalidError(
+                f'Сырые отчёты - источник {log_source} должен содержать поля {", ".join(field_manager.get_required_fields_names())}. Предоставленные поля: {", ".join(self.fields)}'
+            )
 
         if self.primary_key in self.field_name_map.keys():
-            raise ConfigInvalidError(f"Поле {self.primary_key} не может быть переименовано")
+            raise ConfigInvalidError(
+                f"Поле {self.primary_key} не может быть переименовано"
+            )
 
         # Get rid of duplicates
         self.fields = list(set(self.fields))
@@ -135,9 +138,9 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         return name
 
     def get_json_schema(self) -> Mapping[str, any]:
-        schema = ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
-            "yandex_metrika_raw_data_stream"
-        )
+        schema = ResourceSchemaLoader(
+            package_name_from_class(self.__class__)
+        ).get_schema("yandex_metrika_raw_data_stream")
         for field in self.fields:
             schema["properties"][field] = {"type": ["null", "string"]}
 
@@ -198,14 +201,16 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         logger.info(f"Save slice {stream_slice} data to {filename}")
         with open(filename, "wb") as f:
             f.write(response.content)
-        logger.info(f"end of parse_response")
+        logger.info("end of parse_response")
         return [filename]
 
     def stream_slices(self, *args, **kwargs) -> Iterable[Mapping[str, any] | None]:
         if not self.split_range_days_count:
             slices = [{"date_from": self.date_from, "date_to": self.date_to}]
         elif self.split_range_days_count:
-            slices = daterange_days_list(self.date_from, self.date_to, self.split_range_days_count)
+            slices = daterange_days_list(
+                self.date_from, self.date_to, self.split_range_days_count
+            )
         else:
             slices = None
         return slices

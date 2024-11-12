@@ -8,7 +8,9 @@ import pendulum
 DATE_FORMAT = "%Y-%m-%d"
 
 
-def daterange_days_list(date_from: datetime, date_to: datetime, days_delta: int = 1) -> list[str]:
+def daterange_days_list(
+    date_from: datetime, date_to: datetime, days_delta: int = 1
+) -> list[str]:
     cursor_date = date_from
     date_to = date_to
 
@@ -40,7 +42,9 @@ def random_output_filename() -> str:
 
 
 def random_str(n: int) -> str:
-    return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
+    return "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(n)
+    )
 
 
 def partition_list(lst, n):

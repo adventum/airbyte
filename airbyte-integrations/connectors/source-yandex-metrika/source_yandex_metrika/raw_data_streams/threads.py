@@ -64,7 +64,9 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                 df_reader = pd.read_csv(input_f, chunksize=5000, delimiter="\t")
                 for chunk in df_reader:
                     with self.lock:
-                        records: list[dict] = [data for data in chunk.to_dict("records")]
+                        records: list[dict] = [
+                            data for data in chunk.to_dict("records")
+                        ]
                         for record in records:
                             self.stream_instance.replace_keys(record)
                             # Replace Nan values
@@ -86,7 +88,9 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
             )
             display_message = self.stream_instance.get_error_display_message(e)
             if display_message:
-                raise AirbyteTracedException.from_exception(e, message=display_message) from e
+                raise AirbyteTracedException.from_exception(
+                    e, message=display_message
+                ) from e
             raise e
         finally:
             logger.info(f"Remove file {self.filename} for slice {self.stream_slice}")
@@ -101,8 +105,10 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                     stream_slice=self.stream_slice,
                 )
             )
-        except Exception as ex:
-            logger.info(f"Failed to get file for stream slice {self.stream_slice.values()}")
+        except Exception:
+            logger.info(
+                f"Failed to get file for stream slice {self.stream_slice.values()}"
+            )
             return
 
         self.filename = filename
@@ -111,7 +117,9 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
         )
 
     def run(self):
-        self.log_info(f"Run processor thread instance {self.name} with slice {self.stream_slice}")
+        self.log_info(
+            f"Run processor thread instance {self.name} with slice {self.stream_slice}"
+        )
         self.process_log_request()
         self.log_info(
             f"End processing thread {self.name} (slice {self.stream_slice}) with {self.records_count} records"

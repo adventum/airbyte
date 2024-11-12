@@ -85,7 +85,6 @@ preset_name_translations = {
     "Adfox, header bidding": "adfox_header_bidding",
     "Adfox, география": "adfox_geo",
     "Источники переходов на материалы": "publishers_sources",
-    "Источники, расходы и ROI": "expenses",
     "Целевые события на Яндексе": "vacuum",
     "Источники заказов из CRM": "orders_sources",
     "Источники, расходы и ROI": "sources_expenses_and_roi",

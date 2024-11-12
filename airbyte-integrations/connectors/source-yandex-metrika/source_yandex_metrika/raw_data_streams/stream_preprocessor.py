@@ -33,7 +33,9 @@ class LoggedRetry(Retry):
 
 
 class YandexMetrikaStreamPreprocessor:
-    retries = LoggedRetry(total=7, backoff_factor=5, status_forcelist=[429, *range(500, 600)])
+    retries = LoggedRetry(
+        total=7, backoff_factor=5, status_forcelist=[429, *range(500, 600)]
+    )
 
     def __init__(self, stream_instance: "YandexMetrikaStream"):
         self.stream_instance = stream_instance
@@ -68,7 +70,7 @@ class YandexMetrikaStreamPreprocessor:
                 params=self.request_params(stream_slice=stream_slice),
             )
             create_log_request_response_data = create_log_request_response.json()
-        except:
+        except Exception:
             raise Exception(
                 f"API error on create_log_request_response.json()."
                 f"Response: {create_log_request_response.text}, "
@@ -76,7 +78,7 @@ class YandexMetrikaStreamPreprocessor:
             )
         try:
             return create_log_request_response_data["log_request"]["request_id"]
-        except:
+        except Exception:
             raise Exception(
                 f'API error on create_log_request_response["log_request"]["request_id"]. Response: {create_log_request_response_data}'
             )
@@ -115,7 +117,9 @@ class YandexMetrikaStreamPreprocessor:
         current_status = None
         invalid_api_requests_counter = 0
         while current_status != "processed":
-            url = self.url_base + f"counter/{self.counter_id}/logrequest/{log_request_id}"
+            url = (
+                self.url_base + f"counter/{self.counter_id}/logrequest/{log_request_id}"
+            )
             headers = self.authorized_request_headers()
             check_log_request_status_response = self.session.get(
                 url,
@@ -124,7 +128,7 @@ class YandexMetrikaStreamPreprocessor:
             ).json()
             try:
                 log_request = check_log_request_status_response["log_request"]
-            except:
+            except Exception:
                 if invalid_api_requests_counter == 3:
                     raise Exception(
                         'API request is invalid on check_log_request_status_response["log_request"] '
@@ -159,13 +163,13 @@ class YandexMetrikaStreamPreprocessor:
         response_data = self.session.get(url, headers=headers)
         try:
             return response_data.json()["requests"]
-        except:
+        except Exception:
             raise Exception(
                 f"API Error on get_available_log_requests (URL: {url} Headers: {headers}): {response_data.text}",
             )
 
     def clean_all_log_requests(self):
-        logger.info(f"Clean All Log Requests")
+        logger.info("Clean All Log Requests")
 
         available_log_requests = self.get_available_log_requests()
         for log_request in available_log_requests:
@@ -178,7 +182,9 @@ class YandexMetrikaStreamPreprocessor:
                 cleaned_log_request = self.clean_log_request(log_request["request_id"])
                 logger.info(f"Cleaned log request: {cleaned_log_request}")
 
-    def check_log_request_ability(self, stream_slice: Mapping[str, any]) -> tuple[bool, any]:
+    def check_log_request_ability(
+        self, stream_slice: Mapping[str, any]
+    ) -> tuple[bool, any]:
         url = self.url_base + f"counter/{self.counter_id}/logrequests/evaluate"
         headers = self.authorized_request_headers(stream_slice=stream_slice)
         params = self.request_params(stream_slice=stream_slice)
@@ -220,13 +226,20 @@ class YandexMetrikaStreamPreprocessor:
                     f"Check raw slice {raw_stream_slice}. Status: Already on server. Log request ID: {on_server_log_request_id}"
                 )
                 continue
-            is_possible, is_possible_message = self.check_log_request_ability(raw_stream_slice)
-            logger.info(f"Check raw slice {raw_stream_slice}. Is possible: {is_possible}")
+            is_possible, is_possible_message = self.check_log_request_ability(
+                raw_stream_slice
+            )
+            logger.info(
+                f"Check raw slice {raw_stream_slice}. Is possible: {is_possible}"
+            )
             if not is_possible:
                 return False, is_possible_message
         return True, None
 
     def clean_log_request(self, log_request_id: int):
-        url = self.url_base + f"counter/{self.counter_id}/logrequest/{log_request_id}/clean"
+        url = (
+            self.url_base
+            + f"counter/{self.counter_id}/logrequest/{log_request_id}/clean"
+        )
         logger.info(f"Clean log request {url}...")
         return self.session.post(url, headers=self.authorized_request_headers()).json()

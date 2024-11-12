@@ -86,9 +86,9 @@ class YandexDirectAdsStream(HttpStream, ABC):
 
     def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
         data = response.json()
-        self.logger.info(f"Request {response.request.url} (Headers: {response.request.headers}, body {response.request.body})")
+
         if "result" not in data.keys():
-            raise Exception(f"URL: {response.url} ({response.request.body}). ApiError: {data}")
+            raise Exception(f"URL: {response.url} . ApiError: {data}")
         records = data["result"].get(self.__class__.__name__, [])
 
         yield from records

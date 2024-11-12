@@ -67,7 +67,6 @@ class YandexDirectStream(HttpStream, ABC):
         while True:
             response = self._session.send(request, **request_kwargs)
             response.encoding = "utf-8"
-            self.logger.info(f"Request {response.url} (Kwargs: {request_kwargs}, request body: {response.request.body})")
             sleep_time = int(response.headers.get("retryIn", 5))
             if response.status_code == 200:
                 return response
@@ -90,7 +89,7 @@ class YandexDirectStream(HttpStream, ABC):
                         raise DefaultBackoffException(request=request, response=response)
                 elif self.raise_on_http_errors:
                     # Raise any HTTP exceptions that happened in case there were unexpected ones
-                    logger.error(f"Request {response.url} (Kwargs: {request_kwargs}, response body: {response.text})")
+                    logger.error(f"Error Request {response.url}")
                     response.raise_for_status()
 
     def request_kwargs(

@@ -174,6 +174,17 @@ CAMPAIGNS_DEFAULT_FIELDS = {
         "EndDate",
         "ClientInfo",
     ],
+    "TextCampaignFieldNames": [
+        "CounterIds",
+        "RelevantKeywords",
+        "Settings",
+        "BiddingStrategy",
+        "PriorityGoals",
+        "AttributionModel",
+        "PackageBiddingStrategy",
+        "CanBeUsedAsPackageBiddingStrategySource",
+        "NegativeKeywordSharedSetIds",
+    ]
 }
 
 

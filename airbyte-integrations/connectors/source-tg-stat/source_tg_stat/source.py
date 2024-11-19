@@ -12,7 +12,7 @@ import requests
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.models import SyncMode
+# from airbyte_cdk.models import SyncMode
 from datetime import datetime, timedelta
 
 
@@ -98,6 +98,9 @@ class ChannelsList(ChannelsListAsSlicesStream, TgStatStream):
     def path(self, *args, **kwargs) -> str:
         return "channels/get"
 
+    def request_params(self, stream_slice: Mapping[str, any] = None, *args, **kwargs) -> MutableMapping[str, Any]:
+        return {"token": self.access_token, "channelId": stream_slice["channel_id"]}
+
     def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
         yield self.add_constants_to_record(response.json()["response"])
 
@@ -144,8 +147,8 @@ class ChannelsDailyStatistics(ChannelsListAsSlicesStream, TgStatStream, DateRang
         *args,
         **kwargs,
     ) -> Iterable[Mapping]:
-        print(response.request.url)
-        print(response.text)
+        # print(response.request.url)
+        # print(response.text)
         for record in response.json()["response"]:
             yield self.add_constants_to_record({**record, **stream_slice})
 
@@ -172,9 +175,9 @@ class ChannelErrDaily(ChannelsDailyStatistics):
 
 class SourceTgStat(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        streams = self.streams(config)
-        test_stream: ChannelsList = streams[0]
-        print(next(test_stream.read_records(sync_mode=SyncMode.full_refresh)))
+        # streams = self.streams(config)
+        # test_stream: ChannelsList = streams[0]
+        # print(next(test_stream.read_records(sync_mode=SyncMode.full_refresh)))
 
         return True, None
 

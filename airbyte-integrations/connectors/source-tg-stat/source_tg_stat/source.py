@@ -102,6 +102,10 @@ class ChannelsList(ChannelsListAsSlicesStream, TgStatStream):
         return {"token": self.access_token, "channelId": stream_slice["channel_id"]}
 
     def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
+        if "error" in response.json():
+            print(
+                f"ERROR - {response.text} - A list of errors and their explanations can be found in the documentation TG STAT API"
+            )
         yield self.add_constants_to_record(response.json()["response"])
 
 
@@ -147,8 +151,10 @@ class ChannelsDailyStatistics(ChannelsListAsSlicesStream, TgStatStream, DateRang
         *args,
         **kwargs,
     ) -> Iterable[Mapping]:
-        # print(response.request.url)
-        # print(response.text)
+        if "error" in response.json():
+            print(
+                f"ERROR - {response.text} - A list of errors and their explanations can be found in the documentation TG STAT API"
+            )
         for record in response.json()["response"]:
             yield self.add_constants_to_record({**record, **stream_slice})
 

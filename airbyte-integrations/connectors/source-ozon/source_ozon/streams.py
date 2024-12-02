@@ -27,7 +27,7 @@ from source_ozon.utils import chunks, pairwise
 def check_ozon_api_connection(credentials: OzonToken) -> tuple[IsSuccess, Optional[Message]]:
     try:
         response = requests.get(
-            url="https://performance.ozon.ru/api/client/campaign",
+            url="https://api-performance.ozon.ru/api/client/campaign",
             headers={"Authorization": f"Bearer {credentials.access_token.get_secret_value()}"},
         )
         response.raise_for_status()
@@ -38,7 +38,7 @@ def check_ozon_api_connection(credentials: OzonToken) -> tuple[IsSuccess, Option
 
 
 class CampaignsReportStream(Stream):
-    HOST: str = "https://performance.ozon.ru"
+    HOST: str = "https://api-performance.ozon.ru"
     PATH: str = "/api/client/statistics"
     CAMPAIGNS_PATH: str = "/api/client/campaign"
     SCHEMA: Type[CampaignReport] = CampaignReport

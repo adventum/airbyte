@@ -15,7 +15,7 @@ class OzonToken(BaseModel):
 
 
 def fetch_ozon_token(client_id: str, client_secret: str) -> OzonToken:
-    url = "https://performance.ozon.ru/api/client/token"
+    url = "https://api-performance.ozon.ru/api/client/token"
     try:
         response = requests.post(url, json={"client_id": client_id, "client_secret": client_secret, "grant_type": "client_credentials"})
         response.raise_for_status()

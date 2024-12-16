@@ -17,6 +17,7 @@ from source_ozon.auth import OzonToken
 from source_ozon.schemas.banner_report_data import BannerReport
 from source_ozon.schemas.brend_shelf_report_data import BrandShelfReport
 from source_ozon.schemas.campaign import OzonCampaign, CampaignReport
+from source_ozon.schemas.global_promo_report_data import GlobalPromoReport
 from source_ozon.schemas.report import ReportStatusResponse
 from source_ozon.schemas.search_promo_report_data import SearchPromoReport
 from source_ozon.schemas.sku_report_data import SkuReport
@@ -274,7 +275,9 @@ class CampaignsReportStream(Stream):
                 raise RuntimeError(f"Failed to parse Ozon report for campaign '{campaign.id}': {str(e)}") from e
 
     @staticmethod
-    def _get_campaign_schema(campaign: OzonCampaign) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport] | None:
+    def _get_campaign_schema(
+            campaign: OzonCampaign,
+    ) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport | GlobalPromoReport] | None:
         if campaign.advObjectType == "SEARCH_PROMO":
             return SearchPromoReport
         elif campaign.advObjectType == "BANNER":
@@ -283,6 +286,7 @@ class CampaignsReportStream(Stream):
             return BrandShelfReport
         elif campaign.advObjectType == "SKU":
             return SkuReport
+        elif campaign.advObjectType == "GLOBAL_PROMO":
+            return GlobalPromoReport
         else:
             print(f"Unknown Ozon campaign '{campaign.id}' type: '{campaign.advObjectType}'")
-            # raise ValueError(f"Unknown Ozon campaign '{campaign.id}' type: '{campaign.advObjectType}'")

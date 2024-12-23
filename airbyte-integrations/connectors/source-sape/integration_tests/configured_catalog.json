@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "get_avg_prices",
+        "name": "get_projects_money_stats",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh"]
       },

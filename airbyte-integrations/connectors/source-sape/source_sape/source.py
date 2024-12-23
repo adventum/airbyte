@@ -9,8 +9,9 @@ from xmlrpc.client import ServerProxy
 from .client import CookiesTransport
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from .streams import GetAvgPrices
+from .streams import GetAvgPrices, GetProjectsMoneyStats
 from .base_stream import SapeStream
+from .utils import parse_date_range
 
 
 # Source
@@ -29,6 +30,11 @@ class SourceSape(AbstractSource):
             config["credentials"]["login"], config["credentials"]["token"]
         )
 
+        # Parse datetime
+        time_from, time_to = parse_date_range(config)
+
         # Create production streams with auth from base one
         get_avg_prices_stream = GetAvgPrices(client_=client)
-        return [get_avg_prices_stream]
+        get_projects_money_stats_stream = GetProjectsMoneyStats(client_=client, start_date=time_from, end_date=time_to)
+
+        return [get_avg_prices_stream, get_projects_money_stats_stream]

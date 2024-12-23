@@ -17,6 +17,7 @@ from source_ozon.auth import OzonToken
 from source_ozon.schemas.banner_report_data import BannerReport
 from source_ozon.schemas.brend_shelf_report_data import BrandShelfReport
 from source_ozon.schemas.campaign import OzonCampaign, CampaignReport
+from source_ozon.schemas.global_promo_report_data import GlobalPromoReport
 from source_ozon.schemas.report import ReportStatusResponse
 from source_ozon.schemas.search_promo_report_data import SearchPromoReport
 from source_ozon.schemas.sku_report_data import SkuReport
@@ -249,6 +250,8 @@ class CampaignsReportStream(Stream):
     def _read_csv(self, csv_file: TextIO, campaign: OzonCampaign) -> Iterable[Mapping[str, Any]]:
         csvreader = csv.reader(csv_file, delimiter=";")
         report_schema = self._get_campaign_schema(campaign)
+        if not report_schema:
+            return
         next(csvreader, None)  # Skip report header
         columns_headers = next(csvreader, None)
         for current_row, next_row in pairwise(csvreader):
@@ -272,7 +275,9 @@ class CampaignsReportStream(Stream):
                 raise RuntimeError(f"Failed to parse Ozon report for campaign '{campaign.id}': {str(e)}") from e
 
     @staticmethod
-    def _get_campaign_schema(campaign: OzonCampaign) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport]:
+    def _get_campaign_schema(
+            campaign: OzonCampaign,
+    ) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport | GlobalPromoReport] | None:
         if campaign.advObjectType == "SEARCH_PROMO":
             return SearchPromoReport
         elif campaign.advObjectType == "BANNER":
@@ -281,6 +286,7 @@ class CampaignsReportStream(Stream):
             return BrandShelfReport
         elif campaign.advObjectType == "SKU":
             return SkuReport
+        elif campaign.advObjectType == "GLOBAL_PROMO":
+            return GlobalPromoReport
         else:
             print(f"Unknown Ozon campaign '{campaign.id}' type: '{campaign.advObjectType}'")
-            raise ValueError(f"Unknown Ozon campaign '{campaign.id}' type: '{campaign.advObjectType}'")

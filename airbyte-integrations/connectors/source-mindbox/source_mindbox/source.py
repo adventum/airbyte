@@ -220,6 +220,12 @@ class Abcartabandjul24var2(MindboxStream):
     operation_name = "Abcartabandjul24var2"
 
 
+class NpsOprosTutu(MindboxStream):
+    use_date_range = False
+    primary_key = "CustomerIdsMindboxId"
+    operation_name = "NpsOprosTutu"
+
+
 # Source
 class SourceMindbox(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
@@ -294,4 +300,5 @@ class SourceMindbox(AbstractSource):
             ExportSubAppPushIos(**shared_kwargs),
             Abcartabandjul24var1(**shared_kwargs),
             Abcartabandjul24var2(**shared_kwargs),
+            NpsOprosTutu(**shared_kwargs),
         ]

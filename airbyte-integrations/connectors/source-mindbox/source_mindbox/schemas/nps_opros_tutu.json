@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "CustomerIdsMindboxId": { "type": ["string", "null"] },
+    "CustomerActionCustomFieldsNpstutu": { "type": ["string", "null"] },
+    "CustomerActionCustomFieldsNpstext": { "type": ["string", "null"] },
+    "CustomerActionCustomerEmail": { "type": ["string", "null"] },
+    "CustomerActionCustomerMobilePhone": { "type": ["string", "null"] }
+  }
+}

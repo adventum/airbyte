@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "cv_from": {
+      "type": ["integer"]
+    },
+    "cv_to": {
+      "type": ["integer"]
+    },
+    "level": {
+      "type": ["integer"]
+    },
+    "pr": {
+      "type": ["integer"]
+    },
+    "price": {
+      "type": ["number"]
+    }
+  }
+}

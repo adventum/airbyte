@@ -10,8 +10,9 @@ from airbyte_cdk.sources.streams.core import StreamData, Stream
 from airbyte_protocol.models import SyncMode
 
 
-class SapeStream(Stream, ABC):
-    url_base = "https://api.sape.ru/xmlrpc/"
+class SapeXMLStream(Stream, ABC):
+    url_base = "https://api.sape.ru/xmlrpc/?rtb=1"
+    base_path = "sape"
 
     def __init__(
         self,
@@ -42,7 +43,7 @@ class SapeStream(Stream, ABC):
         stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[StreamData]:
         func = getattr(
-            self._client.sape,
+            getattr(self._client, self.base_path),
             self.path(),
         )
         if args := self.args() is not None:

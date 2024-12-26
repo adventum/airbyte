@@ -4,10 +4,10 @@ import pendulum
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_protocol.models import SyncMode
 
-from .base_stream import SapeStream
+from .base_stream import SapeXMLStream
 
 
-class GetAvgPrices(SapeStream):
+class GetAvgPrices(SapeXMLStream):
     """
     get_avg_prices method
     Simplest stream
@@ -24,7 +24,7 @@ class GetAvgPrices(SapeStream):
         return None
 
 
-class GetProjectsMoneyStats(SapeStream):
+class GetProjectsMoneyStats(SapeXMLStream):
     primary_key = None
 
     def path(self) -> str:
@@ -48,3 +48,29 @@ class GetProjectsMoneyStats(SapeStream):
             record_date = pendulum.parse(record["date_logged"])
             if self._start_date <= record_date <= self._end_date:
                 yield record
+
+
+# class RtbGetStats(SapeXMLStream):
+#     base_path = "rtb"
+#
+#     def path(self) -> str:
+#         return "get_stats"
+#
+#     def stream_slices(
+#         self, *, sync_mode: SyncMode, cursor_field: Optional[List[str]] = None, stream_state: Optional[Mapping[str, Any]] = None
+#     ) -> Iterable[Optional[Mapping[str, Any]]]:
+#
+#
+#     def args(self) -> list[Any] | None:
+#         return [
+#             pendulum.DateTime(
+#                 year=self._start_date.year,
+#                 month=self._start_date.month,
+#                 day=self._start_date.day,
+#             ).int_timestamp,
+#             pendulum.DateTime(
+#                 year=self._end_date.year,
+#                 month=self._end_date.month,
+#                 day=self._end_date.day,
+#             ).int_timestamp,
+#         ]

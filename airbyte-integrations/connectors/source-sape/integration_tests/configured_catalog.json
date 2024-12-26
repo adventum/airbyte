@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "get_projects_money_stats",
+        "name": "extended_statistics",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh"]
       },

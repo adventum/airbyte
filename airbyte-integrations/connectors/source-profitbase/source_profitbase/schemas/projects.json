@@ -5,12 +5,24 @@
     "id": { "type": ["null", "integer"] },
     "title": { "type": ["null", "string"] },
     "type": { "type": ["null", "string"] },
+    "archiveState": { "type": ["null", "string"] },
     "region": { "type": ["null", "string"] },
     "district": { "type": ["null", "string"] },
     "locality": { "type": ["null", "string"] },
     "developer": { "type": ["null", "string"] },
+    "developer_brand": { "type": ["null", "string"] },
     "banks": { "type": ["null", "string"] },
     "currency": { "type": ["null", "string"] },
-    "isDeleted": { "type": ["null", "boolean"] }
+    "description": { "type": ["null", "object"] },
+    "youtubeVideos": { "type": ["null", "array"] },
+    "images": { "type": ["null", "array"] },
+    "salesOffice": { "type": ["null", "object"] },
+    "hasKindergarten": { "type": ["null", "boolean"] },
+    "hasSchool": { "type": ["null", "boolean"] },
+    "hasPlayground": { "type": ["null", "boolean"] },
+    "hasSportsGround": { "type": ["null", "boolean"] },
+    "hasSecurity": { "type": ["null", "boolean"] },
+    "parking": { "type": ["null", "string"] },
+    "location": { "type": ["null", "object"] }
   }
 }

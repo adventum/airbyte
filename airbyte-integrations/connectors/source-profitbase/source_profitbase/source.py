@@ -5,7 +5,7 @@
 
 import json
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Generator
 
 from .auth import get_authenticator, CredentialsCraftAuthenticator, ProfitbaseAuthenticator
@@ -59,13 +59,13 @@ def process_date(config: json) -> dict[str: any]:
             prepared_range["date_from"] = date_range.get("date_from")
 
         elif range_type == "last_n_days":
-            prepared_range["date_from"] = today - datetime.timedelta(days=date_range.get("last_days"))
+            prepared_range["date_from"] = today - timedelta(days=date_range.get("last_days"))
 
             if date_range["should_load_today"]:
                 prepared_range["date_to"] = today
 
             else:
-                prepared_range["date_to"] = today - datetime.timedelta(days=1)
+                prepared_range["date_to"] = today - timedelta(days=1)
         else:
             raise ValueError("Invalid date_range_type")
     return prepared_range

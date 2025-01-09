@@ -2,7 +2,11 @@ from xmlrpc import client
 
 
 class CookiesTransport(client.Transport):
-    """A Transport subclass that retains cookies over its lifetime."""
+    """
+    A Transport subclass that retains cookies over its lifetime.
+    Sape API requires saving all cookies from login method,
+    so this custom transport is required
+    """
 
     def __init__(self):
         super().__init__()
@@ -20,6 +24,3 @@ class CookiesTransport(client.Transport):
                 cookie = header.split(";", 1)[0]
                 self._cookies.append(cookie)
         return super().parse_response(response)
-
-
-SapeClient = client.ServerProxy("https://api.sape.ru/xmlrpc/", transport=CookiesTransport())

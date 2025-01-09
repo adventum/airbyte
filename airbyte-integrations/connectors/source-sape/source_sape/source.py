@@ -3,70 +3,77 @@
 #
 
 
-from abc import ABC
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Mapping
+from xmlrpc.client import ServerProxy
 
 import requests
+from airbyte_cdk import TokenAuthenticator
+
+from .xml_streams.client import CookiesTransport
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
-
-
-# Basic full refresh stream
-class SapeStream(HttpStream, ABC):
-    url_base = "http://api.sape.ru/xmlrpc/"
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        return None
-
-    def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> MutableMapping[str, Any]:
-        return {}
-
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield {}
-
-
-class Customers(SapeStream):
-    primary_key = "customer_id"
-
-    def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> str:
-        return "customers"
-
-
-# Basic incremental stream
-class IncrementalSapeStream(SapeStream, ABC):
-    state_checkpoint_interval = None
-
-    @property
-    def cursor_field(self) -> str:
-        return []
-
-    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
-        return {}
-
-
-class Employees(IncrementalSapeStream):
-    cursor_field = "start_date"
-
-    primary_key = "employee_id"
-
-    def path(self, **kwargs) -> str:
-        return "employees"
-
-    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-        raise NotImplementedError("Implement stream slices or delete this method!")
+from .xml_streams.streams import GetAvgPrices, GetProjectsMoneyStats
+from .xml_streams.base_stream import SapeXMLStream
+from .rest_streams.base_stream import SapeRestStream
+from .rest_streams.streams import ExtendedStatistics
+from .utils import parse_date_range
 
 
 # Source
 class SourceSape(AbstractSource):
-    def check_connection(self, logger, config) -> Tuple[bool, any]:
+    def check_connection(self, logger, config) -> tuple[bool, any]:
+        try:
+            self.get_auth(config)
+        except Exception as e:  # TODO: getting xml client may be added if those streams will ever be used
+            return False, str(e)
         return True, None
 
-    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
-        auth = TokenAuthenticator(token="api_key")  # Oauth2Authenticator is also available if you need oauth support
-        return [Customers(authenticator=auth), Employees(authenticator=auth)]
+    @staticmethod
+    def get_auth(config: Mapping[str, any]) -> TokenAuthenticator:
+        """Auth for rest stream"""
+        login = config["credentials"]["login"]
+        token = config["credentials"]["token"]
+        response = requests.post(
+            SapeRestStream.url_base + "login", json={"login": login, "token": token}
+        )
+        access_token = response.json()["accessToken"]
+        # No Bearer for Sape rest api
+        return TokenAuthenticator(token=access_token, auth_method="")
+
+    @staticmethod
+    def get_xml_client(config: Mapping[str, any]) -> ServerProxy:
+        login = config["credentials"]["login"]
+        token = config["credentials"]["token"]
+
+        client: ServerProxy = ServerProxy(
+            SapeXMLStream.url_base, transport=CookiesTransport()
+        )
+        # TODO: credentialsCraft auth not supported yet
+        client.sape.login(login, token)
+        return client
+
+    def streams(self, config: Mapping[str, Any]) -> list[Stream]:
+        # Create authenticated client for Sape XML session
+        client = self.get_xml_client(config)
+
+        # Get Sape Rest temporary api token
+        auth = self.get_auth(config)
+
+        # Parse datetime
+        time_from, time_to = parse_date_range(config)
+
+        # Create XML streams with auth from base one
+        get_avg_prices_stream = GetAvgPrices(client_=client)
+        get_projects_money_stats_stream = GetProjectsMoneyStats(
+            client_=client, start_date=time_from, end_date=time_to
+        )
+
+        # Create Rest streams
+        extended_statistics_stream = ExtendedStatistics(
+            authenticator=auth, start_date=time_from, end_date=time_to
+        )
+        return [
+            get_avg_prices_stream,
+            get_projects_money_stats_stream,
+            extended_statistics_stream,
+        ]

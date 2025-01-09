@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "eventDate": {
+      "type": ["string"]
+    },
+    "shows": {
+      "type": ["number"]
+    },
+    "clicks": {
+      "type": ["integer"]
+    },
+    "cpm": {
+      "type": ["number"]
+    },
+    "cpc": {
+      "type": ["number"]
+    },
+    "amount": {
+      "type": ["number"]
+    }
+  }
+}

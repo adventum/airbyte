@@ -3,6 +3,7 @@
   "type": "object",
   "properties": {
     "dealId": { "type": ["null", "string"] },
+    "action": { "type": ["null", "string"] },
     "actionKey": { "type": ["null", "string"] },
     "date": { "type": ["null", "string"] },
     "propertyStatus": { "type": ["null", "string"] },

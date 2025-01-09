@@ -21,6 +21,7 @@ from source_ozon.schemas.global_promo_report_data import GlobalPromoReport
 from source_ozon.schemas.report import ReportStatusResponse
 from source_ozon.schemas.search_promo_report_data import SearchPromoReport
 from source_ozon.schemas.sku_report_data import SkuReport
+from source_ozon.schemas.video_banner_report_data import VideoBannerReport
 from source_ozon.types import IsSuccess, Message
 from source_ozon.utils import chunks, pairwise
 
@@ -277,7 +278,7 @@ class CampaignsReportStream(Stream):
     @staticmethod
     def _get_campaign_schema(
             campaign: OzonCampaign,
-    ) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport | GlobalPromoReport] | None:
+    ) -> Type[SearchPromoReport | BannerReport | BrandShelfReport | SkuReport | GlobalPromoReport | VideoBannerReport] | None:
         if campaign.advObjectType == "SEARCH_PROMO":
             return SearchPromoReport
         elif campaign.advObjectType == "BANNER":
@@ -288,5 +289,7 @@ class CampaignsReportStream(Stream):
             return SkuReport
         elif campaign.advObjectType == "GLOBAL_PROMO":
             return GlobalPromoReport
+        elif campaign.advObjectType == "VIDEO_BANNER":
+            return VideoBannerReport
         else:
             print(f"Unknown Ozon campaign '{campaign.id}' type: '{campaign.advObjectType}'")

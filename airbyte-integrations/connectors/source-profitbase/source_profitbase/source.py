@@ -59,13 +59,13 @@ def process_date(config: json) -> dict[str: any]:
             prepared_range["date_from"] = date_range.get("date_from")
 
         elif range_type == "last_n_days":
-            prepared_range["date_from"] = today - timedelta(days=date_range.get("last_days"))
+            prepared_range["date_from"] = (today - timedelta(days=date_range.get("last_days"))).isoformat()
 
             if date_range["should_load_today"]:
-                prepared_range["date_to"] = today
+                prepared_range["date_to"] = today.isoformat()
 
             else:
-                prepared_range["date_to"] = today - timedelta(days=1)
+                prepared_range["date_to"] = (today - timedelta(days=1)).isoformat()
         else:
             raise ValueError("Invalid date_range_type")
     return prepared_range

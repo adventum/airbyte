@@ -46,5 +46,8 @@ class VideoBannerReport(BaseOzonReport):
         if not value:
             return
         if isinstance(value, str):
+            if value == "-" or value == "":
+                return float(0)
+
             value = value.replace(",", ".")
         return float(value)

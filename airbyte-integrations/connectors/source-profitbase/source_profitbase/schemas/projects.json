@@ -23,6 +23,7 @@
     "hasSportsGround": { "type": ["null", "boolean"] },
     "hasSecurity": { "type": ["null", "boolean"] },
     "parking": { "type": ["null", "string"] },
-    "location": { "type": ["null", "object"] }
+    "location": { "type": ["null", "object"] },
+    "agreementText": { "type": ["null", "string", "object"] }
   }
 }

@@ -3,6 +3,7 @@
   "type": "object",
   "properties": {
     "id": { "type": ["null", "integer"] },
+    "projectId": { "type": ["null", "integer"] },
     "projectName": { "type": ["null", "string"] },
     "title": { "type": ["null", "string"] },
     "type": { "type": ["null", "string"] },
@@ -34,6 +35,7 @@
     "hasBookedProperties": { "type": ["null", "boolean"] },
     "contractAddress": { "type": ["null", "string"] },
     "externalId": { "type": ["null", "string"] },
-    "showroom": { "type": ["null", "boolean"] }
+    "showroom": { "type": ["null", "boolean"] },
+    "commissioningDate": { "type": ["null", "string", "object"] }
   }
 }

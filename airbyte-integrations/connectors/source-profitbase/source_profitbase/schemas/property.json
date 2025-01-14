@@ -18,6 +18,7 @@
     "has_related_preset_with_layout": { "type": ["null", "boolean"] },
     "externalId": { "type": ["null", "string"] },
     "area": { "type": ["null", "object"] },
+    "disable_booking_button": { "type": ["null", "boolean"] },
     "paymentTypes": { "type": ["null", "array"] },
     "houseName": { "type": ["null", "string"] },
     "sectionName": { "type": ["null", "string"] },
@@ -42,10 +43,11 @@
     "crmContactId": { "type": ["null", "string"] },
     "countHistoryRecord": { "type": ["null", "integer"] },
     "countDeals": { "type": ["null", "integer"] },
+    "positionOnFloor": { "type": ["null", "integer"] },
+    "layoutCode": { "type": ["null", "string"] },
     "bookedUntilDate": { "type": ["null", "string"] },
     "bookedUntilTime": { "type": ["null", "string"] },
     "bookedAt": { "type": ["null", "string"] },
-    "soldAt": { "type": ["null", "string"] },
-    "queueReserveCount": { "type": ["null", "integer"] }
+    "soldAt": { "type": ["null", "string"] }
   }
 }

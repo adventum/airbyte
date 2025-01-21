@@ -6,7 +6,8 @@
 from abc import ABC
 from datetime import datetime
 import json
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+import time
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import requests
 from airbyte_cdk.sources import AbstractSource
@@ -179,6 +180,70 @@ class ChannelErrDaily(ChannelsDailyStatistics):
         return "channels/err"
 
 
+class PostsStatistic(TgStatStream):
+    primary_key = "viewsCount"
+
+    def __init__(
+        self,
+        access_token: str,
+        post_ids: list[Union[str, int]],
+        custom_constants: Optional[Mapping[str, Any]] = {},
+        client_name_constant: Optional[str] = "",
+        product_name_constant: Optional[str] = "",
+    ):
+        TgStatStream.__init__(
+            self,
+            access_token=access_token,
+            custom_constants=custom_constants,
+            client_name_constant=client_name_constant,
+            product_name_constant=product_name_constant,
+        )
+        self.post_ids = post_ids
+        self.access_token = access_token
+
+    def path(self, *args, **kwargs) -> str:
+        return "posts/stat"
+
+    def request_params(self, stream_slice: Mapping[str, Any], *args, **kwargs) -> MutableMapping[str, Any]:
+        post_id = stream_slice["post_id"]
+        return {"token": self.access_token, "postId": post_id}
+
+    def parse_response(
+        self,
+        response: requests.Response,
+        stream_slice: Mapping[str, Any] = None,
+        *args,
+        **kwargs,
+    ) -> Iterable[Mapping]:
+        yield response.json()["response"]
+
+    def stream_slices(self, **kwargs) -> Iterable[Mapping[str, Any]]:
+        for post_id in self.post_ids:
+            yield {"post_id": post_id}
+
+    def read(self, *args, **kwargs):
+        for stream_slice in self.stream_slices(**kwargs):
+            request_params = self.request_params(stream_slice=stream_slice)
+            response = requests.get(
+                url=self.url_base + self.path(), params=request_params
+            )
+            error: str = response.json().get("error")
+            if error and error.startswith("flood_control"):
+                print("Too many requests. Stream will sleep for 1 minute")
+                time.sleep(60)
+                response = requests.get(
+                    url=self.url_base + self.path(), params=request_params
+                )
+                if response.json().get("error"):
+                    print(
+                        "There was an attempt to wait for the TooManyRequests error to go away, "
+                        "but it was not successful, the stream will be stopped"
+                    )
+                    break
+
+            yield from self.parse_response(response, stream_slice=stream_slice, **kwargs)
+
+
 class SourceTgStat(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         # streams = self.streams(config)
@@ -238,4 +303,5 @@ class SourceTgStat(AbstractSource):
             ChannelErrDaily(**channels_statistics_streams_kwargs, **constants_kwargs),
             ChannelsAvgPostsReachDaily(**channels_statistics_streams_kwargs, **constants_kwargs),
             ChannelsViewsDaily(**channels_statistics_streams_kwargs, **constants_kwargs),
+            PostsStatistic(post_ids=prepared_config["post_ids"], access_token=prepared_config["access_token"], **constants_kwargs)
         ]

@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "viewsCount": {
+      "type": ["null", "string", "integer"]
+    },
+    "sharesCount": {
+      "type": ["null", "string", "integer"]
+    },
+    "commentsCount": {
+      "type": ["null", "number", "integer"]
+    },
+    "reactionsCount": {
+      "type": ["null", "string", "integer"]
+    },
+    "forwardsCount": {
+      "type": ["null", "string", "integer"]
+    },
+    "mentionsCount": {
+      "type": ["null", "number", "integer"]
+    },
+    "forwards": {
+      "type": ["null", "array"]
+    },
+    "mentions": {
+      "type": ["null", "array"]
+    },
+    "views": {
+      "type": ["null", "array"]
+    }
+  }
+}

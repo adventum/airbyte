@@ -155,20 +155,29 @@ connectionSpecification:
               description: Auto
               const: auto
               order: 0
+    post_ids:
+      title: Post IDs (PostsStatistic Stream)
+      description: IDs of posts from tgstat for which statistics need to be downloaded
+      type: array
+      examples:
+        - "array of (t.me/username/123, t.me/c/1256804429/1230 or ID post in TGStat)"
+      items:
+        type: string
+      order: 3
     client_name_constant:
       title: Client Name Constant
       description: Constant that will be used in record __clientName property
       type: string
       examples:
         - abcd
-      order: 3
+      order: 4
     product_name_constant:
       title: Product Name Constant
       description: Constant that will be used in record __productName property
       type: string
       examples:
         - abcd
-      order: 4
+      order: 5
     custom_constants_json:
       title: Custom JSON
       description: >-
@@ -177,4 +186,4 @@ connectionSpecification:
       type: string
       examples:
         - '{"abc": "123", "cde": "132"}'
-      order: 5
+      order: 6

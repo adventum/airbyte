@@ -215,7 +215,10 @@ class PostsStatistic(TgStatStream):
         *args,
         **kwargs,
     ) -> Iterable[Mapping]:
-        yield response.json()["response"]
+        response = response.json()["response"]
+        # Added post_link field to identify each object
+        response["post_link"] = stream_slice["post_id"]
+        yield response
 
     def stream_slices(self, **kwargs) -> Iterable[Mapping[str, Any]]:
         for post_id in self.post_ids:

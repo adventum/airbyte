@@ -28,6 +28,9 @@
     },
     "views": {
       "type": ["null", "array"]
+    },
+    "post_link": {
+      "type": ["null", "string"]
     }
   }
 }

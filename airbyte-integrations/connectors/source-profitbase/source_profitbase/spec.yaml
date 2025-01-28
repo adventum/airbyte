@@ -62,7 +62,6 @@ connectionSpecification:
       type: string
       title: Номер Аккаунта ProfitBase
       description: Для корректного подключения через API, нужен номер аккаунта, который можно найти в личном кабинете
-      airbyte_secret: true
       order: 1
     date_range:
       title: Период дат

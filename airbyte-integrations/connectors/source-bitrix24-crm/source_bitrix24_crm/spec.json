@@ -11,16 +11,24 @@
     "additionalProperties": false,
     "properties": {
       "webhook_endpoint": {
+        "order": 0,
         "title": "Webhook Endpoint URL",
         "type": "string",
-        "description": "Webhook Endpoint URL",
-        "order": 0
+        "description": "Webhook Endpoint URL"
+      },
+      "entity_type_id": {
+        "order": 1,
+        "title": "Идентификатор типа объекта",
+        "description": "Поле обязательно, если использовать стрим StageHistory. По умолчанию идет лид",
+        "enum": ["лид", "сделка", "отчет"],
+        "type": "string",
+        "always_show": true
       },
       "date_range": {
+        "order": 2,
         "title": "Временной диапазон",
         "description": "Выберите даты, за которые нужно получить данные",
         "type": "object",
-        "order": 4,
         "oneOf": [
           {
             "type": "object",

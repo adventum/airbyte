@@ -3,11 +3,11 @@
 #
 import functools
 import logging
-import queue
 from abc import ABC
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
+from airbyte_cdk import ResourceSchemaLoader, package_name_from_class
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams.http import HttpStream
 
@@ -67,7 +67,9 @@ class ObjectListStream(Bitrix24CrmStream, ABC):
             ).json()
             sample_data_keys = response_data["result"][0].keys()
         except Exception:
-            raise Exception("Schema sample request returns bad data")
+            raise Exception(
+                f"Schema sample request failed for stream {self.__class__.__name__}"
+            )
 
         for key in sample_data_keys:
             schema["properties"][key] = {"type": ["null", "string"]}
@@ -99,9 +101,10 @@ class Leads(ObjectListStream):
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs
     ) -> MutableMapping[str, Any]:
-        return super().request_params(next_page_token=next_page_token, **kwargs) | {
-            "select[]": self.fields
-        }
+        params = super().request_params(next_page_token=next_page_token, **kwargs)
+        extended_params = {"select[]": self.fields}
+        params.update(extended_params)
+        return params
 
 
 class Deals(ObjectListStream):
@@ -118,8 +121,62 @@ class Statuses(Bitrix24CrmStream):
     def request_params(self, *args, **kwargs) -> MutableMapping[str, Any]:
         return {}
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         return None
+
+
+class StageHistory(ObjectListStream):
+    primary_key = "ID"
+    results_field_name = "items"
+    entity_id_map = {"лид": 1, "сделка": 2, "отчет": 5}
+
+    def path(self, **kwargs) -> str:
+        return "crm.stagehistory.list"
+
+    def request_params(
+        self, next_page_token: Mapping[str, Any] = None, **kwargs
+    ) -> MutableMapping[str, Any]:
+        # Has another create time variable name
+        params = super().request_params(next_page_token=next_page_token, **kwargs)
+        extended_params = {
+            "entityTypeId": self.entity_id_map.get(
+                self.config.get("entity_type_id"), 1  # лид by default
+            ),
+            "filter[>=CREATED_TIME]": self.config["date_from"],
+            "filter[<=CREATED_TIME]": self.config["date_to"],
+        }
+        params.update(extended_params)
+        return params
+
+    @functools.lru_cache()
+    def get_json_schema(self) -> Mapping[str, Any]:
+        # Has a bit different data format with result/items
+        # TODO: duplicate, but no idea, how to make it simple and clean
+        schema = ResourceSchemaLoader(
+            package_name_from_class(self.__class__)
+        ).get_schema(self.name)
+        try:
+            response_data = requests.get(
+                self.url_base + self.path(), params=self.request_params()
+            ).json()
+            sample_data_keys = response_data["result"]["items"][0].keys()
+        except Exception:
+            raise Exception(
+                f"Schema sample request failed for stream {self.__class__.__name__}"
+            )
+
+        for key in sample_data_keys:
+            schema["properties"][key] = {"type": ["null", "string"]}
+
+        return schema
+
+    def parse_response(
+        self, response: requests.Response, **kwargs
+    ) -> Iterable[Mapping]:
+        # Again, different format with its result/items
+        yield from response.json()["result"]["items"]
 
 
 class SourceBitrix24Crm(AbstractSource):
@@ -151,6 +208,6 @@ class SourceBitrix24Crm(AbstractSource):
         return [
             Leads(config),
             Deals(config),
-            DealsStatuses(config),
-            LeadsStatuses(config),
+            Statuses(config),
+            StageHistory(config),
         ]

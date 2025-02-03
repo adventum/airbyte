@@ -56,8 +56,7 @@ class ObjectListStream(Bitrix24CrmStream, ABC):
         last_response_data = response.json()
         if last_response_data.get("next"):
             return {"next": last_response_data.get("next")}
-        else:
-            return None
+        return None
 
     @functools.lru_cache()
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -110,67 +109,17 @@ class Deals(ObjectListStream):
         return "crm.deal.list"
 
 
-class LeadsStatuses(Bitrix24CrmStream):
+class Statuses(Bitrix24CrmStream):
     primary_key = "STATUS_ID"
 
     def path(self, **kwargs) -> str:
         return "crm.status.list"
 
     def request_params(self, *args, **kwargs) -> MutableMapping[str, Any]:
-        return {"filter[ENTITY_ID]": "SOURCE"}
+        return {}
 
-
-class DealsStatuses(Bitrix24CrmStream):
-    primary_key = "ID"
-
-    def __init__(self, config: Mapping[str, Any]):
-        super().__init__(config)
-        self.deals_categories = queue.LifoQueue()
-        self.init_request_passed = False
-        self.current_category = None
-
-    def path(self, **kwargs) -> str:
-        if not self.init_request_passed:
-            return "crm.dealcategory.list"
-        return "crm.dealcategory.stage.list"
-
-    def next_page_token(
-        self, response: requests.Response, **kwargs
-    ) -> Optional[Mapping[str, Any]]:
-        if self.deals_categories.empty() and not self.init_request_passed:
-            self.deals_categories.put({"ID": "0", "NAME": "Default"})
-            for category in response.json()["result"]:
-                self.deals_categories.put(category)
-            self.init_request_passed = True
-        try:
-            self.current_category = self.deals_categories.get(block=False)
-            return self.current_category
-        except queue.Empty:
-            self.current_category = None
-            return None
-
-    def request_params(
-        self, next_page_token: Mapping[str, Any] = None, **kwargs
-    ) -> MutableMapping[str, Any]:
-        if not self.init_request_passed:
-            return {"select[]": ["ID", "NAME"]}
-        else:
-            return {"entityTypeId": self.current_category["ID"]}
-
-    def parse_response(
-        self, response: requests.Response, **kwargs
-    ) -> Iterable[Mapping]:
-        if not self.init_request_passed:
-            return []
-        stages = []
-        for category_stage in response.json()["result"]:
-            category_stage.update(
-                {
-                    "CATEGORY_ID": self.current_category["ID"],
-                    "CATEGORY_NAME": self.current_category["NAME"],
-                }
-            )
-        return stages
+    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+        return None
 
 
 class SourceBitrix24Crm(AbstractSource):

@@ -1,22 +1,23 @@
 #
 # Copyright (c) 2021 Airbyte, Inc., all rights reserved.
 #
-
-
-import json
-from abc import ABC
+import functools
+import logging
 import queue
+from abc import ABC
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
 from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
-from .utils import get_today_minus_n_days_date, get_yesterday_date
+
+from .utils import get_config_date_range
 
 
 # Basic full refresh stream
 class Bitrix24CrmStream(HttpStream, ABC):
+    """Base stream for bitrix24"""
+
     def __init__(self, config: Mapping[str, Any]):
         super().__init__(authenticator=None)
         self.config = config
@@ -38,32 +39,15 @@ class Bitrix24CrmStream(HttpStream, ABC):
             params["start"] = next_page_token["next"]
         return params
 
-    def add_constants_to_record(self, record):
-        constants = {
-            "__productName": self.config["product_name"],
-            "__clientName": self.config["client_name"],
-        }
-        constants.update(json.loads(self.config.get("custom_json", "{}")))
-        record.update(constants)
-        return record
-
     def parse_response(
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
-        return map(self.add_constants_to_record, response.json()["result"])
-
-    def get_json_schema(self) -> Mapping[str, Any]:
-        schema = super().get_json_schema()
-        extra_properties = ["__productName", "__clientName"]
-        custom_keys = json.loads(self.config.get("custom_json", "{}")).keys()
-        extra_properties.extend(custom_keys)
-        for key in extra_properties:
-            schema["properties"][key] = {"type": ["null", "string"]}
-
-        return schema
+        yield from response.json()["result"]
 
 
-class ObjectListStream(Bitrix24CrmStream):
+class ObjectListStream(Bitrix24CrmStream, ABC):
+    """Base for bitrix24 object list endpoints"""
+
     primary_key = "ID"
 
     def next_page_token(
@@ -75,15 +59,15 @@ class ObjectListStream(Bitrix24CrmStream):
         else:
             return None
 
+    @functools.lru_cache()
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = super().get_json_schema()
-        response_data = []
         try:
             response_data = requests.get(
                 self.url_base + self.path(), params=self.request_params()
             ).json()
             sample_data_keys = response_data["result"][0].keys()
-        except:
+        except Exception:
             raise Exception("Schema sample request returns bad data")
 
         for key in sample_data_keys:
@@ -96,21 +80,34 @@ class ObjectListStream(Bitrix24CrmStream):
     ) -> MutableMapping[str, Any]:
         params = super().request_params(next_page_token=next_page_token, **kwargs)
         extended_params = {
-            "filter[>DATE_CREATE]": self.config["date_from"],
-            "filter[<DATE_CREATE]": self.config["date_to"],
+            "filter[>=DATE_CREATE]": self.config["date_from"],
+            "filter[<=DATE_CREATE]": self.config["date_to"],
         }
         params.update(extended_params)
         return params
 
 
 class Leads(ObjectListStream):
+    @functools.cached_property
+    def fields(self) -> list[str]:
+        """List of fields to request in response params select[]"""
+        request = requests.get(self.url_base + "crm.lead.fields")
+        return list(request.json()["result"].keys())
+
     def path(self, **kwargs) -> str:
-        return "crm.lead.list.json"
+        return "crm.lead.list"
+
+    def request_params(
+        self, next_page_token: Mapping[str, Any] = None, **kwargs
+    ) -> MutableMapping[str, Any]:
+        return super().request_params(next_page_token=next_page_token, **kwargs) | {
+            "select[]": self.fields
+        }
 
 
 class Deals(ObjectListStream):
     def path(self, **kwargs) -> str:
-        return "crm.deal.list.json"
+        return "crm.deal.list"
 
 
 class LeadsStatuses(Bitrix24CrmStream):
@@ -118,9 +115,6 @@ class LeadsStatuses(Bitrix24CrmStream):
 
     def path(self, **kwargs) -> str:
         return "crm.status.list"
-
-    def next_page_token(self, *args, **kwargs) -> Optional[Mapping[str, Any]]:
-        return None
 
     def request_params(self, *args, **kwargs) -> MutableMapping[str, Any]:
         return {"filter[ENTITY_ID]": "SOURCE"}
@@ -158,12 +152,10 @@ class DealsStatuses(Bitrix24CrmStream):
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs
     ) -> MutableMapping[str, Any]:
-        params = {}
         if not self.init_request_passed:
-            params = {"select[]": ["ID", "NAME"]}
+            return {"select[]": ["ID", "NAME"]}
         else:
-            params = {"entityTypeId": self.current_category["ID"]}
-        return params
+            return {"entityTypeId": self.current_category["ID"]}
 
     def parse_response(
         self, response: requests.Response, **kwargs
@@ -178,12 +170,13 @@ class DealsStatuses(Bitrix24CrmStream):
                     "CATEGORY_NAME": self.current_category["NAME"],
                 }
             )
-            stages.append(self.add_constants_to_record(category_stage))
         return stages
 
 
 class SourceBitrix24Crm(AbstractSource):
-    def check_connection(self, logger, config) -> Tuple[bool, any]:
+    def check_connection(
+        self, logger: logging.Logger, config: Mapping[str, Any]
+    ) -> Tuple[bool, Optional[Any]]:
         leads_statuses_stream = self.streams(config)[-1]
         try:
             stream_params = leads_statuses_stream.request_params()
@@ -198,21 +191,17 @@ class SourceBitrix24Crm(AbstractSource):
         except Exception as e:
             return False, e
 
-    def transform_config(self, user_config) -> MutableMapping[str, Any]:
-        config = user_config.copy()
-        if not config.get("start_date") and not config.get("end_date"):
-            config["date_from"] = (
-                get_today_minus_n_days_date(config["last_days"])
-                if config.get("last_days", 0) > 0
-                else get_today_minus_n_days_date(30)
-            )
-            config["date_to"] = get_yesterday_date()
-        return config
-
-    def streams(self, config: Mapping[str, Any]) -> List[Stream]:
+    def streams(self, config: Mapping[str, Any]) -> List[Bitrix24CrmStream]:
+        start_date, end_date = get_config_date_range(config)
+        config["date_from"] = start_date.replace(hour=0, minute=0, second=0).strftime(
+            "%Y/%m/%dT%H:%M:%S"
+        )
+        config["date_to"] = end_date.replace(hour=23, minute=59, second=59).strftime(
+            "%Y/%m/%dT%H:%M:%S"
+        )
         return [
-            Leads(config=self.transform_config(config)),
-            Deals(config=self.transform_config(config)),
-            DealsStatuses(config=self.transform_config(config)),
-            LeadsStatuses(config=self.transform_config(config)),
+            Leads(config),
+            Deals(config),
+            DealsStatuses(config),
+            LeadsStatuses(config),
         ]

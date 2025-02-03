@@ -18,6 +18,8 @@ from .utils import get_config_date_range
 class Bitrix24CrmStream(HttpStream, ABC):
     """Base stream for bitrix24"""
 
+    primary_key = "ID"
+
     def __init__(self, config: Mapping[str, Any]):
         super().__init__(authenticator=None)
         self.config = config
@@ -44,20 +46,6 @@ class Bitrix24CrmStream(HttpStream, ABC):
     ) -> Iterable[Mapping]:
         yield from response.json()["result"]
 
-
-class ObjectListStream(Bitrix24CrmStream, ABC):
-    """Base for bitrix24 object list endpoints"""
-
-    primary_key = "ID"
-
-    def next_page_token(
-        self, response: requests.Response
-    ) -> Optional[Mapping[str, Any]]:
-        last_response_data = response.json()
-        if last_response_data.get("next"):
-            return {"next": last_response_data.get("next")}
-        return None
-
     @functools.lru_cache()
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = super().get_json_schema()
@@ -75,6 +63,18 @@ class ObjectListStream(Bitrix24CrmStream, ABC):
             schema["properties"][key] = {"type": ["null", "string"]}
 
         return schema
+
+
+class ObjectListStream(Bitrix24CrmStream, ABC):
+    """Base for bitrix24 object list endpoints"""
+
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
+        last_response_data = response.json()
+        if last_response_data.get("next"):
+            return {"next": last_response_data.get("next")}
+        return None
 
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs
@@ -142,7 +142,8 @@ class StageHistory(ObjectListStream):
         params = super().request_params(next_page_token=next_page_token, **kwargs)
         extended_params = {
             "entityTypeId": self.entity_id_map.get(
-                self.config.get("entity_type_id"), 1  # лид by default
+                self.config.get("entity_type_id"),
+                1,  # лид by default
             ),
             "filter[>=CREATED_TIME]": self.config["date_from"],
             "filter[<=CREATED_TIME]": self.config["date_to"],
@@ -179,6 +180,16 @@ class StageHistory(ObjectListStream):
         yield from response.json()["result"]["items"]
 
 
+class ListsGet(ObjectListStream):
+    primary_key = "ID"
+
+    def path(self, **kwargs) -> str:
+        return "lists.get"
+
+    def request_params(self, **kwargs) -> MutableMapping[str, Any]:
+        return {"IBLOCK_TYPE_ID": self.config.get("ib_block_type_id", "lists")}
+
+
 class SourceBitrix24Crm(AbstractSource):
     def check_connection(
         self, logger: logging.Logger, config: Mapping[str, Any]
@@ -210,4 +221,5 @@ class SourceBitrix24Crm(AbstractSource):
             Deals(config),
             Statuses(config),
             StageHistory(config),
+            ListsGet(config),
         ]

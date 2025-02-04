@@ -25,17 +25,8 @@
         "type": "string",
         "always_show": true
       },
-      "iblock_type_id": {
-        "order": 2,
-        "title": "Идентификатор типа инфоблока",
-        "description": "lists - тип инфоблока списка\nbitrix_processes - тип инфоблока процессов\nlists_socnet - тип инфоблока списков групп. Документация: https://apidocs.bitrix24.ru/api-reference/lists/lists/lists-get.html",
-        "enum": ["lists", "bitrix_processes", "lists_socnet"],
-        "default": ["lists"],
-        "type": "string",
-        "always_show": true
-      },
       "date_range": {
-        "order": 3,
+        "order": 2,
         "title": "Временной диапазон",
         "description": "Выберите даты, за которые нужно получить данные",
         "type": "object",

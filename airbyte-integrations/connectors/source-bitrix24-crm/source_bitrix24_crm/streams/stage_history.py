@@ -2,10 +2,10 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 import requests
 
-from .base import ObjectListStream
+from .base import Bitrix24CrmStream
 
 
-class StageHistory(ObjectListStream):
+class StageHistory(Bitrix24CrmStream):
     primary_key = "ID"
     entity_id_map = {"лид": 1, "сделка": 2, "отчет": 5}
 

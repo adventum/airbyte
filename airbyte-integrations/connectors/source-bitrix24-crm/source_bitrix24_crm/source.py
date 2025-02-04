@@ -12,6 +12,7 @@ from .streams.lists_element import ListsElement
 from .streams.statuses import Statuses
 from .streams.stage_history import StageHistory
 from .streams.users import Users
+from .streams.contacts import Contacts
 
 
 class SourceBitrix24Crm(AbstractSource):
@@ -45,4 +46,5 @@ class SourceBitrix24Crm(AbstractSource):
             StageHistory(config),
             ListsElement(config),
             Users(config),
+            Contacts(config),
         ]

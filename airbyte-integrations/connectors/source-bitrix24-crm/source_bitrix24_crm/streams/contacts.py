@@ -2,17 +2,15 @@ import functools
 from typing import Mapping, Any, MutableMapping
 
 import requests
+
 from .base import Bitrix24CrmStream
 
 
-class Deals(Bitrix24CrmStream):
-    def path(self, **kwargs) -> str:
-        return "crm.deal.list"
-
+class Contacts(Bitrix24CrmStream):
     @functools.cached_property
     def fields(self) -> list[str]:
         """List of fields to request in response params select[]"""
-        request = requests.get(self.url_base + "crm.deal.fields")
+        request = requests.get(self.url_base + "crm.contact.fields")
         return list(request.json()["result"].keys())
 
     @functools.lru_cache()
@@ -22,6 +20,9 @@ class Deals(Bitrix24CrmStream):
             schema["properties"][key] = {"type": ["null", "string"]}
 
         return schema
+
+    def path(self, **kwargs) -> str:
+        return "crm.contact.list"
 
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs

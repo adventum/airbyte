@@ -24,19 +24,6 @@ class Bitrix24CrmStream(HttpStream, ABC):
     def url_base(self) -> str:
         return self.config["webhook_endpoint"]
 
-    def next_page_token(
-        self, response: requests.Response
-    ) -> Optional[Mapping[str, Any]]:
-        return None
-
-    def request_params(
-        self, next_page_token: Mapping[str, Any] = None, **kwargs
-    ) -> MutableMapping[str, Any]:
-        params = {"select[]": ["*", "UF_*"]}
-        if next_page_token:
-            params["start"] = next_page_token["next"]
-        return params
-
     def parse_response(
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
@@ -49,24 +36,20 @@ class Bitrix24CrmStream(HttpStream, ABC):
         try:
             test_stream = self.__class__(self.config)
             stream_slices = test_stream.stream_slices(sync_mode=SyncMode.full_refresh)
-            record = test_stream.read_records(
+            record_iterator = test_stream.read_records(
                 sync_mode=SyncMode.full_refresh, stream_slice=next(stream_slices)
             )
-            record = next(record)
+            record = next(record_iterator)
             sample_data_keys = record.keys()
-        except Exception:
+        except Exception as e:
             raise Exception(
-                f"Schema sample request failed for stream {self.__class__.__name__}"
+                f"Schema sample request failed for stream {self.__class__.__name__}. Reason: {e}"
             )
 
         for key in sample_data_keys:
             schema["properties"][key] = {"type": ["null", "string"]}
 
         return schema
-
-
-class ObjectListStream(Bitrix24CrmStream, ABC):
-    """Base for bitrix24 object list endpoints"""
 
     def next_page_token(
         self, response: requests.Response
@@ -79,7 +62,9 @@ class ObjectListStream(Bitrix24CrmStream, ABC):
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs
     ) -> MutableMapping[str, Any]:
-        params = super().request_params(next_page_token)
+        params = {"select[]": ["*", "UF_*"]}
+        if next_page_token:
+            params["start"] = next_page_token["next"]
         extended_params = {
             "filter[>=DATE_CREATE]": self.config["date_from"],
             "filter[<=DATE_CREATE]": self.config["date_to"],

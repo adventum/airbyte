@@ -3,10 +3,10 @@ from typing import Any, Optional, Mapping, List, Iterable, MutableMapping
 import requests
 from airbyte_protocol.models import SyncMode
 
-from .base import ObjectListStream
+from .base import Bitrix24CrmStream
 
 
-class ListsElement(ObjectListStream):
+class ListsElement(Bitrix24CrmStream):
     primary_key = "ID"
 
     def path(self, **kwargs) -> str:

@@ -3,18 +3,26 @@ from typing import Mapping, Any, MutableMapping
 
 import requests
 
-from .base import ObjectListStream
+from .base import Bitrix24CrmStream
 
 
-class Leads(ObjectListStream):
+class Leads(Bitrix24CrmStream):
+    def path(self, **kwargs) -> str:
+        return "crm.lead.list"
+
     @functools.cached_property
     def fields(self) -> list[str]:
         """List of fields to request in response params select[]"""
         request = requests.get(self.url_base + "crm.lead.fields")
         return list(request.json()["result"].keys())
 
-    def path(self, **kwargs) -> str:
-        return "crm.lead.list"
+    @functools.lru_cache()
+    def get_json_schema(self) -> Mapping[str, Any]:
+        schema = super().get_json_schema()
+        for key in self.fields:
+            schema["properties"][key] = {"type": ["null", "string"]}
+
+        return schema
 
     def request_params(
         self, next_page_token: Mapping[str, Any] = None, **kwargs

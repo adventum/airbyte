@@ -1,8 +1,6 @@
-import functools
 from typing import Any, Iterable, Mapping, MutableMapping
 
 import requests
-from airbyte_cdk import ResourceSchemaLoader, package_name_from_class
 
 from .base import ObjectListStream
 
@@ -31,28 +29,6 @@ class StageHistory(ObjectListStream):
         }
         params.update(extended_params)
         return params
-
-    @functools.lru_cache()
-    def get_json_schema(self) -> Mapping[str, Any]:
-        # Has a bit different data format with result/items
-        # TODO: duplicate, but no idea, how to make it simple and clean
-        schema = ResourceSchemaLoader(
-            package_name_from_class(self.__class__)
-        ).get_schema(self.name)
-        try:
-            response_data = requests.get(
-                self.url_base + self.path(), params=self.request_params(None)
-            ).json()
-            sample_data_keys = response_data["result"]["items"][0].keys()
-        except Exception:
-            raise Exception(
-                f"Schema sample request failed for stream {self.__class__.__name__}"
-            )
-
-        for key in sample_data_keys:
-            schema["properties"][key] = {"type": ["null", "string"]}
-
-        return schema
 
     def parse_response(
         self, response: requests.Response, **kwargs

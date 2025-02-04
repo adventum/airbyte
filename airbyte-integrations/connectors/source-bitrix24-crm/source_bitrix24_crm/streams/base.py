@@ -7,6 +7,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 import requests
 from airbyte_cdk.sources.streams.http import HttpStream
+from airbyte_protocol.models import SyncMode
 
 
 # Basic full refresh stream
@@ -44,17 +45,19 @@ class Bitrix24CrmStream(HttpStream, ABC):
     @functools.lru_cache()
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = super().get_json_schema()
+        # Create stream copy (avoid accidentally ruining generators of this stream)
         try:
-            response_data = requests.get(
-                self.url_base + self.path(), params=self.request_params(None)
-            ).json()
-            sample_data_keys = response_data["result"][0].keys()
-        except Exception as e:
-            raise e
-        # except Exception:
-        #     raise Exception(
-        #         f"Schema sample request failed for stream {self.__class__.__name__}"
-        #     )
+            test_stream = self.__class__(self.config)
+            stream_slices = test_stream.stream_slices(sync_mode=SyncMode.full_refresh)
+            record = test_stream.read_records(
+                sync_mode=SyncMode.full_refresh, stream_slice=next(stream_slices)
+            )
+            record = next(record)
+            sample_data_keys = record.keys()
+        except Exception:
+            raise Exception(
+                f"Schema sample request failed for stream {self.__class__.__name__}"
+            )
 
         for key in sample_data_keys:
             schema["properties"][key] = {"type": ["null", "string"]}

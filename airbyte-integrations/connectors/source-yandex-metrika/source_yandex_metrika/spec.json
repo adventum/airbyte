@@ -292,7 +292,6 @@
         "order" : 3,
         "always_show" : true,
         "group" : "streams_config",
-        "maxItems" : 1,
         "items" : {
           "type" : "object",
           "additionalProperties" : false,

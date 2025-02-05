@@ -97,7 +97,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         )
         if any(field_manager.field_lookup(field) is None for field in self.fields):
             raise ConfigInvalidError(
-                f'Сырые отчёты - источник {log_source} не может содержать поле "{f}". См. доступные поля: "https://yandex.ru/dev/metrika/doc/api2/logs/fields/visits.html"'
+                f'Сырые отчёты - источник {log_source} имеет недопустимое поле. См. доступные поля: "https://yandex.ru/dev/metrika/ru/logs/fields/visits"'
             )
 
         if any(f not in self.fields for f in field_manager.get_required_fields_names()):

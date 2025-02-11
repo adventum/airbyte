@@ -1,73 +1,93 @@
+import json
+import random
 import requests
 
 from abc import ABC
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from datetime import datetime
+from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
-from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 
 
 class UisStream(HttpStream, ABC):
-    """
-    TODO remove this comment
 
-    This class represents a stream output by the connector.
-    This is an abstract base class meant to contain all the common functionality at the API level e.g: the API base URL, pagination strategy,
-    parsing responses etc..
+    url_base: str = "https://dataapi.uiscom.ru/v2.0"
+    http_method: str = "POST"
+    api_endpoint: str | None = None
 
-    Each stream should extend this class (or another abstract subclass of it) to specify behavior unique to that stream.
+    def __init__(
+        self,
+        access_token: str,
+        date_from: datetime,
+        date_to: datetime,
+        api_endpoint: str | None = None,
+        stream_fields: list[str] | None = None,
+    ):
+        super().__init__()
+        self.access_token = access_token
+        self.date_from = date_from
+        self.date_to = date_to
+        self.random_request_id = self.create_random_request_id()
+        self.api_endpoint = api_endpoint
+        self.stream_fields = stream_fields
 
-    Typically for REST APIs each stream corresponds to a resource in the API. For example if the API
-    contains the endpoints
-        - GET v1/customers
-        - GET v1/employees
+    @staticmethod
+    def create_random_request_id():
+        request_id = ''.join(str(random.randint(0, 9)) for _ in range(32))
+        return request_id
 
-    then you should have three classes:
-    `class UisStream(HttpStream, ABC)` which is the current class
-    `class Customers(UisStream)` contains behavior to pull data for customers using v1/customers
-    `class Employees(UisStream)` contains behavior to pull data for employees using v1/employees
-
-    If some streams implement incremental sync, it is typical to create another class
-    `class IncrementalUisStream((UisStream), ABC)` then have concrete stream implementations extend it. An example
-    is provided below.
-
-    See the reference docs for the full list of configurable options.
-    """
-
-    # TODO: Fill in the url base. Required.
-    url_base = "https://example-api.com/v1/"
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        """
-        TODO: Override this method to define a pagination strategy. If you will not be using pagination, no action is required - just return None.
-
-        This method should return a Mapping (e.g: dict) containing whatever information required to make paginated requests. This dict is passed
-        to most other methods in this class to help you form headers, request bodies, query params, etc..
-
-        For example, if the API accepts a 'page' parameter to determine which page of the result to return, and a response from the API contains a
-        'page' number, then this method should probably return a dict {'page': response.json()['page'] + 1} to increment the page count by 1.
-        The request_params method should then read the input next_page_token and set the 'page' param to next_page_token['page'].
-
-        :param response: the most recent response from the API
-        :return If there is another page in the result, a mapping (e.g: dict) containing information needed to query the next page in the response.
-                If there are no more pages in the result, return None.
-        """
-        return None
-
-    def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+    def request_body_json(
+        self, stream_state: Mapping[str, any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         """
-        TODO: Override this method to define any query parameters to be set. Remove this method if you don't need to define request params.
-        Usually contains common params e.g. pagination size etc.
+        Override this method in a child class
+        if a different request body is needed in the new stream
         """
-        return {}
+        body: dict[str, Any] = {
+            "jsonrpc": "2.0",
+            "id": self.random_request_id,
+            "method": self.api_endpoint,
+            "params": {
+                "access_token": self.access_token,
+                "date_from": self.date_from,
+                "date_till": self.date_to,
+                "fields": self.stream_fields,
+            }
+        }
+        return body
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """
-        TODO: Override this method to define how a response is parsed.
-        :return an iterable containing each record in the response
+        returns an iterable containing each record in the response
         """
-        yield {}
+        try:
+            data = json.loads(response.text)
+            if "error" in data:
+                raise Exception(
+                    f"Status code 200, but there are an API ERROR: {data['error']}. "
+                    f"List of UIS errors: "
+                    f"https://www.uiscom.ru/academiya/spravochnyj-centr/dokumentatsiya-api/data_api/"
+                )
+            else:
+                result = data.get("result").get("data")
+                for record in result:
+                    if not record:
+                        continue
+                    else:
+                        yield record
+
+        except json.JSONDecodeError as e:
+            print("JSON parsing error:", e)
+
+    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+        return None
+
+    def request_headers(
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> Mapping[str, Any]:
+        return {
+            "Content-Type": "application/json; charset=UTF-8"
+        }

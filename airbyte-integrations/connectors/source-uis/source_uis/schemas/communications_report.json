@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["null", "integer"] },
+    "communication_type": { "type": ["null", "string"], "enum": ["chat", "call", "goal", "offline_message"] },
+    "communication_number": { "type": ["null", "number"] },
+    "communication_page_url": { "type": ["null", "string"] },
+    "date_time": { "type": ["null", "string"], "format": "date-time" },
+    "ua_client_id": { "type": ["null", "string"] },
+    "ym_client_id": { "type": ["null", "string"] },
+    "sale_date": { "type": ["null", "string"], "format": "date-time" },
+    "sale_cost": { "type": ["null", "number"] },
+    "search_query": { "type": ["null", "string"] },
+    "search_engine": { "type": ["null", "string"] },
+    "referrer_domain": { "type": ["null", "string"] },
+    "referrer": { "type": ["null", "string"] },
+    "entrance_page": { "type": ["null", "string"] },
+    "gclid": { "type": ["null", "string"] },
+    "yclid": { "type": ["null", "string"] },
+    "ymclid": { "type": ["null", "string"] },
+    "ef_id": { "type": ["null", "string"] },
+    "channel": { "type": ["null", "string"], "enum": ["display", "paid", "affiliate", "messenger", "social", "email", "organic", "internal", "recommendation", "cashed", "referral", "direct"] },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tag_id": { "type": ["null", "number"] },
+          "tag_name": { "type": ["null", "string"] },
+          "tag_type": { "type": ["null", "string"], "enum": ["auto", "manual"] },
+          "tag_change_time": { "type": ["null", "string"], "format": "date-time" },
+          "tag_user_id": { "type": ["null", "number"] },
+          "tag_user_login": { "type": ["null", "string"] },
+          "tag_employee_id": { "type": ["null", "number"] },
+          "tag_employee_full": { "type": ["null", "string"] }
+        }
+      }
+    },
+    "site_id": { "type": ["null", "number"] },
+    "site_domain_name": { "type": ["null", "string"] },
+    "campaign_id": { "type": ["null", "number"] },
+    "campaign_name": { "type": ["null", "string"] },
+    "visit_other_campaign": { "type": ["null", "boolean"] },
+    "visitor_id": { "type": ["null", "number"] },
+    "person_id": { "type": ["null", "number"] },
+    "visitor_type": { "type": ["null", "string"], "enum": ["Новый", "Вернувшийся", "Не заполнен"] },
+    "visitor_session_id": { "type": ["null", "number"] },
+    "visits_count": { "type": ["null", "number"] },
+    "visitor_first_campaign_id": { "type": ["null", "number"] },
+    "visitor_first_campaign_name": { "type": ["null", "string"] },
+    "visitor_city": { "type": ["null", "string"] },
+    "visitor_region": { "type": ["null", "string"] },
+    "visitor_country": { "type": ["null", "string"] },
+    "visitor_device": { "type": ["null", "string"], "enum": ["desktop", "mobile", "tablet", "other"] },
+    "visitor_custom_properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "property_name": { "type": ["null", "string"] },
+          "property_value": { "type": ["null", "string"] }
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "segment_id": { "type": ["null", "number"] },
+          "segment_name": { "type": ["null", "string"] }
+        }
+      }
+    },
+    "utm_source": { "type": ["null", "string"] },
+    "utm_medium": { "type": ["null", "string"] },
+    "utm_term": { "type": ["null", "string"] },
+    "utm_content": { "type": ["null", "string"] },
+    "utm_campaign": { "type": ["null", "string"] },
+    "openstat_ad": { "type": ["null", "string"] },
+    "openstat_campaign": { "type": ["null", "string"] },
+    "openstat_service": { "type": ["null", "string"] },
+    "openstat_source": { "type": ["null", "string"] },
+    "eq_utm_source": { "type": ["null", "string"] },
+    "eq_utm_medium": { "type": ["null", "string"] },
+    "eq_utm_term": { "type": ["null", "string"] },
+    "eq_utm_content": { "type": ["null", "string"] },
+    "eq_utm_campaign": { "type": ["null", "string"] },
+    "eq_utm_referrer": { "type": ["null", "string"] },
+    "eq_utm_expid": { "type": ["null", "string"] },
+    "attributes": {
+      "type": "array",
+      "items": {}
+    },
+    "source_id": { "type": ["null", "number"] },
+    "source_name": { "type": ["null", "string"] },
+    "source_new": { "type": ["null", "string"] },
+    "channel_new": { "type": ["null", "string"] },
+    "channel_code": { "type": ["null", "string"] }
+  }
+}

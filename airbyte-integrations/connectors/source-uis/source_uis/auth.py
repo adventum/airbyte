@@ -4,39 +4,6 @@ import requests
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 
 
-# class UISAuthenticator(TokenAuthenticator):
-#     """
-#     Builds auth header, based on the token provided.
-#     The token is attached to each request via the `auth_header` header.
-#     """
-#
-#     @property
-#     def auth_header(self) -> str:
-#         return self._auth_header
-#
-#     def get_auth_header(self) -> Mapping[str, Any]:
-#         headers = super().get_auth_header()
-#         if self.additional_headers:
-#             headers.update(self.additional_headers)
-#         return headers
-#
-#     @property
-#     def token(self) -> str:
-#         return f"{self._auth_method} {self._token}"
-#
-#     def __init__(
-#         self,
-#         token: str,
-#         auth_method: str = "Bearer",
-#         auth_header: str = "Authorization",
-#         additional_headers: dict = {},
-#     ):
-#         self._auth_header = auth_header
-#         self._auth_method = auth_method
-#         self._token = token
-#         self.additional_headers = additional_headers
-
-
 class CredentialsCraftAuthenticator(TokenAuthenticator):
     def __init__(
         self,

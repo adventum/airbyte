@@ -195,6 +195,42 @@
             }
           }
         ]
+      },
+      "communication_streams": {
+        "title" : "Стрим Communication",
+        "description": "Стрим get.communications (отличается от get.communications_report)",
+        "type" : "array",
+        "order" : 2,
+        "always_show" : true,
+        "group" : "streams_config",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : false,
+          "required" : [
+            "fields",
+            "report_id"
+          ],
+          "properties" : {
+            "report_id" : {
+              "type" : "integer",
+              "title" : "ID отчета",
+              "always_show" : true,
+              "description": "В системе UIS есть разные отчеты, например: Обращения, Лиды, Посещения. В это поле нужно ввести ID нужного вам отчета",
+              "order" : 0
+            },
+            "fields" : {
+              "title" : "Поля данных",
+              "description" : "Укажите список полей, требуемые к выгрузке, в соответствии с типом (например: communication, leads ...) отчета. Примеры полей: site_domain_name, site_name ...",
+              "default" : [],
+              "type" : "array",
+              "always_show" : true,
+              "items" : {
+                "type" : "string"
+              },
+              "order" : 1
+            }
+          }
+        }
       }
     }
   }

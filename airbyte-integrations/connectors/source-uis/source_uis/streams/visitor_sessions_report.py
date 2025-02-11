@@ -1,20 +1,21 @@
-from .base_stream import UisStream
+from datetime import datetime
 
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from .stream_fields import visitor_sessions_report
+from .base_stream import UisStream
 
 
 class VisitorSessionsReport(UisStream):
-    """
-    TODO: Change class name to match the table/data source this stream corresponds to.
-    """
-    cursor_field = "start_date"
+    primary_key = "id"
+    api_endpoint = "get.visitor_sessions_report"
 
-    primary_key = "employee_id"
+    def __init__(
+        self,
+        access_token: str,
+        date_from: datetime,
+        date_to: datetime,
+    ):
+        super().__init__(access_token, date_from, date_to, self.api_endpoint, visitor_sessions_report)
 
-    def path(self, **kwargs) -> str:
+    def path(self, *args, **kwargs) -> str:
+        return ""
 
-        return "employees"
-
-    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-
-        raise NotImplementedError("Implement stream slices or delete this method!")

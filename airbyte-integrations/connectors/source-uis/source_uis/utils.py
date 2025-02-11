@@ -1,39 +1,35 @@
-import pendulum
+import random
 
-from typing import Mapping
+from datetime import datetime, timedelta
+from typing import Any, Mapping
 
 
-def get_config_date_range(
-    config: Mapping[str, any],
-) -> tuple[pendulum.DateTime, pendulum.DateTime]:
-    date_range: Mapping[str, any] = config.get("date_range", {})
+def transform_config_date_range(config: Mapping[str, Any]) -> Mapping[str, Any]:
+    date_range: Mapping[str, Any] = config.get("date_range", {})
     date_range_type: str = date_range.get("date_range_type")
-
-    time_from: pendulum.DateTime | None = None
-    time_to: pendulum.DateTime | None = None
-
-    # Meaning is date but storing time since later will use time
-    today_date: pendulum.datetime = pendulum.now().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    today_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    from_user_date_format: str = "%Y-%m-%d"
+    date_format: str = "%Y-%m-%d %H:%M:%S"
 
     if date_range_type == "custom_date":
-        time_from = pendulum.parse(date_range["date_from"])
-        time_to = pendulum.parse(date_range["date_to"])
+        date_from = datetime.strptime(date_range.get("date_from"), from_user_date_format)
+        date_to = datetime.strptime(date_range.get("date_to"), from_user_date_format)
     elif date_range_type == "from_start_date_to_today":
-        time_from = pendulum.parse(date_range["date_from"])
-        if date_range.get("should_load_today"):
-            time_to = today_date
-        else:
-            time_to = today_date.subtract(days=1)
+        date_from = datetime.strptime(date_range.get("date_from"), from_user_date_format)
+        date_to = today_date if date_range.get("should_load_today") else today_date - timedelta(days=1)
     elif date_range_type == "last_n_days":
-        time_from = today_date.subtract(days=date_range.get("last_days_count"))
-        if date_range.get("should_load_today"):
-            time_to = today_date
-        else:
-            time_to = today_date.subtract(days=1)
+        date_from = today_date - timedelta(days=date_range.get("last_days_count", 0))
+        date_to = today_date if date_range.get("should_load_today") else today_date - timedelta(days=1)
 
-    return (
-        time_from,
-        time_to,
-    )
+    # Transform date format from "2000-01-01" to "2000-01-01 00:00:00"
+    config["date_from_transformed"] = date_from.strftime(date_format) if date_from else None
+    config["date_to_transformed"] = date_to.strftime(date_format) if date_to else None
+
+    return config
+
+
+def create_random_request_id() -> str:
+    request_id: str = ''.join(str(random.randint(0, 9)) for _ in range(32))
+    return request_id

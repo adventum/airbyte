@@ -1,0 +1,351 @@
+{
+  "documentationUrl" : "https://docs.airbyte.io/connector-development",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "Smartis spec",
+    "type" : "object",
+    "required" : [
+      "credentials",
+      "date_range",
+      "group_by_metrics"
+    ],
+    "additionalProperties" : false,
+    "properties" : {
+      "credentials" : {
+        "title" : "Метод авторизации",
+        "order" : 0,
+        "type" : "object",
+        "group" : "auth",
+        "oneOf" : [
+          {
+            "title" : "По токену",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "access_token_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "access_token" : {
+                "title" : "Токен",
+                "description" : "Токен доступа к api Smartis",
+                "airbyte_secret" : true,
+                "type" : "string"
+              }
+            },
+            "required" : [
+              "access_token"
+            ]
+          },
+          {
+            "title" : "CredentialsCraft",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "credentials_craft_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "credentials_craft_host" : {
+                "title" : "Хост CredentialsCraft",
+                "description" : "По какому адресу находится сервис CredentialsCraft?",
+                "examples" : [
+                  "https://credentialscraft.mysite.com"
+                ],
+                "type" : "string"
+              },
+              "credentials_craft_token" : {
+                "title" : "CredentialsCraft Token",
+                "description" : "Токен CredentialsCraft (НЕ токен Smartis).",
+                "type" : "string",
+                "airbyte_secret" : true
+              },
+              "credentials_craft_token_id" : {
+                "title" : "ID токена в CredentialsCraft",
+                "description" : "ID статического токена для Smartis внутри CredentialsCraft",
+                "examples" : [
+                  3345435
+                ],
+                "type" : "integer"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
+            ]
+          }
+        ]
+      },
+      "project" : {
+        "type" : "string",
+        "title" : "Идентификатор проекта (обазятелен для отчета, чтобы загрузить отчеты заполните все поля с отметкой обязательности для отчета)",
+        "description" : "Список проектов можно получить из стрима projects. Вам нужно передать поле project: {\"id\": 1111,\"project\": \"object_1111\",\"title\": \"ЖК с домами\",\"created_at\": 1664291535,...}",
+        "order" : 1,
+        "examples" : [
+          "object_1111"
+        ],
+        "always_show" : true
+      },
+      "metrics" : {
+        "type" : "array",
+        "title" : "Метрики (обязательны для отчета)",
+        "description" : "Список метрик можно получить из стрима metrics. Вам нужно передать поле code: {\"id\": 1163303,\"code\": \"-cr-iz-ucz--some-words\",\"title\": \"% CR из УЦЗ-2 в сделку OL\",...}",
+        "order" : 2,
+        "examples" : [
+          "-cr-iz-ucz--some-words"
+        ],
+        "items" : {
+          "type" : "string"
+        },
+        "always_show" : true
+      },
+      "group_by" : {
+        "type" : "object",
+        "title" : "Группировка (обязательна для отчета)",
+        "description" : "Группировку можно выбрать из числа стандартных или задать кастомную группировку. При задании кастомной группировки заданная стандартная игнорируется",
+        "order" : 3,
+        "always_show" : true,
+        "oneOf" : [
+          {
+            "title" : "Стандартная группировка",
+            "description" : "Группировка из числа стандартных, доступных для всех аккаунтов",
+            "type" : "object",
+            "required" : [
+              "group_by_type",
+              "value"
+            ],
+            "properties" : {
+              "group_by_type" : {
+                "title" : "Тип группировки",
+                "const" : "default",
+                "order" : 0,
+                "type" : "string"
+              },
+              "value" : {
+                "title" : "Поле группировки",
+                "type" : "string",
+                "enum" : [
+                  "day",
+                  "week",
+                  "month",
+                  "year",
+                  "hour",
+                  "weekday",
+                  "channel_id",
+                  "placement_id",
+                  "campaigns",
+                  "utm_source",
+                  "utm_medium",
+                  "utm_campaign"
+                ]
+              }
+            }
+          },
+          {
+            "title" : "Кастомная группировка",
+            "description" : "Кастомное поле для группировки, получаемое из стрима groups. Нужно поле code: \"1802accounts\": {\"id\": 1569,\"title\": \"Аккаунт рекламной системы\",\"code\": \"accounts\",\"is_system\": true,\"sort\": 802,\"client_id\": 0}",
+            "type" : "object",
+            "required" : [
+              "group_by_type",
+              "value"
+            ],
+            "properties" : {
+              "group_by_type" : {
+                "title" : "Тип группировки",
+                "const" : "custom",
+                "order" : 0,
+                "type" : "string"
+              },
+              "value" : {
+                "title" : "Поле группировки",
+                "type" : "string",
+                "examples" : [
+                  "account"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "group_by_metrics" : {
+        "type" : "object",
+        "title" : "Метрики для стрима группировок",
+        "description" : "В запрос на получение группировок можно передать метрики и расширить список получаемых группировок",
+        "always_show": true,
+        "order": 4,
+        "oneOf" : [
+          {
+            "title" : "Не передавать метрики",
+            "type" : "object",
+            "required" : [
+              "group_by_metric_type"
+            ],
+            "properties" : {
+              "group_by_metric_type" : {
+                "title" : "Тип группировки",
+                "const" : "no_metrics",
+                "order" : 0,
+                "type" : "string"
+              }
+            }
+          },
+          {
+            "title" : "Передавать кастомные метрики",
+            "type" : "object",
+            "required" : [
+              "group_by_metric_type",
+              "metrics"
+            ],
+            "properties" : {
+              "group_by_metric_type" : {
+                "title" : "Тип группировки",
+                "const" : "metrics",
+                "order" : 0,
+                "type" : "string"
+              },
+              "metrics" : {
+                "title" : "Метрики",
+                "order" : 1,
+                "type" : "array",
+                "examples": ["-cr-iz-ucz-2-v-metric"],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "top_count" : {
+        "title" : "Число групп отчета",
+        "description" : "Чтобы не возвращать тысячи групп - в этом параметре можно указать сколько вернуть, сортировка от большего к меньшему значению каждого показателя (desc). По умолчанию для API (то есть и для коннектора) = 10 000. Строки, которые не вошли в ТОП - агрегируются в строку «Прочее». Если отчет строится по групповому показателю - возможен ответ с бОльшим количеством строк (берутся ТОП каждого показателя из составляющих групповой показатель).",
+        "order" : 5,
+        "type" : "integer",
+        "default" : 10000,
+        "always_show" : true
+      },
+      "date_range" : {
+        "order" : 6,
+        "title" : "Временной диапазон",
+        "description" : "Выберите даты, за которые нужно получить данные",
+        "type" : "object",
+        "oneOf" : [
+          {
+            "type" : "object",
+            "title" : "Кастомный диапазон",
+            "required" : [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Start date in format YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "date_to" : {
+                "title" : "Дата конца",
+                "type" : "string",
+                "description" : "End date in format YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "const" : "custom_date",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "Последние N дней",
+            "required" : [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "last_days_count" : {
+                "title" : "Число дней",
+                "type" : "integer",
+                "description" : "Число дней, не считая сегодня",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
+                  30
+                ],
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "const" : "last_n_days",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "От указанной даты до сегодня",
+            "description" : "Загружать данные от даты начала по сегодня не включительно",
+            "required" : [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Start Date",
+                "type" : "string",
+                "description" : "Start date in format YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Нужно ли загружать сегодняшние данные? Если нет, загрузка остановится на вчерашних",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "const" : "from_start_date_to_today",
+                "order" : 2
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

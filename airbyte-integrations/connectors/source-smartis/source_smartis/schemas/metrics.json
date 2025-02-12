@@ -1,0 +1,81 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "code" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "title" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "description" : {
+      "type" : [
+        "string", "null"
+      ]
+    },
+    "category_id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "category_title" : {
+      "type" : [
+        "string", "null"
+      ]
+    },
+    "category_sort" : {
+      "type" : [
+        "integer", "null"
+      ]
+    },
+    "is_system" : {
+      "type" : [
+        "boolean", "null"
+      ]
+    },
+    "m_parent" : {
+      "type" : [
+        "integer", "null"
+      ]
+    },
+    "service_id" : {
+      "type" : [
+        "integer", "null"
+      ]
+    },
+    "is_group" : {
+      "type" : [
+        "boolean", "null"
+      ]
+    },
+    "formulae" : {
+      "type" : [
+        "string", "null"
+      ]
+    },
+    "calculate" : {
+      "type" : [
+        "string", "null"
+      ]
+    },
+    "date_create" : {
+      "type" : [
+        "integer", "null"
+      ]
+    },
+    "enable_original_data" : {
+      "type" : [
+        "boolean", "null"
+      ]
+    }
+  }
+}

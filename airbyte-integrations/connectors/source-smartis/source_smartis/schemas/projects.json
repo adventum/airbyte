@@ -1,0 +1,59 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "project" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "title" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "created_at" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "is_active" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "is_super_object" : {
+      "type" : [
+        "boolean"
+      ]
+    },
+    "can_grouping_by_objects" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "sites" : {
+      "type" : [
+        "array",
+        "null"
+      ]
+    },
+    "objects" : {
+      "type" : [
+        "array",
+        "null"
+      ]
+    },
+    "project_fields" : {
+      "type" : [
+        "array",
+        "null"
+      ]
+    }
+  }
+}

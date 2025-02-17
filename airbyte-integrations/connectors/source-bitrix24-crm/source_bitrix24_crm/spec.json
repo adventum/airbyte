@@ -16,15 +16,6 @@
         "type": "string",
         "description": "Webhook Endpoint URL"
       },
-      "entity_type_id": {
-        "order": 1,
-        "title": "Идентификатор типа объекта",
-        "description": "https://apidocs.bitrix24.ru/api-reference/crm/crm-stage-history-list.html",
-        "enum": ["лид", "сделка", "отчет"],
-        "default": ["лид"],
-        "type": "string",
-        "always_show": true
-      },
       "date_range": {
         "order": 2,
         "title": "Временной диапазон",

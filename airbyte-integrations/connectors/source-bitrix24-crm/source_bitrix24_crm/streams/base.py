@@ -60,7 +60,10 @@ class Bitrix24CrmStream(HttpStream, ABC):
         return None
 
     def request_params(
-        self, next_page_token: Mapping[str, Any] = None, **kwargs
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         params = {"select[]": ["*", "UF_*"]}
         if next_page_token:

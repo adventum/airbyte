@@ -1,5 +1,6 @@
 from typing import Mapping, Any, MutableMapping
 
+
 from .base import Bitrix24CrmStream
 
 

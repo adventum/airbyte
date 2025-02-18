@@ -1,5 +1,73 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {}
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "TYPE_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "OWNER_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "CREATED_TIME" : {
+      "type" : [
+        "string",
+        "null"
+      ],
+      "format" : "date-time"
+    },
+    "STATUS_SEMANTIC_ID" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "STATUS_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "CATEGORY_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "STAGE_SEMANTIC_ID" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "STAGE_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "ENTITY_TYPE_NAME" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "ENTITY_TYPE_ID" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    }
+  }
 }

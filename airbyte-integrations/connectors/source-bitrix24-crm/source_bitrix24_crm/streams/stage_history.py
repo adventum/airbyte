@@ -1,6 +1,8 @@
+import functools
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 import requests
+from airbyte_cdk import ResourceSchemaLoader, package_name_from_class
 from airbyte_protocol.models import SyncMode
 
 from .base import Bitrix24CrmStream
@@ -12,6 +14,13 @@ class StageHistory(Bitrix24CrmStream):
 
     def path(self, **kwargs) -> str:
         return "crm.stagehistory.list"
+
+    @functools.lru_cache()
+    def get_json_schema(self) -> Mapping[str, Any]:
+        # Parsing from stream spec file
+        return ResourceSchemaLoader(package_name_from_class(self.__class__)).get_schema(
+            self.name
+        )
 
     def stream_slices(
         self,
@@ -51,6 +60,6 @@ class StageHistory(Bitrix24CrmStream):
             value: key for key, value in self.entity_id_map.items()
         }
         for item in response.json()["result"]["items"]:
-            item["entityTypeId"] = stream_slice["entity_id"]
-            item["entityTypeName"] = id_entity_map[stream_slice["entity_id"]]
+            item["ENTITY_TYPE_ID"] = stream_slice["entity_id"]
+            item["ENTITY_TYPE_NAME"] = id_entity_map[stream_slice["entity_id"]]
             yield item

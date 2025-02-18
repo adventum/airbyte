@@ -1,6 +1,9 @@
-from typing import Any, List, Mapping, Tuple
+import logging
+from typing import Any, List, Mapping, Tuple, Optional
 
 from airbyte_cdk.sources import AbstractSource
+from airbyte_protocol.models import SyncMode
+
 from .auth import CredentialsCraftAuthenticator, TokenAuthenticator
 from .utils import get_config_date_range
 from .streams.base import SmartisStream
@@ -11,8 +14,16 @@ from .streams.reports import Reports
 
 
 class SourceSmartis(AbstractSource):
-    def check_connection(self, logger, config) -> Tuple[bool, any]:
-        return True, None
+    def check_connection(
+        self, logger: logging.Logger, config: Mapping[str, Any]
+    ) -> Tuple[bool, Optional[Any]]:
+        try:
+            auth = self.get_auth(config)
+            projects_stream = Projects(authenticator=auth)
+            next(projects_stream.read_records(sync_mode=SyncMode.full_refresh))
+            return True, None
+        except Exception as e:
+            return False, e
 
     @staticmethod
     def get_auth(config: Mapping[str, Any]) -> TokenAuthenticator:

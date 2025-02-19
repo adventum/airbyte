@@ -1,5 +1,16 @@
 {
   "$schema" : "http://json-schema.org/draft-07/schema#",
   "type" : "object",
-  "properties" : {}
+  "properties" : {
+    "group" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "data" : {
+      "type" : [
+        "array", "object"
+      ]
+    }
+  }
 }

@@ -65,7 +65,10 @@ class SourceSmartis(AbstractSource):
 
         project: str | None = config.get("project")
         metrics: list[str] | None = config.get("metrics")
-        group_by: str | None = config.get("group_by", {}).get("value")
+        group_by: dict[str, Any] = config.get("group_by", {})
+        default_groups: list[str] = group_by.get("default_groups", [])
+        custom_groups: list[str] = group_by.get("custom_groups", [])
+        groups: list[str] = list(set(default_groups) | set(custom_groups))
         top_count: int = config.get("top_count", 10000)
         if project and metrics and group_by and top_count:
             streams.append(
@@ -73,7 +76,7 @@ class SourceSmartis(AbstractSource):
                     authenticator=auth,
                     project=project,
                     metrics=metrics,
-                    group_by=group_by,
+                    groups=groups,
                     top_count=top_count,
                     date_from=start_date,
                     date_to=end_date,

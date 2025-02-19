@@ -106,77 +106,52 @@
       "group_by" : {
         "type" : "object",
         "title" : "Группировка (обязательна для отчета)",
-        "description" : "Группировку можно выбрать из числа стандартных или задать кастомную группировку, значения для которой можно получить из стрима groupings",
+        "description" : "По каждой выбранной группе будет получен отчет. Группировку можно выбрать из числа стандартных или задать кастомную группировку, значения для которой можно получить из стрима groupings",
         "order" : 3,
         "always_show" : true,
-        "oneOf" : [
-          {
-            "title" : "Стандартная группировка",
-            "description" : "Группировка из числа стандартных, доступных для всех аккаунтов",
-            "type" : "object",
-            "required" : [
-              "group_by_type",
-              "value"
-            ],
-            "properties" : {
-              "group_by_type" : {
-                "title" : "Тип группировки",
-                "const" : "default",
-                "order" : 0,
-                "type" : "string"
-              },
-              "value" : {
-                "title" : "Поле группировки",
-                "type" : "string",
-                "enum" : [
-                  "day",
-                  "week",
-                  "month",
-                  "year",
-                  "hour",
-                  "weekday",
-                  "channel_id",
-                  "placement_id",
-                  "campaigns",
-                  "utm_source",
-                  "utm_medium",
-                  "utm_campaign"
-                ]
-              }
+        "properties" : {
+          "default_groups" : {
+            "type" : "array",
+            "title" : "Стандартные группировки",
+            "description" : "Группировки из числа стандартных, доступных для всех аккаунтов",
+            "order" : 0,
+            "always_show" : true,
+            "items" : {
+              "type" : "string",
+              "enum" : [
+                "day",
+                "week",
+                "month",
+                "year",
+                "hour",
+                "weekday",
+                "channel_id",
+                "placement_id",
+                "campaigns",
+                "utm_source",
+                "utm_medium",
+                "utm_campaign"
+              ]
             }
           },
-          {
-            "title" : "Кастомная группировка",
+          "custom_groups" : {
+            "type" : "array",
+            "title" : "Кастомные группировки",
             "description" : "Кастомное поле для группировки, получаемое из стрима groupings. Нужно поле code: {\"id\": 1234,\"title\": \"Аккаунт рекламной системы\",\"code\": \"accounts\",\"is_system\": true,\"sort\": 800,\"client_id\": 0}",
-            "type" : "object",
-            "required" : [
-              "group_by_type",
-              "value"
-            ],
-            "properties" : {
-              "group_by_type" : {
-                "title" : "Тип группировки",
-                "const" : "custom",
-                "order" : 0,
-                "type" : "string"
-              },
-              "value" : {
-                "title" : "Поле группировки",
-                "type" : "string",
-                "examples" : [
-                  "account"
-                ]
-              }
+            "order" : 1,
+            "always_show" : true,
+            "items" : {
+              "type" : "string"
             }
           }
-        ]
+        }
       },
       "group_by_metrics" : {
         "type" : "object",
         "title" : "Метрики для стрима группировок",
         "description" : "В запрос на получение группировок можно передать метрики, которые будут использоваться в отчете. Это поможет расширить список находимых поддерживаемых группировок",
-        "always_show": true,
-        "order": 4,
+        "always_show" : true,
+        "order" : 4,
         "oneOf" : [
           {
             "title" : "Не передавать метрики",
@@ -211,9 +186,11 @@
                 "title" : "Метрики",
                 "order" : 1,
                 "type" : "array",
-                "examples": ["-cr-metric"],
-                "items": {
-                  "type": "string"
+                "examples" : [
+                  "-cr-metric"
+                ],
+                "items" : {
+                  "type" : "string"
                 }
               }
             }

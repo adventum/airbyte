@@ -64,7 +64,10 @@ class Reports(SmartisStream):
         date_from, date_to = self.date_from, self.date_to
         if self._split_by_days:
             date_from = self.date_from.add(days=stream_slice["delta"])
-            date_from, date_to = date_from, date_from
+            date_from, date_to = (
+                date_from.replace(hour=0, minute=0, second=0, microsecond=0),
+                date_from.replace(hour=23, minute=59, second=59, microsecond=0),
+            )
 
         return {
             "project": self.project,
@@ -73,7 +76,6 @@ class Reports(SmartisStream):
             "datetimeTo": date_to.format(self.datetime_format),
             "groupBy": stream_slice["group"],
             "topCount": self.top_count,
-            "type": "aggregated",
         }
 
     def parse_response(

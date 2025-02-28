@@ -139,12 +139,12 @@
             "type" : "object",
             "title" : "Last N Days",
             "required" : [
-              "last_days",
+              "last_days_count",
               "should_load_today",
               "date_range_type"
             ],
             "properties" : {
-              "last_days" : {
+              "last_days_count" : {
                 "title" : "Last Days Count",
                 "type" : "integer",
                 "description" : "Count of last days exclude today.",
@@ -292,62 +292,19 @@
               ],
               "default" : "default"
             },
-            "iter_content_chunk_size" : {
-              "title" : "Iter Content Chunk Size",
-              "order" : 5,
-              "type" : "integer",
-              "minimum" : 1,
-              "default" : 8192
-            },
-            "event_name_list" : {
-              "order" : 6,
-              "type" : "array",
-              "items" : {
-                "type" : "string"
-              }
-            },
             "check_fields" : {
               "title" : "Validate Fields",
               "description" : "Validate fields list",
               "type" : "boolean",
               "default" : true,
-              "order" : 8
-            },
-            "field_name_map" : {
-              "title" : "Field name replace",
-              "description" : "Use this if you want to replace some field names. If you want to replace \"ym:s:watchIDs\" with \"watch_ids\", set map as  \"Old key\" - \"ym:s:watchIDs\", \"New key\" - \"watch_ids\".",
-              "type" : "array",
-              "group" : "replace",
-              "order" : 9,
-              "items" : {
-                "type" : "object",
-                "additionalProperties" : false,
-                "required" : [
-                  "old_value",
-                  "new_value"
-                ],
-                "title" : "Field replace",
-                "description" : "Pair: old name - new name",
-                "properties" : {
-                  "old_value" : {
-                    "type" : "string",
-                    "title" : "Old name",
-                    "order" : 0
-                  },
-                  "new_value" : {
-                    "type" : "string",
-                    "title" : "New name",
-                    "order" : 1
-                  }
-                }
-              }
+              "order" : 5
             }
           }
         }
       },
       "chunked_logs" : {
         "title" : "Split Logs Into Chunks",
-        "order" : 3,
+        "order" : 9,
         "description" : "Connector can split data replication into several logs instead of only one. You can choice days count on every chunk.",
         "type" : "object",
         "oneOf" : [

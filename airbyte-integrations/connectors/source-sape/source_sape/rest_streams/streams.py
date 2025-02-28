@@ -92,11 +92,11 @@ class ExtendedStatistics(SapeRestStream):
 
         # TODO: may be updated later
         filters = []
-        # group_by = "eventDate"
+        group_by = ["eventDate", "clientId", "campaignId"]
         fields = ["shows", "clicks", "cpm", "cpc", "amount"]
         params = {
             "filters": filters,
-            # "groupBy": group_by,
+            "groupBy": group_by,
             "fields": fields,
             "dateViewFrom": stream_slice["start_date"],
             "dateViewTo": stream_slice["end_date"],

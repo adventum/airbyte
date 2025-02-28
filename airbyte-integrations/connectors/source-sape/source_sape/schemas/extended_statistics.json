@@ -19,6 +19,12 @@
     },
     "amount": {
       "type": ["number"]
+    },
+    "clientId": {
+      "type": ["integer"]
+    },
+    "campaignId": {
+      "type": ["integer"]
     }
   }
 }

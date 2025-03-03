@@ -1,0 +1,108 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Sber-Escrow Spec
+  type: object
+  required:
+    - credentials
+  additionalProperties: false
+  properties:
+    credentials:
+      title: Authorization Method
+      type: object
+      oneOf:
+        - title: CredentialsCraft Auth
+          type: object
+          required:
+            - auth_type
+            - credentials_craft_host
+            - credentials_craft_token
+            - credentials_craft_sber_token_id
+          properties:
+            auth_type:
+              title: Auth Type
+              type: string
+              const: credentials_craft_auth
+            credentials_craft_host:
+              title: CredentialsCraft Host
+              type: string
+              examples:
+                - https://credentialscraft.mysite.com
+            credentials_craft_token:
+              title: CredentialsCraft Bearer token
+              type: string
+              airbyte_secret: true
+              description: Bearer token for CredentialsCraft API
+            credentials_craft_sber_token_id:
+              title: CredentialsCraft Sber token ID
+              type: integer
+              description: Token ID in CredentialsCraft for Sber
+              examples:
+                - 100
+            sber_client_cert:
+              title: Sber Client Certificate
+              type: string
+            sber_client_key:
+              title: Sber Client Key
+              type: string
+            sber_ca_chain:
+              title: Sber CA Chain
+              type: string
+        - title: Token Auth
+          type: object
+          required:
+            - auth_type
+            - client_id
+            - token
+          properties:
+            auth_type:
+              title: Auth Type
+              type: string
+              const: token_auth
+            client_id:
+              title: Client ID
+              type: string
+              airbyte_secret: true
+            token:
+              title: Auth token
+              type: string
+              airbyte_secret: true
+            sber_client_cert:
+              title: Sber Client Certificate
+              type: string
+            sber_client_key:
+              title: Sber Client Key
+              type: string
+            sber_ca_chain:
+              title: Sber CA Chain
+              type: string
+    date_from:
+      title: Date from
+      type: string
+      description: "Start replication date in format YYYY-MM-DD"
+      pattern: ^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+      examples:
+        - 2025-01-01
+    date_to:
+      title: Date to
+      type: string
+      description: "End replication date in format YYYY-MM-DD"
+      pattern: ^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+      examples:
+        - 2025-01-01
+    last_days:
+      title: Load last N days
+      type: integer
+      minimum: 1
+      examples:
+        - 7
+    commisioning_object_codes:
+      title: Сommisioning object codes
+      type: array
+      items:
+        type: string
+    individual_terms_id:
+        title: Individual terms ID
+        type: array
+        items:
+            type: string

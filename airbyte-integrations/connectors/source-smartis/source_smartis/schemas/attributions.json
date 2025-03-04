@@ -1,0 +1,27 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "type" : [
+        "integer"
+      ]
+    },
+    "title" : {
+      "type" : [
+        "string"
+      ]
+    },
+    "about" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "is_system" : {
+      "type" : [
+        "boolean"
+      ]
+    }
+  }
+}

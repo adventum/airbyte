@@ -22,6 +22,7 @@ class Reports(SmartisStream):
         groups: list[str] | None = None,
         top_count: int = 10000,
         split_by_days: bool = False,
+        attribution: dict[str, Any] | None = None,
     ):
         super().__init__(authenticator=authenticator)
         self.project = project
@@ -32,6 +33,7 @@ class Reports(SmartisStream):
         self.top_count = top_count
         self._auth_copy = authenticator
         self._split_by_days = split_by_days
+        self._attribution = attribution
 
     def stream_slices(
         self,
@@ -69,7 +71,7 @@ class Reports(SmartisStream):
                 date_from.replace(hour=23, minute=59, second=59, microsecond=0),
             )
 
-        return {
+        params = {
             "project": self.project,
             "metrics": ";".join(self.metrics),
             "datetimeFrom": date_from.format(self.datetime_format),
@@ -77,6 +79,11 @@ class Reports(SmartisStream):
             "groupBy": stream_slice["group"],
             "topCount": self.top_count,
         }
+
+        if self._attribution:
+            params["attribution"] = self._attribution
+
+        return params
 
     def parse_response(
         self,

@@ -11,9 +11,15 @@ from .streams.projects import Projects
 from .streams.metrics import Metrics
 from .streams.groupings import Groupings
 from .streams.reports import Reports
+from .streams.attributions import Attributions
 
 
 class SourceSmartis(AbstractSource):
+    """
+    Smartis source
+    API docs: https://my.smartis.bi/api/documentation
+    """
+
     def check_connection(
         self, logger: logging.Logger, config: Mapping[str, Any]
     ) -> Tuple[bool, Optional[Any]]:
@@ -61,7 +67,14 @@ class SourceSmartis(AbstractSource):
         else:
             groupings_stream = Groupings(authenticator=auth)
 
-        streams = [projects_stream, metrics_stream, groupings_stream]
+        attributions_stream = Attributions(authenticator=auth)
+
+        streams = [
+            projects_stream,
+            metrics_stream,
+            groupings_stream,
+            attributions_stream,
+        ]
 
         project: str | None = config.get("project")
         metrics: list[str] | None = config.get("metrics")
@@ -71,6 +84,12 @@ class SourceSmartis(AbstractSource):
         groups: list[str] = list(set(default_groups) | set(custom_groups))
         top_count: int = config.get("top_count", 10000)
         split_by_days: bool = config.get("split_by_days", False)
+        attribution_spec: dict[str, Any] | None = config.get("attribution_settings")
+        attribution = (
+            attribution_spec["attribution"]
+            if attribution_spec["attribution_type"] == "attribution"
+            else None
+        )
         if project and metrics and group_by and top_count:
             streams.append(
                 Reports(
@@ -82,6 +101,7 @@ class SourceSmartis(AbstractSource):
                     date_from=start_date,
                     date_to=end_date,
                     split_by_days=split_by_days,
+                    attribution=attribution,
                 )
             )
         return streams

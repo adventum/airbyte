@@ -197,6 +197,83 @@
           }
         ]
       },
+      "attribution_settings" : {
+        "type" : "object",
+        "title" : "Атрибуции",
+        "description" : "Атрибуции для запроса отчетов. Опциональны даже при использовании отчетов",
+        "always_show" : true,
+        "order" : 5,
+        "oneOf" : [
+          {
+            "title" : "Не использовать атрибуцию",
+            "type" : "object",
+            "required" : [
+              "attribution_type"
+            ],
+            "properties" : {
+              "attribution_type" : {
+                "title" : "Тип атрибуции",
+                "const" : "no_attribution",
+                "order" : 0,
+                "type" : "string"
+              }
+            }
+          },
+          {
+            "title" : "Использовать атрибуцию",
+            "type" : "object",
+            "required" : [
+              "attribution_type",
+              "attribution"
+            ],
+            "properties" : {
+              "attribution_type" : {
+                "title" : "Тип атрибуции",
+                "const" : "attribution",
+                "order" : 0,
+                "type" : "string"
+              },
+              "attribution" : {
+                "title" : "Атрибуция",
+                "order" : 1,
+                "type" : "object",
+                "required": ["model_id", "period", "with_direct"],
+                "properties": {
+                  "model_id": {
+                    "title": "Идентификатор модели атрибуции. Поле id в стриме атрибуций",
+                    "order": 0,
+                    "type": "integer"
+                  },
+                  "period": {
+                    "title": "Окно ретроспективы в днях",
+                    "order": 1,
+                    "type": "string",
+                    "enum": [
+                      "0",
+                      "30",
+                      "90",
+                      "180",
+                      "365"
+                    ]
+                  },
+                  "with_direct": {
+                    "title": "Включая прямые касания",
+                    "order": 2,
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "examples" : [
+                  "-cr-metric"
+                ],
+                "items" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        ]
+      },
       "top_count" : {
         "title" : "Число групп отчета",
         "description" : "Чтобы не возвращать тысячи групп - в этом параметре можно указать сколько вернуть, сортировка от большего к меньшему значению каждого показателя (desc). По умолчанию для API (то есть и для коннектора) = 10 000. Строки, которые не вошли в ТОП - агрегируются в строку «Прочее». Если отчет строится по групповому показателю - возможен ответ с бОльшим количеством строк (берутся ТОП каждого показателя из составляющих групповой показатель).",

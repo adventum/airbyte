@@ -7,7 +7,6 @@
     "required" : [
       "credentials",
       "application_id",
-      "sources",
       "date_range"
     ],
     "additionalProperties" : false,
@@ -87,11 +86,203 @@
         "description" : "Appmetrica application identifier",
         "order" : 1
       },
+      "sources" : {
+        "title" : "Sources",
+        "order" : 2,
+        "description" : "Sources of data",
+        "always_show": true,
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "required" : [
+            "source_name",
+            "fields"
+          ],
+          "properties" : {
+            "source_name" : {
+              "title" : "Source name",
+              "order" : 0,
+              "enum" : [
+                "clicks",
+                "installations",
+                "postbacks",
+                "events",
+                "profiles",
+                "revenue_events",
+                "deeplinks",
+                "push_tokens",
+                "crashes",
+                "errors",
+                "sessions_starts",
+                "ecommerce_events"
+              ]
+            },
+            "fields" : {
+              "title" : "Fields List",
+              "order" : 1,
+              "description" : "List of report fields. Leave empty for all available source fields. Available fields list: https://appmetrica.yandex.ru/docs/mobile-api/logs/endpoints.html",
+              "type" : "array",
+              "examples" : [
+                [
+                  "device_manufacturer",
+                  "city",
+                  "application_id"
+                ]
+              ],
+              "items" : {
+                "type" : "string"
+              }
+            },
+            "filters" : {
+              "title" : "Filters",
+              "order" : 3,
+              "description" : "Filters by the value of any of the available fields available for source. Only the equality operation is supported.",
+              "type" : "array",
+              "items" : {
+                "title" : "Filter",
+                "type" : "object",
+                "properties" : {
+                  "name" : {
+                    "type" : "string",
+                    "title" : "Field Name"
+                  },
+                  "value" : {
+                    "type" : "string",
+                    "title" : "="
+                  }
+                },
+                "required" : [
+                  "name",
+                  "value"
+                ]
+              }
+            },
+            "date_dimension" : {
+              "title" : "Date Dimension",
+              "order" : 4,
+              "description" : "The parameter determines which event the date is considered relative to: default - relative to the moment when the event occurred on the user's device; receive - relative to the moment when the event information was received by the server.",
+              "type" : "string",
+              "enum" : [
+                "default",
+                "receive"
+              ],
+              "default" : "default"
+            },
+            "check_fields" : {
+              "title" : "Validate Fields",
+              "description" : "Check if field list is correct before making requests",
+              "type" : "boolean",
+              "default" : true,
+              "order" : 5
+            }
+          }
+        }
+      },
+      "chunked_logs" : {
+        "title" : "Split Logs Into Chunks",
+        "order" : 3,
+        "description" : "Connector can split data replication for logs streams into several logs instead of only one. You can choice days count on every chunk.",
+        "type" : "object",
+        "oneOf" : [
+          {
+            "title" : "Don't Split",
+            "type" : "object",
+            "properties" : {
+              "split_mode_type" : {
+                "const" : "do_not_split_mode",
+                "order" : 0,
+                "type" : "string"
+              }
+            },
+            "required" : [
+              "split_mode_type"
+            ]
+          },
+          {
+            "title" : "Split Logs",
+            "type" : "object",
+            "properties" : {
+              "split_mode_type" : {
+                "const" : "split_date_mode",
+                "order" : 0,
+                "type" : "string"
+              },
+              "split_range_days_count" : {
+                "title" : "Split Range Days Count",
+                "description" : "E.g. if you choose 30 days, whole logs will be split into several reports by every month (30 days). It can increase replication time, so don't set too small range. Minimum - 1",
+                "minimum" : 1,
+                "maximum" : 3650,
+                "type" : "integer",
+                "default" : "30",
+                "order" : 1
+              }
+            },
+            "required" : [
+              "split_mode_type",
+              "split_range_days_count"
+            ]
+          }
+        ]
+      },
+      "tables" : {
+        "title" : "Reports streams",
+        "order" : 4,
+        "always_show": true,
+        "description" : "Each stream corresponds one table of this api: https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/data",
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "required" : [
+            "table_name",
+            "metrics"
+          ],
+          "properties" : {
+            "table_name" : {
+              "title" : "Source name",
+              "description" : "Each report (table) must have unique name",
+              "order" : 0,
+              "type" : "string"
+            },
+            "metrics" : {
+              "title" : "Metrics",
+              "description" : "One or more metrics, allowed in api . Some metrics may be incompatible with each other. (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/metrics/mainmetr)",
+              "type" : "array",
+              "order" : 1,
+              "items": {
+                "type": "string"
+              },
+              "examples" : [
+                "ym:ce:users",
+                "ym:ce:avgParams"
+              ]
+            },
+            "dimensions" : {
+              "title" : "Dimensions",
+              "description" : "List of report (table) dimensions (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/attributes/mobmet_events/app)",
+              "type" : "string",
+              "order" : 2,
+              "examples" : [
+                "ym:ce:screenResolution==1920x1080"
+              ]
+            },
+            "filters" : {
+              "title" : "Filters",
+              "description" : "Segmentation filters (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/segmentation)",
+              "type" : "string",
+              "order" : 3,
+              "examples" : [
+                "ym:ge:regionCity=='Moscow'",
+                "(ym:ge:regionCity=='Moscow' OR ym:ge:regionCity=='St. Petersburg') AND ym:ge:gender=='male'"
+              ]
+            }
+          }
+        }
+      },
       "date_range" : {
         "title" : "Date Range",
         "description" : "Choose date period that must be loaded",
         "type" : "object",
-        "order" : 2,
+        "order" : 4,
         "oneOf" : [
           {
             "type" : "object",
@@ -208,143 +399,6 @@
                 "order" : 2
               }
             }
-          }
-        ]
-      },
-      "sources" : {
-        "title" : "Sources",
-        "order" : 2,
-        "description" : "Sources of data",
-        "type" : "array",
-        "items" : {
-          "type" : "object",
-          "required" : [
-            "source_name",
-            "fields"
-          ],
-          "properties" : {
-            "source_name" : {
-              "title" : "Source name",
-              "order" : 0,
-              "enum" : [
-                "clicks",
-                "installations",
-                "postbacks",
-                "events",
-                "profiles",
-                "revenue_events",
-                "deeplinks",
-                "push_tokens",
-                "crashes",
-                "errors",
-                "sessions_starts",
-                "ecommerce_events"
-              ]
-            },
-            "fields" : {
-              "title" : "Fields List",
-              "order" : 1,
-              "description" : "List of report fields. Leave empty for all available source fields. Available fields list: https://appmetrica.yandex.ru/docs/mobile-api/logs/endpoints.html",
-              "type" : "array",
-              "examples" : [
-                [
-                  "device_manufacturer",
-                  "city",
-                  "application_id"
-                ]
-              ],
-              "items" : {
-                "type" : "string"
-              }
-            },
-            "filters" : {
-              "title" : "Filters",
-              "order" : 3,
-              "description" : "Filters by the value of any of the available fields available for source. Only the equality operation is supported.",
-              "type" : "array",
-              "items" : {
-                "title" : "Filter",
-                "type" : "object",
-                "properties" : {
-                  "name" : {
-                    "type" : "string",
-                    "title" : "Field Name"
-                  },
-                  "value" : {
-                    "type" : "string",
-                    "title" : "="
-                  }
-                },
-                "required" : [
-                  "name",
-                  "value"
-                ]
-              }
-            },
-            "date_dimension" : {
-              "title" : "Date Dimension",
-              "order" : 4,
-              "description" : "The parameter determines which event the date is considered relative to: default - relative to the moment when the event occurred on the user's device; receive - relative to the moment when the event information was received by the server.",
-              "type" : "string",
-              "enum" : [
-                "default",
-                "receive"
-              ],
-              "default" : "default"
-            },
-            "check_fields" : {
-              "title" : "Validate Fields",
-              "description" : "Validate fields list",
-              "type" : "boolean",
-              "default" : true,
-              "order" : 5
-            }
-          }
-        }
-      },
-      "chunked_logs" : {
-        "title" : "Split Logs Into Chunks",
-        "order" : 9,
-        "description" : "Connector can split data replication into several logs instead of only one. You can choice days count on every chunk.",
-        "type" : "object",
-        "oneOf" : [
-          {
-            "title" : "Don't Split",
-            "type" : "object",
-            "properties" : {
-              "split_mode_type" : {
-                "const" : "do_not_split_mode",
-                "order" : 0,
-                "type" : "string"
-              }
-            },
-            "required" : [
-              "split_mode_type"
-            ]
-          },
-          {
-            "title" : "Split Logs",
-            "type" : "object",
-            "properties" : {
-              "split_mode_type" : {
-                "const" : "split_date_mode",
-                "order" : 0,
-                "type" : "string"
-              },
-              "split_range_days_count" : {
-                "title" : "Split Range Days Count",
-                "description" : "E.g. if you choose 30 days, whole logs will be split into several reports by every month (30 days). It can increase replication time, so don't set too small range. Minimum - 1",
-                "minimum" : 1,
-                "maximum" : 3650,
-                "type" : "integer",
-                "default" : "30",
-                "order" : 1
-              }
-            },
-            "required" : [
-              "split_mode_type",
-              "split_range_days_count"
-            ]
           }
         ]
       }

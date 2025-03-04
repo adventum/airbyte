@@ -4,6 +4,7 @@
 import io
 import time
 from datetime import datetime, timedelta
+from functools import lru_cache
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, List
 
 import pandas as pd
@@ -19,13 +20,12 @@ from airbyte_protocol.models import SyncMode
 from .fields import AVAILABLE_FIELDS
 
 
-class AppmetricaLogsApiStream(HttpStream):
+class AppmetricaLogsApi(HttpStream):
     url_base = "https://api.appmetrica.yandex.ru/"
     primary_key = []
     transformer: TypeTransformer = TypeTransformer(
         config=TransformConfig.DefaultSchemaNormalization
     )
-    should_redownload = False
     datetime_format = "YYYY-MM-DD HH:mm:ss"
 
     def __init__(
@@ -75,10 +75,10 @@ class AppmetricaLogsApiStream(HttpStream):
         filters: list[Mapping[str, str]],
     ) -> Mapping[str, Any]:
         params = {}
-        for filter in filters:
-            if filter["name"] not in params.keys():
-                params[filter["name"]] = []
-            params[filter["name"]].append(filter["value"])
+        for flt in filters:
+            if flt["name"] not in params.keys():
+                params[flt["name"]] = []
+            params[flt["name"]].append(flt["value"])
         return params
 
     def request_params(
@@ -97,10 +97,11 @@ class AppmetricaLogsApiStream(HttpStream):
             params.update(self.filters_into_request_params(self.filters))
         return params
 
+    @lru_cache(maxsize=None)
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(
             package_name_from_class(self.__class__)
-        ).get_schema("appmetrica_report")
+        ).get_schema("appmetrica_logs_api")
 
         for field_name in self.fields:
             lookup_field_type = AVAILABLE_FIELDS[self.source]["fields"].get(
@@ -110,9 +111,7 @@ class AppmetricaLogsApiStream(HttpStream):
 
         return schema
 
-    def make_request(
-        self, stream_slice: Mapping[str, any] = None, **kwargs
-    ) -> requests.Response:
+    def make_request(self, stream_slice: Mapping[str, any] = None) -> requests.Response:
         response = requests.get(
             self.url_base + self.path(),
             headers={"Authorization": f"OAuth {self._token}"},
@@ -191,3 +190,34 @@ class AppmetricaLogsApiStream(HttpStream):
                     yield chunk | {"event_name": event_name}
             else:
                 yield chunk
+
+    @classmethod
+    def check_config(cls, config: Mapping[str, Any]) -> tuple[bool, str | None]:
+        for stream in config.get("sources", []):
+            source_type = stream["source_name"]
+
+            """Check fields"""
+            supported_fields = AVAILABLE_FIELDS[source_type]["fields"].keys()
+            if stream.get("check_fields", True):
+                for field in stream.get("fields", []):
+                    if field not in supported_fields:
+                        return (
+                            False,
+                            f'Field "{field}" is invalid for source type {source_type}',
+                        )
+
+            """Check event name list"""
+            if config.get("event_name_list") and stream["source_name"] != "events":
+                return (
+                    False,
+                    f"event_name_list is not available for source {stream['source_name']}",
+                )
+
+            for filter_n, filter_ in enumerate(stream.get("filters", [])):
+                name = filter_["name"]
+                if name not in stream:
+                    return (
+                        False,
+                        f"Filter {filter_n} ({name}) not in available fields list.",
+                    )
+        return True, None

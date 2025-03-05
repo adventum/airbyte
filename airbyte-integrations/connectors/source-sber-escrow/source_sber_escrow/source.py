@@ -18,9 +18,9 @@ class SourceSberEscrow(AbstractSource):
         credentials = self._get_auth(config)()
 
         config_credentials = config["credentials"]
-        sber_client_cert = config_credentials.get("sber_client_cert")
-        sber_client_key = config_credentials.get("sber_client_key")
-        sber_ca_chain = config_credentials.get("sber_ca_chain")
+        sber_client_cert = credentials.client_cert or config_credentials.get("sber_client_cert")
+        sber_client_key = credentials.client_key or config_credentials.get("sber_client_key")
+        sber_ca_chain = credentials.ca_chain or config_credentials.get("sber_ca_chain")
 
         commisioning_object_codes = config.get("commisioning_object_codes")
         individual_terms_id = config.get("individual_terms_id")
@@ -101,8 +101,9 @@ class SourceSberEscrow(AbstractSource):
         # Check certificates
         config_credentials = config["credentials"]
         if not os.environ.get("REQUESTS_CA_BUNDLE"):
-            if not (config_credentials.get("sber_client_cert") and config_credentials.get("sber_client_key")):
-                return False, "REQUESTS_CA_BUNDLE env is missing and Sber certificates are not provided."
+            if not (credentials.client_cert and credentials.client_key):
+                if not (config_credentials.get("sber_client_cert") and config_credentials.get("sber_client_key")):
+                    return False, "REQUESTS_CA_BUNDLE env is missing and Sber certificates are not provided."
 
         # Check commissioning object codes or individual terms IDs
         commisioning_object_codes = config.get("commisioning_object_codes")
@@ -115,9 +116,9 @@ class SourceSberEscrow(AbstractSource):
             credentials=credentials,
             commisioning_object_codes=commisioning_object_codes,
             individual_terms_id=individual_terms_id,
-            sber_client_cert=config_credentials.get("sber_client_cert"),
-            sber_client_key=config_credentials.get("sber_client_key"),
-            sber_ca_chain=config_credentials.get("sber_ca_chain"),
+            sber_client_cert=credentials.client_cert or config_credentials.get("sber_client_cert"),
+            sber_client_key=credentials.client_key or config_credentials.get("sber_client_key"),
+            sber_ca_chain=credentials.ca_chain or config_credentials.get("sber_ca_chain"),
         )
         if not is_success:
             return is_success, message

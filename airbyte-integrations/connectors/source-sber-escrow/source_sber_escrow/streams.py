@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 import xml.etree.ElementTree as ET
 from datetime import date
@@ -20,11 +18,11 @@ from source_sber_escrow.utils import CertifiedRequests
 
 def check_sber_escrow_connection(
     credentials: SberCredentials,
-    commisioning_object_codes: list[str] | None = None,
-    individual_terms_id: list[str] | None = None,
-    sber_client_cert: str | None = None,
-    sber_client_key: str | None = None,
-    sber_ca_chain: str | None = None,
+    commisioning_object_codes: Optional[list[str]] = None,
+    individual_terms_id: Optional[list[str]] = None,
+    sber_client_cert: Optional[str] = None,
+    sber_client_key: Optional[str] = None,
+    sber_ca_chain: Optional[str] = None,
 ) -> tuple[IsSuccess, Optional[Message]]:
     certified_request = CertifiedRequests(client_cert=sber_client_cert, client_key=sber_client_key, ca_chain=sber_ca_chain)
 
@@ -69,11 +67,11 @@ class BaseEscrowAccountsStream(Stream):
         credentials: SberCredentials,
         date_from: date,
         date_to: date,
-        commisioning_object_codes: list[str] | None = None,
-        individual_terms_id: list[str] | None = None,
-        sber_client_cert: str | None = None,
-        sber_client_key: str | None = None,
-        sber_ca_chain: str | None = None,
+        commisioning_object_codes: Optional[list[str]] = None,
+        individual_terms_id: Optional[list[str]] = None,
+        sber_client_cert: Optional[str] = None,
+        sber_client_key: Optional[str] = None,
+        sber_ca_chain: Optional[str] = None,
     ):
         self.credentials = credentials
         self.date_from = date_from

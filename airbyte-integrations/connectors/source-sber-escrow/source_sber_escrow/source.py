@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import logging
 import os
 from datetime import date, datetime, timedelta
-from typing import Mapping, Any, List, Tuple, Callable
+from typing import Mapping, Any, List, Tuple, Callable, Optional
 
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
@@ -49,7 +47,7 @@ class SourceSberEscrow(AbstractSource):
             ),
         ]
 
-    def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[IsSuccess, Message | None]:
+    def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[IsSuccess, Optional[Message]]:
         # Check auth
         auth = self._get_auth(config)
         if isinstance(auth, CredentialsCraftAuthenticator):
@@ -84,7 +82,7 @@ class SourceSberEscrow(AbstractSource):
         raise ValueError(f"Unknown auth type: '{auth_type}'")
 
     @staticmethod
-    def _check_config(config: Mapping[str, Any], credentials: SberCredentials) -> Tuple[IsSuccess, Message | None]:
+    def _check_config(config: Mapping[str, Any], credentials: SberCredentials) -> Tuple[IsSuccess, Optional[Message]]:
         # Check dates config
         date_from = config.get("date_from")
         date_to = config.get("date_to")
@@ -126,7 +124,7 @@ class SourceSberEscrow(AbstractSource):
         return True, None
 
     @staticmethod
-    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[StartDate | None, EndDate | None]:
+    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[Optional[StartDate], Optional[EndDate]]:
         if last_days := config.get("last_days"):
             date_from = date.today() - timedelta(days=last_days)
             date_to = date.today() - timedelta(days=1)  # yesterday

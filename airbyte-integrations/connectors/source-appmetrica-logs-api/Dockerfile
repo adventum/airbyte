@@ -1,4 +1,4 @@
-FROM python:3.9.13-alpine3.15 as base
+FROM python:3.11-alpine3.20 as base
 
 # build and load all requirements
 FROM base as builder
@@ -7,7 +7,7 @@ WORKDIR /airbyte/integration_code
 # upgrade pip to the latest version
 RUN apk --no-cache upgrade \
     && pip install --upgrade pip \
-    && apk --no-cache add tzdata build-base
+    && apk --no-cache add tzdata build-base libffi-dev
 
 
 COPY setup.py ./

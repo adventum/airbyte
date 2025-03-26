@@ -5,10 +5,10 @@
 
 from typing import Any, Mapping
 
-import requests
 from airbyte_cdk import TokenAuthenticator
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
+from airbyte_protocol.models import SyncMode
 
 from .auth import CredentialsCraftAuthenticator
 from .streams.logs_api.stream import AppmetricaLogsApi
@@ -20,31 +20,15 @@ from .utils import get_config_date_range
 class SourceAppmetricaLogsApi(AbstractSource):
     def check_connection(self, logger, config) -> tuple[bool, Any]:
         config = SourceAppmetricaLogsApi.prepare_config(config)
-        ok, text = AppmetricaLogsApi.check_config(config)
-        if not ok:
-            return False, text
 
-        auth = SourceAppmetricaLogsApi.get_auth(config)
-        if isinstance(auth, CredentialsCraftAuthenticator):
-            cc_auth_check_result = auth.check_connection()
-            if not cc_auth_check_result[0]:
-                return cc_auth_check_result
-
-        applications_list_request = requests.get(
-            "https://api.appmetrica.yandex.ru/management/v1/applications",
-            headers=auth.get_auth_header(),
-        )
-        if applications_list_request.status_code != 200:
-            return (
-                False,
-                f"Test API request error {applications_list_request.status_code}: {applications_list_request.text}",
-            )
-        applications_list = applications_list_request.json()["applications"]
-        available_ids_list = [app["id"] for app in applications_list]
-        if config["application_id"] not in available_ids_list:
-            return False, "Auth token is valid, but Application ID is invalid"
-
-        return True, None
+        streams = self.streams(config)
+        if not streams:
+            return False, "You must add at least one stream"
+        try:
+            next(streams[0].read_records(sync_mode=SyncMode.full_refresh))
+            return True, None
+        except Exception as e:
+            return False, str(e)
 
     @staticmethod
     def get_auth(config: Mapping[str, Any]) -> TokenAuthenticator:
@@ -74,6 +58,7 @@ class SourceAppmetricaLogsApi(AbstractSource):
         config = SourceAppmetricaLogsApi.prepare_config(config)
         auth = SourceAppmetricaLogsApi.get_auth(config)
         start_date, end_date = get_config_date_range(config)
+        tables_api_version = config.get("tables_api_version", "v1")
         streams = []
 
         for source in config.get("sources", []):
@@ -97,6 +82,7 @@ class SourceAppmetricaLogsApi(AbstractSource):
         for table in config.get("tables", []):
             streams.append(
                 AppmetricaReportsTable(
+                    api_version=tables_api_version,
                     authenticator=auth,
                     application_id=config["application_id"],
                     date_from=start_date,

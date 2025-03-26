@@ -224,9 +224,21 @@
           }
         ]
       },
+      "tables_api_version": {
+        "title": "Api version for Reports stream",
+        "order": 4,
+        "always_show": true,
+        "description": "Use official v1 api or undocumented api v2 (experimental, https://api.appmetrica.yandex.ru/v2/user/acquisition)",
+        "type": "string",
+        "enum": [
+          "v1",
+          "v2"
+        ],
+        "default": "v1"
+      },
       "tables" : {
         "title" : "Reports streams",
-        "order" : 4,
+        "order" : 5,
         "always_show": true,
         "description" : "Each stream corresponds one table of this api: https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/data",
         "type" : "array",
@@ -282,7 +294,7 @@
         "title" : "Date Range",
         "description" : "Choose date period that must be loaded",
         "type" : "object",
-        "order" : 4,
+        "order" : 6,
         "oneOf" : [
           {
             "type" : "object",

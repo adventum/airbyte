@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import logging
 import os
 from datetime import date, datetime, timedelta
-from typing import Mapping, Any, List, Tuple, Callable
+from typing import Mapping, Any, List, Tuple, Callable, Optional
 
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
@@ -18,9 +16,9 @@ class SourceSberEscrow(AbstractSource):
         credentials = self._get_auth(config)()
 
         config_credentials = config["credentials"]
-        sber_client_cert = config_credentials.get("sber_client_cert")
-        sber_client_key = config_credentials.get("sber_client_key")
-        sber_ca_chain = config_credentials.get("sber_ca_chain")
+        sber_client_cert = credentials.client_cert or config_credentials.get("sber_client_cert")
+        sber_client_key = credentials.client_key or config_credentials.get("sber_client_key")
+        sber_ca_chain = credentials.ca_chain or config_credentials.get("sber_ca_chain")
 
         commisioning_object_codes = config.get("commisioning_object_codes")
         individual_terms_id = config.get("individual_terms_id")
@@ -49,7 +47,7 @@ class SourceSberEscrow(AbstractSource):
             ),
         ]
 
-    def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[IsSuccess, Message | None]:
+    def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[IsSuccess, Optional[Message]]:
         # Check auth
         auth = self._get_auth(config)
         if isinstance(auth, CredentialsCraftAuthenticator):
@@ -84,7 +82,7 @@ class SourceSberEscrow(AbstractSource):
         raise ValueError(f"Unknown auth type: '{auth_type}'")
 
     @staticmethod
-    def _check_config(config: Mapping[str, Any], credentials: SberCredentials) -> Tuple[IsSuccess, Message | None]:
+    def _check_config(config: Mapping[str, Any], credentials: SberCredentials) -> Tuple[IsSuccess, Optional[Message]]:
         # Check dates config
         date_from = config.get("date_from")
         date_to = config.get("date_to")
@@ -101,8 +99,9 @@ class SourceSberEscrow(AbstractSource):
         # Check certificates
         config_credentials = config["credentials"]
         if not os.environ.get("REQUESTS_CA_BUNDLE"):
-            if not (config_credentials.get("sber_client_cert") and config_credentials.get("sber_client_key")):
-                return False, "REQUESTS_CA_BUNDLE env is missing and Sber certificates are not provided."
+            if not (credentials.client_cert and credentials.client_key):
+                if not (config_credentials.get("sber_client_cert") and config_credentials.get("sber_client_key")):
+                    return False, "REQUESTS_CA_BUNDLE env is missing and Sber certificates are not provided."
 
         # Check commissioning object codes or individual terms IDs
         commisioning_object_codes = config.get("commisioning_object_codes")
@@ -115,9 +114,9 @@ class SourceSberEscrow(AbstractSource):
             credentials=credentials,
             commisioning_object_codes=commisioning_object_codes,
             individual_terms_id=individual_terms_id,
-            sber_client_cert=config_credentials.get("sber_client_cert"),
-            sber_client_key=config_credentials.get("sber_client_key"),
-            sber_ca_chain=config_credentials.get("sber_ca_chain"),
+            sber_client_cert=credentials.client_cert or config_credentials.get("sber_client_cert"),
+            sber_client_key=credentials.client_key or config_credentials.get("sber_client_key"),
+            sber_ca_chain=credentials.ca_chain or config_credentials.get("sber_ca_chain"),
         )
         if not is_success:
             return is_success, message
@@ -125,7 +124,7 @@ class SourceSberEscrow(AbstractSource):
         return True, None
 
     @staticmethod
-    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[StartDate | None, EndDate | None]:
+    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[Optional[StartDate], Optional[EndDate]]:
         if last_days := config.get("last_days"):
             date_from = date.today() - timedelta(days=last_days)
             date_to = date.today() - timedelta(days=1)  # yesterday

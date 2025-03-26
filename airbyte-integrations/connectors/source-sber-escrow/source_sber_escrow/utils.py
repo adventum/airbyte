@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 import os
 import tempfile
+from typing import Optional
 
 import requests
 
@@ -9,9 +8,9 @@ import requests
 class CertifiedRequests:
     def __init__(
         self,
-        client_cert: str | None,
-        client_key: str | None,
-        ca_chain: str | None = None,
+        client_cert: Optional[str],
+        client_key: Optional[str],
+        ca_chain: Optional[str] = None,
     ) -> None:
         self.client_cert = client_cert
         self.client_key = client_key

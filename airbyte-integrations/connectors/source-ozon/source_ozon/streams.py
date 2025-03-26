@@ -256,6 +256,8 @@ class CampaignsReportStream(Stream):
         next(csvreader, None)  # Skip report header
         columns_headers = next(csvreader, None)
         for current_row, next_row in pairwise(csvreader):
+            if current_row[0] == "Всего":  # Не учитываем итоговые строки
+                continue
             if current_row[0] == "Корректировка":  # Не учитываем корректировку
                 continue
             try:

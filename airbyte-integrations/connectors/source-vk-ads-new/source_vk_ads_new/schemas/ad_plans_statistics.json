@@ -377,7 +377,7 @@
       }
     },
     "custom_event": {
-      "type": ["string", "null"]
+      "type": ["object", "string", "null"]
     }
   }
 }

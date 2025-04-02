@@ -91,6 +91,7 @@ class SourceAppmetricaLogsApi(AbstractSource):
                     metrics=table["metrics"],
                     dimensions=table.get("dimensions"),
                     filters=table.get("filters"),
+                    event_names=table.get("event_names"),
                 )
             )
 

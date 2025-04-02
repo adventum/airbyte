@@ -31,6 +31,7 @@ class AppmetricaReportsTable(HttpStream):
         metrics: list[str],
         dimensions: list[str] | None = None,
         filters: str | None = None,
+        event_names: list[str] | None = None,
     ):
         # setting source after super().__init__ will break name property
         self.api_version = api_version
@@ -43,6 +44,7 @@ class AppmetricaReportsTable(HttpStream):
         self.metrics = metrics
         self.dimensions = dimensions if dimensions is not None else []
         self.filters = filters
+        self.event_names = event_names if event_names is not None else []
 
     @property
     def url_base(self) -> str:
@@ -113,6 +115,10 @@ class AppmetricaReportsTable(HttpStream):
             params["dimensions"] = self.dimensions or ["date"]
             params["lang"] = "ru"
             params["request_domain"] = "ru"
+            if self.event_names:
+                params["eventNames"] = (
+                    "[[" + ",".join([f'"{name}"' for name in self.event_names]) + "]]"
+                )
         return params
 
     def parse_response(
@@ -125,5 +131,4 @@ class AppmetricaReportsTable(HttpStream):
             "metrics" : [ 249472.0, 990223.0 ]
           } ],
         """
-        print(response.json())
         yield from response.json()["data"]

@@ -271,10 +271,26 @@
             "dimensions" : {
               "title" : "Dimensions",
               "description" : "List of report (table) dimensions (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/attributes/mobmet_events/app)",
-              "type" : "string",
+              "type" : "array",
               "order" : 2,
+              "items": {
+                "type": "string"
+              },
               "examples" : [
-                "ym:ce:screenResolution==1920x1080"
+                "ym:ce:screenResolution==1920x1080  (for api v1)",
+                "campaign  (for api v2)"
+              ]
+            },
+            "event_names" : {
+              "title" : "Event names",
+              "description" : "List of report (table) event names. May be required for some requests. Check if api request from appmetrica cabinet uses them",
+              "type" : "array",
+              "order" : 2,
+              "items": {
+                "type": "string"
+              },
+              "examples" : [
+                "app_start  (for api v2)"
               ]
             },
             "filters" : {

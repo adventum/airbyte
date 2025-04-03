@@ -159,7 +159,8 @@ class StatisticsStream(VkAdsNewStream, HttpSubStream, ABC):
             **VkAdsNewStream.request_params(self, stream_slice=stream_slice, *args, **kwargs),
             "date_from": self.date_from.strftime("%Y-%m-%d"),
             "date_to": self.date_to.strftime("%Y-%m-%d"),
-            "metrics": "all",
+            "metrics": "all,custom_event",
+            "custom_events": "custom_event_41",
             **stream_slice,
         }
 

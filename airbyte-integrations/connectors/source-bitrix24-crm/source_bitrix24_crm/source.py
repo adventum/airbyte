@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, Optional, Tuple
 import requests
 from airbyte_cdk.sources import AbstractSource
 
+from .auth import CredentialsCraftAuthenticator
 from .utils import get_config_date_range
 from .streams.base import Bitrix24CrmStream
 from .streams.deals import Deals
@@ -39,6 +40,18 @@ class SourceBitrix24Crm(AbstractSource):
         config["date_to"] = end_date.replace(hour=23, minute=59, second=59).strftime(
             "%Y/%m/%dT%H:%M:%S"
         )
+
+        if config["credentials"]["auth_type"] == "credentials_craft_auth":
+            cc_authenticator: CredentialsCraftAuthenticator = CredentialsCraftAuthenticator(
+                credentials_craft_host=config["credentials"]["credentials_craft_host"],
+                credentials_craft_token=config["credentials"]["credentials_craft_token"],
+                credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
+            )
+            config["webhook_endpoint"] = cc_authenticator.token
+
+        if config["credentials"]["auth_type"] == "webhook_endpoint_auth":
+            config["webhook_endpoint"] = config["credentials"]["webhook_endpoint"]
+
         return [
             Leads(config),
             Deals(config),

@@ -5,16 +5,80 @@
     "title": "Bitrix24 Crm Spec",
     "type": "object",
     "required": [
-      "webhook_endpoint",
+      "credentials",
       "date_range"
     ],
     "additionalProperties": false,
     "properties": {
-      "webhook_endpoint": {
-        "order": 0,
-        "title": "Webhook Endpoint URL",
-        "type": "string",
-        "description": "Webhook Endpoint URL"
+      "credentials" : {
+        "title" : "Метод авторизации",
+        "order" : 0,
+        "type" : "object",
+        "group" : "auth",
+        "oneOf" : [
+          {
+            "title" : "WebHook Endpoint Auth",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Auth Type",
+                "const" : "webhook_endpoint_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "webhook_endpoint" : {
+                "title" : "WebHook Endpoint Url",
+                "description" : "Webhook Endpoint URL.",
+                "airbyte_secret" : false,
+                "type" : "string"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "webhook_endpoint"
+            ]
+          },
+          {
+            "title" : "CredentialsCraft",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Auth Type",
+                "const" : "credentials_craft_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "credentials_craft_host" : {
+                "title" : "CredentialsCraft Host",
+                "description" : "По какому адресу находится сервис CredentialsCraft?",
+                "examples" : [
+                  "https://credentialscraft.mysite.com"
+                ],
+                "type" : "string"
+              },
+              "credentials_craft_token" : {
+                "title" : "CredentialsCraft Token",
+                "description" : "Токен CredentialsCraft (НЕ токен Яндекс).",
+                "type" : "string",
+                "airbyte_secret" : true
+              },
+              "credentials_craft_token_id" : {
+                "title" : "ID авторизации в CredentialsCraft",
+                "desctiption" : "ID авторизации Yandex внутри CredentialsCraft",
+                "examples" : [
+                  3345435
+                ],
+                "type" : "integer"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
+            ]
+          }
+        ]
       },
       "date_range": {
         "order": 2,

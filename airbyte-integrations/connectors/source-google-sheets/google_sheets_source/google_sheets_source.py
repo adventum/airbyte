@@ -49,21 +49,13 @@ class GoogleSheetsSource(Source):
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         # Check involves verifying that the specified spreadsheet is reachable with our credentials.
         try:
-            if config["credentials"]["auth_type"] == "credentials_craft_auth":
-                client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
-            else:
-                client = GoogleSheetsClient(self.get_credentials(config))
+            client = GoogleSheetsClient(self.get_credentials(config))
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"Please use valid credentials json file. Error: {e}")
 
-        # logger.info(config)
         spreadsheets = config.get("spreadsheets")
         for spreadsheet_id in spreadsheets:
             spreadsheet_id = spreadsheet_id["spreadsheet_id"]
-            # logger.info("##"*20)
-            # logger.info(spreadsheets)
-            # logger.info(spreadsheet_id)
-            # logger.info("##"*20)
 
             # Replace part of spreadsheet_id if placeholder in spreadsheet_id
             if self.contains_placeholder(spreadsheet_id):
@@ -92,10 +84,8 @@ class GoogleSheetsSource(Source):
 
             duplicate_headers_in_sheet = {}
             for sheet_name in grid_sheets:
-                print(f"Это check {sheet_name}")
                 try:
                     header_row_data = Helpers.get_first_row(client, spreadsheet_id, sheet_name)
-                    print(f"Это check {header_row_data}")
                     _, duplicate_headers = Helpers.get_valid_headers_and_duplicates(header_row_data)
                     if duplicate_headers:
                         duplicate_headers_in_sheet[sheet_name] = duplicate_headers
@@ -123,10 +113,7 @@ class GoogleSheetsSource(Source):
             return AirbyteConnectionStatus(status=Status.SUCCEEDED)
 
     def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
-        if config["credentials"]["auth_type"] == "credentials_craft_auth":
-            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
-        else:
-            client = GoogleSheetsClient(self.get_credentials(config))
+        client = GoogleSheetsClient(self.get_credentials(config))
 
         streams = []
         spreadsheets = config.get("spreadsheets")
@@ -175,10 +162,7 @@ class GoogleSheetsSource(Source):
     def read(
             self, logger: AirbyteLogger, config: json, catalog: ConfiguredAirbyteCatalog, state: Dict[str, any]
     ) -> Generator[AirbyteMessage, None, None]:
-        if config["credentials"]["auth_type"] == "credentials_craft_auth":
-            client = GoogleSheetsClient(self.get_credentials(config)["credentials"])
-        else:
-            client = GoogleSheetsClient(self.get_credentials(config))
+        client = GoogleSheetsClient(self.get_credentials(config))
 
         spreadsheets = config.get("spreadsheets")
         duplicate = {} # Contains pair {duplicate: unique} sheets
@@ -221,14 +205,9 @@ class GoogleSheetsSource(Source):
                 client, spreadsheet_id, restored_sheet_to_column_name, renamed_sheets
             )
 
-            # logger.info(f"Sheet_to_column_index_to_name_keys: {sheet_to_column_index_to_name.keys()}")
-            # logger.info(f"Sheet_to_column_index_to_name_values: {sheet_to_column_index_to_name.values()}")
             sheet_row_counts = Helpers.get_sheet_row_count(client, spreadsheet_id)
-            # logger.info(f"Row counts: {sheet_row_counts}")
 
             # Union duplicates sheets
-            # logger.info(f"sheet_to_column_index_to_name (Name_of_sheet: dict(index: [column_names])) - {sheet_to_column_index_to_name}")
-
             for sheet, columns in sheet_to_column_name.items():
                 if sheet_to_column_name[sheet] not in unique.values():
                     unique[sheet] = columns
@@ -277,19 +256,17 @@ class GoogleSheetsSource(Source):
     def get_credentials(config):
         # backward compatible with old style config
         if config.get("credentials_json"):
-            credentials = {"auth_type": "Service", "service_account_info": config.get("credentials_json")}
-            return credentials
+            return {"auth_type": "Service", "service_account_info": config.get("credentials_json")}
 
         credentials = config.get("credentials")
         auth_type = credentials.get("auth_type")
-
         if auth_type == "credentials_craft_auth":
             authenticator = CredentialsCraftAuthenticator(
                 credentials_craft_host=credentials["credentials_craft_host"],
                 credentials_craft_token=credentials["credentials_craft_token"],
                 credentials_craft_token_id=credentials["credentials_craft_token_id"]
             )
-            return {"auth_type": "Client", "credentials": authenticator.token}
+            return {"auth_type": "Service", "service_account_info": authenticator.token}
 
         return credentials
 

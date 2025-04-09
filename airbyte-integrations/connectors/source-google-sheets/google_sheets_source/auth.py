@@ -1,3 +1,4 @@
+import json
 from typing import Any, Mapping
 
 import requests
@@ -24,14 +25,17 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
 
     @property
     def token(self) -> str:
+        """
+        Returns a json string, which is then parsed by the
+        GoogleSheetsClient (in get_authenticated_google_credentials) via json.loads
+        """
         response = requests.get(
             self._url,
             headers={"Authorization": f"Bearer {self._cc_token}"},
         )
         response.raise_for_status()
         data: dict[str, Any] = response.json()
-
-        return data["token_data"]["credentials"]
+        return data["token_data"]["service_account"]
 
     def get_auth_header(self) -> Mapping[str, Any]:
         super().__init__(self.token, "Bearer", "Authorization")

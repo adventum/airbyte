@@ -54,7 +54,6 @@ connectionSpecification:
             - auth_type
             - client_id
             - client_secret
-            - scope
           properties:
             auth_type:
               title: Auth Type
@@ -68,9 +67,6 @@ connectionSpecification:
               title: Client Secret
               type: string
               airbyte_secret: true
-            scope:
-              title: Token Scope
-              type: string
             sber_client_cert:
               title: Sber Client Certificate
               type: string

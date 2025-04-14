@@ -79,7 +79,6 @@ class SourceSberEscrow(AbstractSource):
             return TokenAuthenticator(
                 client_id=credentials["client_id"],
                 client_secret=credentials["client_secret"],
-                scope=credentials["scope"],
                 sber_client_cert=credentials.get("sber_client_cert"),
                 sber_client_key=credentials.get("sber_client_key"),
                 sber_ca_chain=credentials.get("sber_ca_chain"),

@@ -13,14 +13,12 @@ class TokenAuthenticator:
         self,
         client_id: str,
         client_secret: str,
-        scope: str,
         sber_client_cert: Optional[str] = None,
         sber_client_key: Optional[str] = None,
         sber_ca_chain: Optional[str] = None,
     ):
         self.client_id = client_id
         self.client_secret = client_secret
-        self.scope = scope
         self.sber_client_cert = sber_client_cert
         self.sber_client_key = sber_client_key
         self.sber_ca_chain = sber_ca_chain
@@ -44,7 +42,7 @@ class TokenAuthenticator:
 
         data = {
             "grant_type": "client_credentials",
-            "scope": self.scope,
+            "scope": "https://api.sberbank.ru/escrow",
         }
 
         response = self._certified_request.post(self._url, headers=headers, data=data)
@@ -87,7 +85,6 @@ class CredentialsCraftAuthenticator:
         authenticator = TokenAuthenticator(
             client_id=token_data["client_id"],
             client_secret=token_data["client_secret"],
-            scope=token_data["scope"],
             sber_client_cert=token_data.get("sber_client_cert"),
             sber_client_key=token_data.get("sber_client_key"),
             sber_ca_chain=token_data.get("sber_ca_chain"),

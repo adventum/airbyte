@@ -1,12 +1,12 @@
 import logging
 import os
 from datetime import date, datetime, timedelta
-from typing import Mapping, Any, List, Tuple, Callable, Optional
+from typing import Mapping, Any, List, Tuple, Optional, Union
 
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 
-from source_sber_escrow.auth import CredentialsCraftAuthenticator
+from source_sber_escrow.auth import CredentialsCraftAuthenticator, TokenAuthenticator
 from source_sber_escrow.streams import EscrowAccountsListStream, EscrowAccountsTransactionStream, check_sber_escrow_connection
 from source_sber_escrow.types import EndDate, IsSuccess, Message, SberCredentials, StartDate
 
@@ -50,10 +50,9 @@ class SourceSberEscrow(AbstractSource):
     def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[IsSuccess, Optional[Message]]:
         # Check auth
         auth = self._get_auth(config)
-        if isinstance(auth, CredentialsCraftAuthenticator):
-            is_success, message = auth.check_connection()
-            if not is_success:
-                return False, f"Failed to connect to CredentialsCraft: {message}"
+        is_success, message = auth.check_connection()
+        if not is_success:
+            return False, f"Failed to fetch Sber API token: {message}"
 
         credentials = auth()
 
@@ -65,7 +64,7 @@ class SourceSberEscrow(AbstractSource):
         return True, None
 
     @staticmethod
-    def _get_auth(config: Mapping[str, Any]) -> Callable:
+    def _get_auth(config: Mapping[str, Any]) -> Union[CredentialsCraftAuthenticator, TokenAuthenticator]:
         credentials = config["credentials"]
         auth_type = credentials["auth_type"]
 
@@ -73,11 +72,18 @@ class SourceSberEscrow(AbstractSource):
             return CredentialsCraftAuthenticator(
                 host=credentials["credentials_craft_host"],
                 bearer_token=credentials["credentials_craft_token"],
-                sber_token_id=credentials["credentials_craft_sber_token_id"],
+                token_id=credentials["credentials_craft_sber_token_id"],
             )
 
         if auth_type == "token_auth":
-            return lambda: SberCredentials(access_token=credentials["token"], client_id=credentials["client_id"])
+            return TokenAuthenticator(
+                client_id=credentials["client_id"],
+                client_secret=credentials["client_secret"],
+                scope=credentials["scope"],
+                sber_client_cert=credentials.get("sber_client_cert"),
+                sber_client_key=credentials.get("sber_client_key"),
+                sber_ca_chain=credentials.get("sber_ca_chain"),
+            )
 
         raise ValueError(f"Unknown auth type: '{auth_type}'")
 

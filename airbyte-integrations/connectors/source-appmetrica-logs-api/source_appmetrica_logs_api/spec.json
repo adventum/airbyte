@@ -107,7 +107,7 @@
                 "installations",
                 "postbacks",
                 "events",
-                "profiles",
+                "profiles_v2",
                 "revenue_events",
                 "deeplinks",
                 "push_tokens",

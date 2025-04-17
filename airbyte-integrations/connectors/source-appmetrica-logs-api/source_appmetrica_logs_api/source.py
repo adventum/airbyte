@@ -27,7 +27,7 @@ class SourceAppmetricaLogsApi(AbstractSource):
             return False, "You must add at least one stream"
         try:
             stream = streams[0]
-            if isinstance(stream, AppmetricaReportsTable):
+            if isinstance(stream, AppmetricaLogsApi):
                 stream_slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh, stream_state=None))
                 first_slice = stream_slices[0] if stream_slices else None
                 params = {

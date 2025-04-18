@@ -158,7 +158,7 @@ AVAILABLE_FIELDS = {
             "application_id": "integer",
         }
     },
-    "profiles": {
+    "profiles_v2": {
         "fields": {
             "profile_id": "string",
             "appmetrica_gender": "string",

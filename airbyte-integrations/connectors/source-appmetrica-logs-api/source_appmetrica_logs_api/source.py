@@ -5,6 +5,7 @@
 
 from typing import Any, Mapping
 
+import requests
 from airbyte_cdk import TokenAuthenticator
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
@@ -25,8 +26,29 @@ class SourceAppmetricaLogsApi(AbstractSource):
         if not streams:
             return False, "You must add at least one stream"
         try:
-            next(streams[0].read_records(sync_mode=SyncMode.full_refresh))
-            return True, None
+            stream = streams[0]
+            if isinstance(stream, AppmetricaLogsApi):
+                stream_slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh, stream_state=None))
+                first_slice = stream_slices[0] if stream_slices else None
+                params = {
+                    "application_id": stream.application_id,
+                    "date_since": first_slice["date_from"].format(stream.datetime_format),
+                    "date_until": first_slice["date_to"].format(stream.datetime_format),
+                    "fields": ",".join(stream.fields),
+                    "date_dimension": stream.date_dimension,
+                }
+                response = requests.get(
+                    url=stream.url_base + stream.path(),
+                    headers={"Authorization": f"OAuth {stream._token}"},
+                    params=params,
+                )
+                assert response.status_code in (200, 202, 204)
+                return True, None
+            elif isinstance(stream, AppmetricaReportsTable):
+                next(streams[0].read_records(sync_mode=SyncMode.full_refresh))
+                return True, None
+            else:
+                raise Exception(f"Connection check is not supported for class {stream.__class__.__name__}")
         except Exception as e:
             return False, str(e)
 

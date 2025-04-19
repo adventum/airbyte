@@ -1,7 +1,6 @@
 import re
 import xml.etree.ElementTree as ET
 from datetime import date
-from datetime import datetime, timedelta
 from typing import Optional, List
 from typing import Type, Mapping, Any, Iterable
 from uuid import uuid4
@@ -10,48 +9,59 @@ from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams import Stream
 from pydantic import BaseModel
 
+from source_sber_escrow.auth import TokenAuthenticator
 from source_sber_escrow.schemas.escrow_accounts_list import EscrowAccountsListReport
 from source_sber_escrow.schemas.escrow_accounts_transactions import EscrowAccountsTransactionReport
 from source_sber_escrow.types import SberCredentials, IsSuccess, Message
 from source_sber_escrow.utils import CertifiedRequests
 
 
+def get_commission_object_codes(
+    token: str,
+    client_id: str,
+    sber_client_cert: Optional[str] = None,
+    sber_client_key: Optional[str] = None,
+    sber_ca_chain: Optional[str] = None,
+) -> list[str]:
+    certified_request = CertifiedRequests(client_cert=sber_client_cert, client_key=sber_client_key, ca_chain=sber_ca_chain)
+
+    url = "https://api.sberbank.ru:8443/prod/tradefin/escrow/v2/residential-complex"
+    headers = {
+        "authorization": f"Bearer {token}",
+        "x-ibm-client-id": client_id,
+        "x-introspect-rquid": uuid4().hex,
+    }
+    response = certified_request.get(url, headers=headers)
+    response.raise_for_status()
+
+    root = ET.fromstring(response.content)
+    ns = {"ns": "http://model.tfido.escrow.sbrf.ru"}
+
+    codes = []
+    for complex_elem in root.findall("ns:residentialComplex", ns):
+        for comm_obj_elem in complex_elem.findall("ns:commissioningObject", ns):
+            code_elem = comm_obj_elem.find("ns:code", ns)
+            if code_elem is not None and code_elem.text:
+                codes.append(code_elem.text)
+
+    print(f"Commissioning object codes: {codes}")
+    return codes
+
+
 def check_sber_escrow_connection(
     credentials: SberCredentials,
-    commisioning_object_codes: Optional[list[str]] = None,
-    individual_terms_id: Optional[list[str]] = None,
     sber_client_cert: Optional[str] = None,
     sber_client_key: Optional[str] = None,
     sber_ca_chain: Optional[str] = None,
 ) -> tuple[IsSuccess, Optional[Message]]:
-    certified_request = CertifiedRequests(client_cert=sber_client_cert, client_key=sber_client_key, ca_chain=sber_ca_chain)
-
-    data = {
-        "startReportDate": (datetime.now() - timedelta(days=2)).date().isoformat(),
-        "endReportDate": (datetime.now() - timedelta(days=1)).date().isoformat(),
-        "limit": 1,
-        "offset": 0,
-    }
-
-    if commisioning_object_codes:
-        data["сommisioningObjectCode"] = commisioning_object_codes
-    elif individual_terms_id:
-        data["individualTermsId"] = individual_terms_id
-    else:
-        return False, "No commissioning object codes or individual terms IDs provided"
-
     try:
-        response = certified_request.post(
-            url="https://api.sberbank.ru:8443/prod/tradefin/escrow/v2/account-oper-list",
-            headers={
-                "authorization": f"Bearer {credentials.access_token.get_secret_value()}",
-                "content-type": "application/x-www-form-urlencoded",
-                "x-ibm-client-id": credentials.client_id,
-                "x-introspect-rquid": uuid4().hex,
-            },
-            data=data,
+        get_commission_object_codes(
+            token=credentials.access_token.get_secret_value(),
+            client_id=credentials.client_id,
+            sber_client_cert=sber_client_cert,
+            sber_client_key=sber_client_key,
+            sber_ca_chain=sber_ca_chain,
         )
-        response.raise_for_status()
         return True, None
     except Exception as e:
         print(f"Sber-Escrow connection check failed: {str(e)}")
@@ -67,8 +77,6 @@ class BaseEscrowAccountsStream(Stream):
         credentials: SberCredentials,
         date_from: date,
         date_to: date,
-        commisioning_object_codes: Optional[list[str]] = None,
-        individual_terms_id: Optional[list[str]] = None,
         sber_client_cert: Optional[str] = None,
         sber_client_key: Optional[str] = None,
         sber_ca_chain: Optional[str] = None,
@@ -76,12 +84,17 @@ class BaseEscrowAccountsStream(Stream):
         self.credentials = credentials
         self.date_from = date_from
         self.date_to = date_to
-        self.commisioning_object_codes = commisioning_object_codes
-        self.individual_terms_id = individual_terms_id
         self.sber_client_cert = sber_client_cert
         self.sber_client_key = sber_client_key
         self.sber_ca_chain = sber_ca_chain
 
+        self._authenticator = TokenAuthenticator(
+            client_id=self.credentials.client_id,
+            client_secret=self.credentials.client_secret,
+            sber_client_cert=self.sber_client_cert,
+            sber_client_key=self.sber_client_key,
+            sber_ca_chain=self.sber_ca_chain,
+        )
         self._certified_request = CertifiedRequests(
             client_cert=self.sber_client_cert, client_key=self.sber_client_key, ca_chain=self.sber_ca_chain
         )
@@ -90,32 +103,29 @@ class BaseEscrowAccountsStream(Stream):
     def primary_key(self) -> None:
         return None
 
-    @property
-    def headers(self) -> dict:
+    def get_headers(self) -> dict:
         return {
-            "authorization": f"Bearer {self.credentials.access_token.get_secret_value()}",
+            "authorization": f"Bearer {self._fetch_token()}",
             "content-type": "application/x-www-form-urlencoded",
             "x-ibm-client-id": self.credentials.client_id,
             "x-introspect-rquid": uuid4().hex,
         }
 
-    @property
-    def data(self) -> dict:
-        data = {
+    def create_request_body(self) -> dict:
+        commisioning_object_codes = get_commission_object_codes(
+            token=self._fetch_token(),
+            client_id=self.credentials.client_id,
+            sber_client_cert=self.sber_client_cert,
+            sber_client_key=self.sber_client_key,
+            sber_ca_chain=self.sber_ca_chain,
+        )
+        return {
+            "сommisioningObjectCode": commisioning_object_codes,
             "startReportDate": self.date_from.isoformat(),
             "endReportDate": self.date_to.isoformat(),
             "limit": 9999,
             "offset": 0,
         }
-
-        if self.commisioning_object_codes:
-            data["сommisioningObjectCode"] = self.commisioning_object_codes
-        elif self.individual_terms_id:
-            data["individualTermsId"] = self.individual_terms_id
-        else:
-            raise ValueError("No commissioning object codes or individual terms IDs provided")
-
-        return data
 
     def get_json_schema(self) -> Mapping[str, Any]:
         return self.SCHEMA.schema()
@@ -127,12 +137,15 @@ class BaseEscrowAccountsStream(Stream):
         stream_slice: Mapping[str, Any] = None,
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
-        response = self._certified_request.post(url=self.URL, headers=self.headers, data=self.data)
+        response = self._certified_request.post(url=self.URL, headers=self.get_headers(), data=self.create_request_body())
         response.raise_for_status()
         yield from self._parse_xml_response(resp=response.text)
 
     def _parse_xml_response(self, resp: str) -> Iterable[Mapping[str, Any]]:
         raise NotImplementedError
+
+    def _fetch_token(self) -> str:
+        return self._authenticator().access_token.get_secret_value()
 
 
 class EscrowAccountsListStream(BaseEscrowAccountsStream):

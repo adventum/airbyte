@@ -20,17 +20,12 @@ class SourceSberEscrow(AbstractSource):
         sber_client_key = credentials.client_key or config_credentials.get("sber_client_key")
         sber_ca_chain = credentials.ca_chain or config_credentials.get("sber_ca_chain")
 
-        commisioning_object_codes = config.get("commisioning_object_codes")
-        individual_terms_id = config.get("individual_terms_id")
-
         date_from, date_to = self._prepare_dates(config)
         return [
             EscrowAccountsListStream(
                 credentials=credentials,
                 date_from=date_from,
                 date_to=date_to,
-                commisioning_object_codes=commisioning_object_codes,
-                individual_terms_id=individual_terms_id,
                 sber_client_cert=sber_client_cert,
                 sber_client_key=sber_client_key,
                 sber_ca_chain=sber_ca_chain,
@@ -39,8 +34,6 @@ class SourceSberEscrow(AbstractSource):
                 credentials=credentials,
                 date_from=date_from,
                 date_to=date_to,
-                commisioning_object_codes=commisioning_object_codes,
-                individual_terms_id=individual_terms_id,
                 sber_client_cert=sber_client_cert,
                 sber_client_key=sber_client_key,
                 sber_ca_chain=sber_ca_chain,
@@ -108,17 +101,9 @@ class SourceSberEscrow(AbstractSource):
                 if not (config_credentials.get("sber_client_cert") and config_credentials.get("sber_client_key")):
                     return False, "REQUESTS_CA_BUNDLE env is missing and Sber certificates are not provided."
 
-        # Check commissioning object codes or individual terms IDs
-        commisioning_object_codes = config.get("commisioning_object_codes")
-        individual_terms_id = config.get("individual_terms_id")
-        if not (commisioning_object_codes or individual_terms_id):
-            return False, "No commissioning object codes or individual terms IDs provided"
-
         # Check connection
         is_success, message = check_sber_escrow_connection(
             credentials=credentials,
-            commisioning_object_codes=commisioning_object_codes,
-            individual_terms_id=individual_terms_id,
             sber_client_cert=credentials.client_cert or config_credentials.get("sber_client_cert"),
             sber_client_key=credentials.client_key or config_credentials.get("sber_client_key"),
             sber_ca_chain=credentials.ca_chain or config_credentials.get("sber_ca_chain"),

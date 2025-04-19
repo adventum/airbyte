@@ -96,13 +96,3 @@ connectionSpecification:
       minimum: 1
       examples:
         - 7
-    commisioning_object_codes:
-      title: Сommisioning object codes
-      type: array
-      items:
-        type: string
-    individual_terms_id:
-        title: Individual terms ID
-        type: array
-        items:
-            type: string

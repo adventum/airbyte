@@ -49,9 +49,11 @@ class TokenAuthenticator:
         response.raise_for_status()
 
         token_data = response.json()
+        print(f"Fetch SberAPI token: {token_data}")
         return SberCredentials(
             access_token=token_data["access_token"],
             client_id=self.client_id,
+            client_secret=self.client_secret,
             client_cert=self.sber_client_cert,
             client_key=self.sber_client_key,
             ca_chain=self.sber_ca_chain,

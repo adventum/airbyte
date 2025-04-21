@@ -25,7 +25,7 @@ def get_commission_object_codes(
 ) -> list[str]:
     certified_request = CertifiedRequests(client_cert=sber_client_cert, client_key=sber_client_key, ca_chain=sber_ca_chain)
 
-    url = "https://api.sberbank.ru:8443/prod/tradefin/escrow/v2/residential-complex"
+    url = "https://mc.api.sberbank.ru/prod/tradefin/escrow/v2/residential-complex"
     headers = {
         "authorization": f"Bearer {token}",
         "x-ibm-client-id": client_id,
@@ -120,7 +120,7 @@ class BaseEscrowAccountsStream(Stream):
             sber_ca_chain=self.sber_ca_chain,
         )
         return {
-            "сommisioningObjectCode": commisioning_object_codes,
+            "commisioningObjectCode": commisioning_object_codes,
             "startReportDate": self.date_from.isoformat(),
             "endReportDate": self.date_to.isoformat(),
             "limit": 9999,
@@ -149,7 +149,7 @@ class BaseEscrowAccountsStream(Stream):
 
 
 class EscrowAccountsListStream(BaseEscrowAccountsStream):
-    URL: str = "https://api.sberbank.ru:8443/prod/tradefin/escrow/v2/account-list"
+    URL: str = "https://mc.api.sberbank.ru/prod/tradefin/escrow/v2/account-list"
     SCHEMA: Type[EscrowAccountsListReport] = EscrowAccountsListReport
 
     def _parse_xml_response(self, resp: str) -> Iterable[Mapping[str, Any]]:
@@ -187,7 +187,7 @@ class EscrowAccountsListStream(BaseEscrowAccountsStream):
 
 
 class EscrowAccountsTransactionStream(BaseEscrowAccountsStream):
-    URL: str = "https://api.sberbank.ru:8443/prod/tradefin/escrow/v2/account-oper-list"
+    URL: str = "https://mc.api.sberbank.ru/prod/tradefin/escrow/v2/account-oper-list"
     SCHEMA: Type[EscrowAccountsTransactionReport] = EscrowAccountsTransactionReport
 
     def _parse_xml_response(self, resp: str) -> Iterable[Mapping[str, Any]]:

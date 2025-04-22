@@ -1,4 +1,9 @@
-country_codes: dict[str, int] = {"Россия": 225, "Украина": 187, "Беларусь": 149, "Казахстан": 159}
+country_codes: dict[str, int] = {
+    "Россия": 225,
+    "Украина": 187,
+    "Беларусь": 149,
+    "Казахстан": 159,
+}
 
 region_codes: dict[str, int] = {
     "Архангельск": 20,
@@ -70,4 +75,6 @@ device_translations: dict[str, str] = {
     "Планшеты": "tablet",
 }
 
-region_translations: dict[str, int | str] = {"Все": "all"} | country_codes | region_codes
+region_translations: dict[str, int | str] = (
+    {"Все": "all"} | country_codes | region_codes
+)

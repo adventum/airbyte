@@ -16,9 +16,7 @@ class SourceWordstat(AbstractSource):
         today_date: pendulum.datetime = pendulum.now().replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        keyword: str = (
-            "Google Sheets"  # Random word combination not to use main ones to lower chances of getting captcha
-        )
+        keyword: str = "Google Sheets"  # Random word combination not to use main ones to lower chances of getting captcha
         new_config: dict[str, Any] = {
             "keywords": [keyword],
             "group_by": {"group_type": "day"},
@@ -107,9 +105,7 @@ class SourceWordstat(AbstractSource):
                     today_date.subtract(years=6).set(month=1, day=1).start_of("week")
                 )
                 if min_date_from.year != today_date.year - 6:  # Got previous year
-                    min_date_from = min_date_from.add(
-                        weeks=1
-                    )
+                    min_date_from = min_date_from.add(weeks=1)
 
                 end_of_last_week = today_date.subtract(weeks=1).end_of("week")
 
@@ -138,13 +134,14 @@ class SourceWordstat(AbstractSource):
                 """
                 min_date_from = today_date.subtract(years=6).start_of("year")
                 date_from = min(
-                    max(date_from.start_of("month"), min_date_from), today_date.start_of("month")
+                    max(date_from.start_of("month"), min_date_from),
+                    today_date.start_of("month"),
                 )
 
                 end_of_previous_month = today_date.subtract(months=1).end_of("month")
                 date_to = max(
                     min(date_to.end_of("month"), end_of_previous_month),
-                    today_date.subtract(years=6).set(month=1).end_of("month")
+                    today_date.subtract(years=6).set(month=1).end_of("month"),
                 )
 
                 delta: int = (date_to - date_from).months
@@ -154,7 +151,10 @@ class SourceWordstat(AbstractSource):
                         date_from = date_from.add(months=3)
                         date_to = date_to.add(months=3)
 
-        config["date_from_transformed"], config["date_to_transformed"] = date_from, date_to
+        config["date_from_transformed"], config["date_to_transformed"] = (
+            date_from,
+            date_to,
+        )
         return config
 
     @staticmethod

@@ -4,6 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional
+from urllib.parse import urlencode, urlunparse
 
 import pendulum
 import requests
@@ -27,19 +28,23 @@ class WordstatStream(HttpStream, ABC):
         self._authenticator = authenticator
         self._retry_count: int = retry_count
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         return None
 
     def request_params(
         self,
         stream_state: Mapping[str, Any],
-        stream_slice: Mapping[str, any] = None,
+        stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
         return {}
 
     @abstractmethod
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]: ...
+    def parse_response(
+        self, response: requests.Response, **kwargs
+    ) -> Iterable[Mapping]: ...
 
     def read_records(
         self,
@@ -54,29 +59,60 @@ class WordstatStream(HttpStream, ABC):
 
         body = self.request_body_json(stream_state, stream_slice)
         succeeded: bool = False
+        url = self.url_base + self.path()
+
+        # Set correct referer header
+        headers = self._authenticator.headers
+        referer_params = urlencode(
+            {
+                "region": body["filters"]["region"],
+                "view": "table",
+                "words": body["searchValue"],
+            },
+            encoding="utf-8",
+        )
+        referer_value = urlunparse(
+            ("https", "wordstat.yandex.ru", "/", "", referer_params, "")
+        )
+        headers["Referer"] = referer_value
+        headers["Accept-Language"] = "ru"
+
+        cookies = self._authenticator.cookies
 
         while attempts_count < self._retry_count:
             try:
-                response: requests.Response = requests.post(
-                    url=self.url_base + self.path(), json=body, headers=self._authenticator.headers
-                )
+                if not cookies:
+                    response: requests.Response = requests.post(
+                        url=url, json=body, headers=headers
+                    )
+                else:
+                    response: requests.Response = requests.post(
+                        url=url, json=body, headers=headers, cookies=cookies
+                    )
                 if response.status_code == 400:
                     raise ValueError(
                         "Статус 400. Пользовательская конфигурация некорректна или же произошла ошибка в коде ее обработки"
                     )
+                if response.status_code == 429:
+                    raise Exception("Превышен лимит запросов. Ожидаем")
                 if response.status_code != 200:
                     raise ValueError(f"Status code is {response.status_code}")
 
                 response.json()  # If got captcha, wordstat returns status 200, but json fails
             except JSONDecodeError:
                 self.logger.warning("Wordstat выдал капчу")
-                time.sleep(random.uniform(waiting_start, waiting_start + 10))
-                waiting_start += 1
-                attempts_count += 1
-                continue
+            except ValueError as ex:  # Used for 404
+                raise ex
+            except Exception as ex:
+                self.logger.warning(f"Произошла ошибка: {ex}")
             else:
                 succeeded = True
                 break
+
+            if not succeeded:
+                time.sleep(random.uniform(waiting_start, waiting_start + 10))
+                waiting_start += 1
+                attempts_count += 1
 
         if succeeded:
             yield from self.parse_response(response=response, stream_slice=stream_slice)
@@ -113,7 +149,9 @@ class Search(WordstatStream):
         if not self.keywords:
             raise ValueError("Нет ключевых слов. Введите хотя бы одно")
 
-        self.devices: list[str] = [device_translations.get(device) for device in config["devices"]]
+        self.devices: list[str] = [
+            device_translations.get(device) for device in config["devices"]
+        ]
         self.split_devices: bool = config["split_devices"]
         if not self.devices:
             raise ValueError("Не выбран ни один тип устройства. Выберите хотя бы один")
@@ -123,7 +161,8 @@ class Search(WordstatStream):
             self.regions = "all"
         else:
             self.regions = [
-                region_translations[region] for region in config["region"]["selected_regions"]
+                region_translations[region]
+                for region in config["region"]["selected_regions"]
             ]
             self.regions.extend(config["region"].get("custom_regions", []))
             self.regions = list(set(self.regions))
@@ -146,7 +185,8 @@ class Search(WordstatStream):
             )
         else:
             yield from (
-                {"keyword": keyword, "devices": ",".join(self.devices)} for keyword in self.keywords
+                {"keyword": keyword, "devices": ",".join(self.devices)}
+                for keyword in self.keywords
             )
 
     def request_body_json(
@@ -156,7 +196,7 @@ class Search(WordstatStream):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Optional[Mapping[str, Any]]:
         """Get request json"""
-        data: dict[str, any] = {
+        data: dict[str, Any] = {
             "currentDevice": stream_slice["devices"],
             "currentGraphType": self.group_by,
             "currentMapType": "all",
@@ -169,8 +209,8 @@ class Search(WordstatStream):
             "endDate": self.date_to.strftime("%d.%m.%Y"),
             "text": {  # Mostly useless, just copying wordstat request. Since there is no public api, this format may be helpful
                 "graph": {
-                    "title": "История запросов «»",
-                    "disclaimer": f"Для каждой даты с {self.date_from.strftime('%d.%m.%Y')} по {self.date_to.strftime('%d.%m.%Y')} мы посчитали отношение числа запросов «» к среднему числу таких запросов за весь период.\\nГрафик показывает, как отличается дневное количество запросов от среднего значения.",
+                    "title": f"История запросов «{stream_slice['keyword']}»",
+                    "disclaimer": f"Для каждой даты с {self.date_from.strftime('%d.%m.%Y')} по {self.date_to.strftime('%d.%m.%Y')} мы посчитали отношение числа запросов «{stream_slice['keyword']}» к среднему числу таких запросов за весь период.\\nГрафик показывает, как отличается дневное количество запросов от среднего значения.",
                 },
                 "map": {"title": "", "disclaimer": ""},
                 "table": {"title": "", "disclaimer": ""},
@@ -183,9 +223,12 @@ class Search(WordstatStream):
         return data
 
     def parse_response(
-        self, response: requests.Response, stream_slice: Mapping[str, Any] = None, **kwargs
+        self,
+        response: requests.Response,
+        stream_slice: Mapping[str, Any] = None,
+        **kwargs,
     ) -> Iterable[Mapping]:
-        response_json: dict[str, any] = response.json()
+        response_json: dict[str, Any] = response.json()
         graph_data = response_json.get("graph", {})
         if not graph_data:
             yield from []
@@ -195,7 +238,9 @@ class Search(WordstatStream):
                 yield from []
             else:
                 for record in table_data:
-                    record["absoluteValue"] = int(record["absoluteValue"].replace(" ", ""))
+                    record["absoluteValue"] = int(
+                        record["absoluteValue"].replace(" ", "")
+                    )
                     record["value"] = float(record["value"].replace(",", "."))
                     record["keyword"] = stream_slice["keyword"]
                     record["devices"] = stream_slice["devices"]

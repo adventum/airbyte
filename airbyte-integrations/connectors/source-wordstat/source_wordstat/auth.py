@@ -1,4 +1,5 @@
 from typing import Any
+import re
 
 from requests.auth import AuthBase
 
@@ -25,8 +26,9 @@ class HeadersAuthenticator(AuthBase):
                 if header_name not in ["Referer", "Content-Length"]:
                     self.headers[header_name] = header_value
             if line.startswith("-b"):
-                cookies_list = line.split("-b")[1].strip().split(";")
+                cookies = re.findall(r"'([^']*)'", line)[0].strip()
+                cookies_list = cookies.split(";")
                 for cookie in cookies_list:
                     key, value = cookie.split("=")[0], "".join(cookie.split("=")[1:])
-                    key = key.strip()
+                    key, value = key.strip(), value.strip()
                     self.cookies[key] = value

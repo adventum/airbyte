@@ -115,6 +115,7 @@ class AppmetricaReportsTable(HttpStream):
             params["dimensions"] = self.dimensions or ["date"]
             params["lang"] = "ru"
             params["request_domain"] = "ru"
+            params["limit"] = 5000
             if self.event_names:
                 params["eventNames"] = (
                     "[[" + ",".join([f'"{name}"' for name in self.event_names]) + "]]"

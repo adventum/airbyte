@@ -13,13 +13,6 @@ class HeadersAuthenticator(AuthBase):
         self.headers: dict[str, Any] = {}
         self.cookies: dict[str, Any] = {}
 
-        """Firefox has different format that can be parsed with uncurl"""
-        if "Mozilla" in self.curl_request:
-            ctx = uncurl.parse_context(self.curl_request)
-            self.cookies = ctx.cookies
-            self.headers = ctx.headers
-            return
-
         """Fetch headers from curl"""
         # Chrome and Safari can't be parsed by uncurl
         for line in self.curl_request.split("\\"):
@@ -41,3 +34,13 @@ class HeadersAuthenticator(AuthBase):
                     key, value = cookie.split("=")[0], "".join(cookie.split("=")[1:])
                     key, value = key.strip(), value.strip()
                     self.cookies[key] = value
+        if not self.cookies and not self.headers:
+            ctx = uncurl.parse_context(self.curl_request)
+            self.cookies = ctx.cookies
+            self.headers = ctx.headers
+        if not self.cookies and not self.headers:
+            raise Exception(
+                "Не удалось разобрать curl запрос. Проверьте, что в нем есть авторизационные данные, "
+                "получите новый curl или попробуйте сменить браузер, из которого получался curl. "
+                "Рекомендуемые браузеры: Google Chrome и Safari."
+            )

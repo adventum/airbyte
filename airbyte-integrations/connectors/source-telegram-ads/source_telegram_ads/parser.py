@@ -101,7 +101,7 @@ def parse_all_ads(ads_page_response: requests.Response) -> Generator[dict[str, A
     resp_text = ads_page_response.text
     # print("resp_text", resp_text)
     soup = BeautifulSoup(ads_page_response.text, features="html.parser")
-    table: Tag = soup.select("section.pr-content>.table-responsive>table")[0]
+    table: Tag = soup.select("body div.table-responsive > table")[0]
 
     # next_offset_id = re.findall('"next_offset_id":\s?"([a-zA-Z\d\-]+)"', resp_text)
     # owner_id = re.findall('"owner_id":\s?"([a-zA-Z\d_-]+)"', resp_text)
@@ -136,9 +136,9 @@ def parse_all_ads(ads_page_response: requests.Response) -> Generator[dict[str, A
                 row_data["title"] = cell.select("a")[0].contents[0]
             if cell_n == 1:
                 row_data["views"] = cell.select("a")[0].contents[0].replace(",", "")
-            if cell_n == 12:
-                row_data["status"] = cell.select("a")[0].contents[0].lower()
             if cell_n == 13:
+                row_data["status"] = cell.select("a")[0].contents[0].lower()
+            if cell_n == 14:
                 row_data["date_added"] = datetime.strptime(
                     cell.select("a")[0].contents[0],
                     "%d %b %y %H:%M",

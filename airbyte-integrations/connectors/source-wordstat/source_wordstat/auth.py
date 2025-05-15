@@ -1,6 +1,7 @@
 from typing import Any
 import re
 
+import uncurl
 from requests.auth import AuthBase
 
 
@@ -12,7 +13,15 @@ class HeadersAuthenticator(AuthBase):
         self.headers: dict[str, Any] = {}
         self.cookies: dict[str, Any] = {}
 
+        """Firefox has different format that can be parsed with uncurl"""
+        if "Mozilla" in self.curl_request:
+            ctx = uncurl.parse_context(self.curl_request)
+            self.cookies = ctx.cookies
+            self.headers = ctx.headers
+            return
+
         """Fetch headers from curl"""
+        # Chrome and Safari can't be parsed by uncurl
         for line in self.curl_request.split("\\"):
             line = line.replace("\n", "").strip()
             if line.startswith("-H"):

@@ -2,7 +2,7 @@ from typing import Any, Iterable, List, Mapping
 
 
 def find_report_candidates(
-    parent_stream_slices: Iterable[Mapping[str, Any]]
+    parent_stream_slices: Iterable[Mapping[str, Any]],
 ) -> List[Mapping[str, Any]]:
     """
     Get report candidates.

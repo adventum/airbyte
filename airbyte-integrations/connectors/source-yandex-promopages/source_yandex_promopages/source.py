@@ -3,7 +3,6 @@
 #
 
 
-import json
 import logging
 from abc import ABC
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ import requests
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.streams.http import HttpStream, HttpSubStream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
@@ -42,11 +40,15 @@ class Publishers(YandexPromopagesStream):
     def path(self, **kwargs) -> str:
         return "permissions/user"
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+    def parse_response(
+        self, response: requests.Response, **kwargs
+    ) -> Iterable[Mapping]:
         for record in response.json().get("userPermissions", []):
             yield record["publisher"]
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         return None
 
     def request_params(
@@ -67,7 +69,9 @@ class Campaigns(YandexPromopagesStream, HttpSubStream):
         YandexPromopagesStream.__init__(self, authenticator)
         self.parent = parent
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         data = response.json()
         if data.get("hasNextPage"):
             return {"pageLastId": data.get("pageLastId")}
@@ -81,7 +85,10 @@ class Campaigns(YandexPromopagesStream, HttpSubStream):
         stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> MutableMapping[str, Any]:
-        params = {"publisherId": stream_slice["parent"]["id"], "pageLimit": self.page_limit}
+        params = {
+            "publisherId": stream_slice["parent"]["id"],
+            "pageLimit": self.page_limit,
+        }
         if next_page_token:
             params.update(next_page_token)
         return params
@@ -260,8 +267,12 @@ class SourceYandexPromopages(AbstractSource):
         elif auth_type == "credentials_craft_auth":
             return CredentialsCraftAuthenticator(
                 credentials_craft_host=config["credentials"]["credentials_craft_host"],
-                credentials_craft_token=config["credentials"]["credentials_craft_token"],
-                credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
+                credentials_craft_token=config["credentials"][
+                    "credentials_craft_token"
+                ],
+                credentials_craft_token_id=config["credentials"][
+                    "credentials_craft_token_id"
+                ],
             )
         else:
             raise Exception(
@@ -284,7 +295,9 @@ class SourceYandexPromopages(AbstractSource):
             else:
                 prepared_range["date_to"] = today - timedelta(days=1)
         elif range_type == "last_n_days":
-            prepared_range["date_from"] = today - timedelta(days=date_range["last_days"])
+            prepared_range["date_from"] = today - timedelta(
+                days=date_range["last_days"]
+            )
             if date_range["should_load_today"]:
                 prepared_range["date_to"] = today
             else:

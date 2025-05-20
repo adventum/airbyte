@@ -1,5 +1,4 @@
 from typing import Any, Mapping
-from urllib import response
 
 import requests
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
@@ -41,7 +40,7 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
     def check_connection(self) -> tuple[bool, str]:
         try:
             requests.get(self._cc_host, timeout=15)
-        except:
+        except Exception:
             return False, f"Connection to {self._cc_host} timed out"
 
         response: requests.Response = requests.get(

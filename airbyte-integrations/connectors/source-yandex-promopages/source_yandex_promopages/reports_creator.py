@@ -32,7 +32,9 @@ class ReportCreator:
         self.report_id = None
 
     def create_report(self) -> str:
-        url = f"https://promopages.yandex.ru/api/promo/v1/reports/{self.report_endpoint}"
+        url = (
+            f"https://promopages.yandex.ru/api/promo/v1/reports/{self.report_endpoint}"
+        )
         payload = {
             "publisherId": self.publisher_id,
             "campaignIds": self.campaign_ids,
@@ -41,25 +43,36 @@ class ReportCreator:
             "trafficSource": self.traffic_source,
         }
         logger.info(f"Creating report {payload}...")
-        response = requests.post(url, json=payload, headers=self.authenticator.get_auth_header())
+        response = requests.post(
+            url, json=payload, headers=self.authenticator.get_auth_header()
+        )
         response.raise_for_status()
         logger.info(f"Report {response.text} created")
         self.report_id = response.json().get("reportId")
         return self.report_id
 
-    def wait_for_report(self) -> str:
+    def wait_for_report(self) -> None:
         url = f"https://promopages.yandex.ru/api/promo/v1/reports/{self.report_id}"
         params = {"format": "json"}
         logger.info(f"Waiting for report {self.report_id}...")
-        latest_response = None
         while True:
             latest_response = requests.get(
-                url, params=params, headers=self.authenticator.get_auth_header(), stream=True
+                url,
+                params=params,
+                headers=self.authenticator.get_auth_header(),
+                stream=True,
             )
-            latest_response.raise_for_status()
-            if latest_response.status_code != 202:
-                break
-            logger.info(f"Report {self.report_id} is not ready yet. Waiting 40 seconds...")
-            time.sleep(40)
-
-        logger.info(f"Report {self.report_id} is ready")
+            match latest_response.status_code:
+                case 202:
+                    logger.info(f"Report {self.report_id} is ready")
+                    return
+                case 429:
+                    logger.info("Too many requests. Waiting 20 seconds...")
+                    time.sleep(20)
+                case _:
+                    latest_response.raise_for_status()
+                    # Raise exceptions if status directs to error
+                    logger.info(
+                        f"Report {self.report_id} is not ready yet. Waiting 40 seconds..."
+                    )
+                    time.sleep(40)

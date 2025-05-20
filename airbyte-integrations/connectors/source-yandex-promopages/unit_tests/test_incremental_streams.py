@@ -11,8 +11,12 @@ from source_yandex_promopages.source import IncrementalYandexPromopagesStream
 @fixture
 def patch_incremental_base_class(mocker):
     # Mock abstract methods to enable instantiating abstract class
-    mocker.patch.object(IncrementalYandexPromopagesStream, "path", "v0/example_endpoint")
-    mocker.patch.object(IncrementalYandexPromopagesStream, "primary_key", "test_primary_key")
+    mocker.patch.object(
+        IncrementalYandexPromopagesStream, "path", "v0/example_endpoint"
+    )
+    mocker.patch.object(
+        IncrementalYandexPromopagesStream, "primary_key", "test_primary_key"
+    )
     mocker.patch.object(IncrementalYandexPromopagesStream, "__abstractmethods__", set())
 
 
@@ -42,7 +46,9 @@ def test_stream_slices(patch_incremental_base_class):
 
 
 def test_supports_incremental(patch_incremental_base_class, mocker):
-    mocker.patch.object(IncrementalYandexPromopagesStream, "cursor_field", "dummy_field")
+    mocker.patch.object(
+        IncrementalYandexPromopagesStream, "cursor_field", "dummy_field"
+    )
     stream = IncrementalYandexPromopagesStream()
     assert stream.supports_incremental
 

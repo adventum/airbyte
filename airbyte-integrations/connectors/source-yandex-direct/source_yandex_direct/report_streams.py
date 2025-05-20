@@ -16,7 +16,7 @@ from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthentic
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 
 from .schema_fields import CUSTOM_SCHEMA_FIELDS, build_goal_fields
-from .utils import HttpAvailabilityStrategy, random_name, split_date_by_chunks
+from .utils import HttpAvailabilityStrategy, random_name, split_date_by_chunks, log_stream_request_data
 
 logger = airbyte_logger.AirbyteLogger()
 
@@ -177,6 +177,13 @@ class CustomReport(YandexDirectStream):
 
         if self.parsed_filters:
             params["params"]["SelectionCriteria"]["Filter"] = self.parsed_filters
+
+        log_stream_request_data(
+            stream_name="Custom Report",
+            data=params,
+            section="body"
+        )
+
         return params
 
     def request_headers(self, *args, **kwargs) -> Mapping[str, Any]:
@@ -189,6 +196,19 @@ class CustomReport(YandexDirectStream):
         headers.update(self.authenticator.get_auth_header())
         if self.client_login:
             headers["Client-Login"] = self.client_login
+
+        # logging headers and url
+        log_stream_request_data(
+            stream_name="Custom Report",
+            data=headers,
+            section="headers"
+        )
+        log_stream_request_data(
+            stream_name="Custom Report",
+            data=self.url_base,
+            section="url"
+        )
+
         return headers
 
     @lru_cache(maxsize=None)

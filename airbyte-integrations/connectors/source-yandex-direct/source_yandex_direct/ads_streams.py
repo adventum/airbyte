@@ -8,7 +8,7 @@ from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from .schema_fields import AD_IMAGES_DEFAULT_FIELDS, ADS_DEFAULT_FIELDS, CAMPAIGNS_DEFAULT_FIELDS
 
-from .utils import chunks, concat_multiple_lists, find_by_key, get_unique
+from .utils import chunks, concat_multiple_lists, find_by_key, get_unique, log_stream_request_data
 
 
 class YandexDirectAdsStream(HttpStream, ABC):
@@ -126,6 +126,19 @@ class Campaigns(YandexDirectAdsStream):
             request_object,
             next_page_token,
         )
+
+        # logging request body and url
+        log_stream_request_data(
+            stream_name="Campaigns",
+            data=body,
+            section="body"
+        )
+        log_stream_request_data(
+            stream_name="Campaigns",
+            data=f"{self.url_base}{self.path()}",
+            section="url"
+        )
+
         return body
 
     def path(self, *args, **kwargs) -> str:
@@ -154,6 +167,19 @@ class Ads(YandexDirectAdsStream, DependsOnParentIdsSubStream):
             request_object,
             next_page_token,
         )
+
+        # logging request body and url
+        log_stream_request_data(
+            stream_name="Ads",
+            data=body,
+            section="body"
+        )
+        log_stream_request_data(
+            stream_name="Ads",
+            data=f"{self.url_base}{self.path()}",
+            section="url"
+        )
+
         return body
 
 
@@ -183,6 +209,19 @@ class AdImages(YandexDirectAdsStream, DependsOnParentIdsSubStream):
             request_object,
             next_page_token,
         )
+
+        # logging request body and url
+        log_stream_request_data(
+            stream_name="AdImages",
+            data=body,
+            section="body"
+        )
+        log_stream_request_data(
+            stream_name="AdImages",
+            data=f"{self.url_base}{self.path()}",
+            section="url"
+        )
+
         return body
 
     def stream_slices(

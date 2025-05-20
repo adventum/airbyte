@@ -1,8 +1,13 @@
+import json
 import random
 import string
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Any, Literal, Union
 from datetime import datetime, timedelta
+from airbyte_cdk import logger as airbyte_logger
 from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabilityStrategy as _HttpAvailabilityStrategy
+
+
+logger = airbyte_logger.AirbyteLogger()
 
 
 class HttpAvailabilityStrategy(_HttpAvailabilityStrategy):
@@ -60,3 +65,59 @@ def concat_multiple_lists(list_of_lists):
 
 def get_unique(list1):
     return list(set(list1))
+
+
+
+def redact_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Uses in streams logging
+    Change sensitive values to [REDACTED]
+    """
+    sensitive_keys = [
+        "authorization", "x-api-key", "access_token", "api_key", "token", "password", "secret"
+    ]
+    return {
+        k: ("[REDACTED]" if k.lower() in sensitive_keys else v)
+        for k, v in data.items()
+    }
+
+
+def log_stream_request_data(
+    stream_name: str,
+    data: Union[dict[str, Any], Any],
+    section: Literal["headers", "params", "body", "response", "url"] = "headers",
+) -> None:
+    """
+    Logs a specific section of an HTTP requests for a given stream.
+
+    :param stream_name: The name of the stream being logged.
+    :param data: The content to log (headers, params, body, response, or URL).
+    :param section: The section type: "headers", "params", "body", "response", or "url".
+    """
+
+    label_map = {
+        "headers": "REQUEST HEADERS",
+        "params": "REQUEST PARAMS",
+        "body": "REQUEST BODY",
+        "response": "RESPONSE BODY",
+        "url": "REQUEST URL",
+    }
+
+    label = label_map.get(section, "UNKNOWN SECTION")
+
+    if section in {"headers", "params"} and isinstance(data, dict):
+        payload = redact_sensitive_data(data)
+    else:
+        payload = data
+
+    if isinstance(payload, dict):
+        content = json.dumps(payload, indent=2, ensure_ascii=False)
+    else:
+        content = str(payload)
+
+    logger.info(
+        f"\n\n--- {label} ---\n"
+        f"Stream: {stream_name}\n"
+        f"Content:\n{content}\n"
+        f"--- END ---\n\n"
+    )

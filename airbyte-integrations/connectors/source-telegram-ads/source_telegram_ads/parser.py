@@ -151,20 +151,20 @@ def parse_all_ads(ads_page_response: requests.Response) -> Generator[dict[str, A
 def parse_ad_details(ad_page_response: requests.Response) -> dict[str, Any]:
     soup = BeautifulSoup(ad_page_response.text, features="html.parser")
     ad_details = {}
-    target_inputs_ids = ["ad_title", "ad_promote_url", "ad_cpm", "ad_info", "ad_text"]
+    target_inputs_ids = ["title", "promote_url", "cpm", "ad_info", "text"]
     all_inputs = soup.select("input, textarea")
     for input_el in all_inputs:
         try:
-            input_el["id"]
+            input_el["name"]
         except Exception as e:
             continue
-        if input_el["id"] in target_inputs_ids:
+        if input_el["name"] in target_inputs_ids:
             input_content = None
             try:
                 input_content = input_el.contents[0]
             except:
                 pass
-            ad_details[input_el["id"]] = input_el.get("value") or input_content
+            ad_details[input_el["name"]] = input_el.get("value") or input_content
 
     for select_el in soup.select(".select"):
         try:

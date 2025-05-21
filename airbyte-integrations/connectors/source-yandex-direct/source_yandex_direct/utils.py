@@ -68,7 +68,7 @@ def get_unique(list1):
 
 
 
-def redact_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
+def hide_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Uses in streams logging
     Change sensitive values to [REDACTED]
@@ -105,8 +105,8 @@ def log_stream_request_data(
 
     label = label_map.get(section, "UNKNOWN SECTION")
 
-    if section in {"headers", "params"} and isinstance(data, dict):
-        payload = redact_sensitive_data(data)
+    if isinstance(data, dict):
+        payload = hide_sensitive_data(data)
     else:
         payload = data
 

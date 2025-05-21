@@ -30,6 +30,7 @@ class ReportCreator:
         self.traffic_source = traffic_source
         self.authenticator = authenticator
         self.report_id = None
+        self.auth_headers = self.authenticator.get_auth_header()
 
     def create_report(self) -> str:
         url = (
@@ -43,9 +44,7 @@ class ReportCreator:
             "trafficSource": self.traffic_source,
         }
         logger.info(f"Creating report {payload}...")
-        response = requests.post(
-            url, json=payload, headers=self.authenticator.get_auth_header()
-        )
+        response = requests.post(url, json=payload, headers=self.auth_headers)
         response.raise_for_status()
         logger.info(f"Report {response.text} created")
         self.report_id = response.json().get("reportId")
@@ -59,7 +58,7 @@ class ReportCreator:
             latest_response = requests.get(
                 url,
                 params=params,
-                headers=self.authenticator.get_auth_header(),
+                headers=self.auth_headers,
                 stream=True,
             )
             match latest_response.status_code:

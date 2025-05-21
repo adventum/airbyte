@@ -11,10 +11,12 @@ connectionSpecification:
       title: Account Token
       type: string
       description: Can be extracted from stel_token cookie
+      airbyte_secret: true
       order: 0
     organization_token:
       title: Organization Token
       description: Can be extracted from stel_adowner cookie
+      airbyte_secret: true
       type: string
       order: 1
     additional_ad_ids:

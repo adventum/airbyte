@@ -62,9 +62,12 @@ class ReportCreator:
                 stream=True,
             )
             match latest_response.status_code:
-                case 202:
+                case status if 200 <= status <= 299 and status != 202:
                     logger.info(f"Report {self.report_id} is ready")
                     return
+                case 202:
+                    logger.info("Report is in progress. Waiting 40 seconds...")
+                    time.sleep(40)
                 case 429:
                     logger.info("Too many requests. Waiting 20 seconds...")
                     time.sleep(20)

@@ -1,8 +1,6 @@
 from abc import ABC
 from datetime import datetime, timedelta
-from os import sync
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional
-from unittest import skip
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Dict
 
 import requests
 from airbyte_cdk.sources.streams.core import IncrementalMixin, SyncMode, package_name_from_class
@@ -11,7 +9,7 @@ from airbyte_cdk.sources.streams.http.auth import HttpAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 
-from .utils import DATE_FORMAT, chunks, date_minus_n_days, yesterday_minus_n_days
+from .utils import DATE_FORMAT, chunks
 import json
 
 # Basic full refresh stream
@@ -116,13 +114,18 @@ class IncrementalStatisticsMixin(MyTargetStream, IncrementalMixin, HttpSubStream
     cursor_field = "date"
     parent_stream_class: MyTargetStream = None
 
-    def __init__(self, authenticator: HttpAuthenticator, date_from: str, date_to: str, last_days: int, config: Mapping[str, Any]):
+    def __init__(
+        self,
+        authenticator: HttpAuthenticator,
+        date_from: str,
+        date_to: str,
+        config: Mapping[str, Any]
+    ):
         MyTargetStream.__init__(self, config, authenticator)
         HttpSubStream.__init__(self, self.parent_stream_class(config, authenticator))
         self._authenticator = authenticator
         self.date_from = date_from
         self.date_to = date_to
-        self.last_days = last_days
         self._cursor_value = None
         self.config = config
 
@@ -174,7 +177,7 @@ class IncrementalStatisticsMixin(MyTargetStream, IncrementalMixin, HttpSubStream
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = value[self.cursor_field]
+        self._cursor_value = value.get(self.cursor_field, None)
 
     def read_records(
         self, sync_mode, cursor_field: List[str] = None, stream_slice: Mapping[str, Any] = None, stream_state: Mapping[str, Any] = None
@@ -187,7 +190,7 @@ class IncrementalStatisticsMixin(MyTargetStream, IncrementalMixin, HttpSubStream
             yield record
 
     @staticmethod
-    def date_chunks_ranges(date_from: str, skip_first: bool, date_to: str = None) -> List[str]:
+    def date_chunks_ranges(date_from: str, skip_first: bool, date_to: str = None) -> List[Dict[str, Any]]: #List[str]:
         """
         Returns a list of each day between the date_from and yesterday.
         The return value is a list of dicts {'date': date_string}.
@@ -226,38 +229,22 @@ class IncrementalStatisticsMixin(MyTargetStream, IncrementalMixin, HttpSubStream
         print("stream_state", bool(stream_state))
         date_from = None
         if sync_mode == SyncMode.full_refresh:
-            if self.last_days:
-                # ignore self.date_from, always use last_days
-                date_from = yesterday_minus_n_days(self.last_days)
-            else:
-                date_from = self.date_from
+            date_from = self.date_from
         if sync_mode == SyncMode.incremental:
             # if not first load (stream_state has been properly passed to stream):
             if stream_state and self.cursor_field in stream_state:
                 # if state is abnormal (state date is more than yesterday), we force it to yesterday
-                if datetime.strtime(stream_state[self.cursor_field], DATE_FORMAT).date() > datetime.today().date() - timedelta(1):
+                if datetime.strptime(stream_state[self.cursor_field], DATE_FORMAT).date() > datetime.today().date() - timedelta(1):
                     stream_state[self.cursor_field] = (datetime.today().date() - timedelta(1)).strftime(DATE_FORMAT)
-
-                # force last_days based loading if it is passed, otherwise use stream_state
-                if self.last_days:
-                    date_from = date_minus_n_days(stream_state[self.cursor_field])
-                    # set stream_state to None so as not to break the logic of skip_first since
-                    #   this parameter is based on stream_state existanse.
-                    # when we use last_days, we always bypass stream_state logic
-                    #   and force connector to just stupid load last days data on every sync
-                    stream_state = None
                 else:
                     date_from = stream_state[self.cursor_field]
             # if first load:
             else:
-                if self.last_days:
-                    date_from = yesterday_minus_n_days(self.last_days)
-                else:
-                    date_from = self.date_from
+                date_from = self.date_from
         date_ranges = self.date_chunks_ranges(date_from, skip_first=bool(stream_state), date_to=self.date_to)
         if not date_ranges:
             # Skip for unnecessary objects IDs retrieving - there will be no any slices if we have no dates to load
-            self.logger.info(f"{self.name} stream doesn\t need refreshing.")
+            self.logger.info(f"{self.name} stream doesn't need refreshing.")
             return []
 
         # chunked because of 200 object ids per request restriction

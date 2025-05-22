@@ -5,12 +5,12 @@ import requests
 
 
 class CredentialsCraftAuthenticator(TokenAuthenticator):
-    def __init__(self, credentials_craft_host: str, credentials_craft_token: str, credentials_craft_mytarget_token_id: int):
+    def __init__(self, credentials_craft_host: str, credentials_craft_token: str, credentials_craft_token_id: int):
         if credentials_craft_host.endswith("/"):
             credentials_craft_host = credentials_craft_host[:-1]
         self._cc_host = credentials_craft_host
         self._cc_token = credentials_craft_token
-        self._cc_mytarget_token_id = credentials_craft_mytarget_token_id
+        self._cc_mytarget_token_id = credentials_craft_token_id
 
     @property
     def _mytarget_access_token(self) -> Mapping[str, Any]:

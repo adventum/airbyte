@@ -2,10 +2,9 @@
 # Copyright (c) 2021 Airbyte, Inc., all rights reserved.
 #
 
-
+from datetime import datetime, timedelta
 from logging import Logger
-from re import M
-from typing import Any, List, Mapping, Tuple
+from typing import Any, List, Mapping, Tuple, Dict
 
 import requests
 from airbyte_cdk.models import ConnectorSpecification
@@ -41,8 +40,9 @@ class SourceMytarget(AbstractSource):
             if not auth_conn_check[0]:
                 return auth_conn_check
 
-        if not config.get("date_from") and not config.get("date_to") and not config.get("last_days"):
-            return False, "You must specify either date_from and date_to or last_days"
+        prepared_date_range: Dict[str, Any] = config["prepared_date_range"]
+        if not prepared_date_range.get("date_from") or not prepared_date_range.get("date_to"):
+            return False, "You must specify date_range in connector specification."
 
         for obj_stream_class in self.obj_streams_classes:
             obj_stream = obj_stream_class(authenticator=auth, config=config)
@@ -71,10 +71,45 @@ class SourceMytarget(AbstractSource):
             return CredentialsCraftAuthenticator(
                 credentials_craft_host=config["credentials"]["credentials_craft_host"],
                 credentials_craft_token=config["credentials"]["credentials_craft_token"],
-                credentials_craft_mytarget_token_id=config["credentials"]["credentials_craft_mytarget_token_id"],
+                credentials_craft_token_id=config["credentials"]["credentials_craft_token_id"],
             )
         else:
             raise Exception("Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
+
+    @staticmethod
+    def prepare_config_datetime(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        date_range = config["date_range"]
+        range_type = config["date_range"]["date_range_type"]
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        config_date_format: str = "%Y-%m-%d"
+
+        prepared_range = {}
+        if range_type == "custom_date":
+            prepared_range["date_from"] = date_range["date_from"]
+            prepared_range["date_to"] = date_range["date_to"]
+        elif range_type == "from_start_date_to_today":
+            prepared_range["date_from"] = date_range["date_from"]
+            if date_range["should_load_today"]:
+                prepared_range["date_to"] = today
+            else:
+                prepared_range["date_to"] = today - timedelta(days=1)
+        elif range_type == "last_n_days":
+            prepared_range["date_from"] = today - timedelta(days=date_range["last_days_count"])
+            if date_range.get("should_load_today", False):
+                prepared_range["date_to"] = today
+            else:
+                prepared_range["date_to"] = today - timedelta(days=1)
+        else:
+            raise ValueError("Invalid date_range_type")
+
+        if isinstance(prepared_range["date_from"], datetime):
+            prepared_range["date_from"] = prepared_range["date_from"].strftime(config_date_format)
+
+        if isinstance(prepared_range["date_to"], datetime):
+            prepared_range["date_to"] = prepared_range["date_to"].strftime(config_date_format)
+
+        config["prepared_date_range"] = prepared_range
+        return config
 
     def spec(self, logger: Logger) -> ConnectorSpecification:
         spec = super().spec(logger)
@@ -103,6 +138,7 @@ class SourceMytarget(AbstractSource):
         return spec
 
     def prepare_config(self, config: Mapping[str, Any]) -> Mapping[str, Any]:
+        config = self.prepare_config_datetime(config)
         for obj_stream in [s(config={}) for s in self.obj_streams_classes]:
             splitted_included_fields = list(filter(None, config.get(obj_stream.included_fields_property_name(), "").split(",")))
             config.update({obj_stream.included_fields_property_name(): splitted_included_fields})
@@ -121,9 +157,8 @@ class SourceMytarget(AbstractSource):
                 stat_stream(
                     authenticator=auth,
                     config=config,
-                    date_from=config.get("date_from", None),
-                    date_to=config.get("date_to", None),
-                    last_days=config.get("last_days", None),
+                    date_from=config["prepared_date_range"]["date_from"],
+                    date_to=config["prepared_date_range"]["date_to"],
                 )
                 for stat_stream in self.stat_streams_classes
             ],

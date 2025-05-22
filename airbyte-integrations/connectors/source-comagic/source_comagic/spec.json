@@ -27,36 +27,129 @@
         ],
         "order": 2
       },
-      "start_datetime": {
-        "description": "Start datetime for the reporting period in YYYY-MM-DD hh:mm:ss format, if not set – last 30 days or \"Load last n days\" parameter (if it was set) will be used Max value of requested date interval is 90 days.",
-        "title": "Start Date and time",
-        "type": "string",
-        "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$",
-        "examples": [
-          "2021-05-01 00:00:00"
-        ],
-        "order": 3
-      },
-      "end_datetime": {
-        "description": "End datetime for the reporting period in YYYY-MM-DD hh:mm:ss format, if not set – last 30 days or \"Load last n days\" parameter (if it was set) will be used Max value of requested date interval is 90 days.",
-        "title": "End Date and time",
-        "type": "string",
-        "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$",
-        "examples": [
-          "2021-05-01 00:00:00"
-        ],
-        "order": 4
-      },
-      "last_days": {
-        "type": "integer",
-        "title": "Load last n days",
-        "description": "If not set – last 30 days or start_time and end_time will be used",
-        "minimum": 0,
-        "maximum": 90,
-        "examples": [
-          "30"
-        ],
-        "order": 5
+      "date_range": {
+        "title": "Date Range",
+        "description": "Choose date period that must be loaded",
+        "type": "object",
+        "order": 3,
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Custom Date Range",
+            "required": [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "date_to": {
+                "title": "End Date",
+                "type": "string",
+                "description": "End date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples": [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor": "YYYY-MM-DD",
+                "format": "date",
+                "order": 1
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "Custom Date",
+                "const": "custom_date",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Last N Days",
+            "required": [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "last_days_count": {
+                "title": "Last Days Count",
+                "type": "integer",
+                "description": "Count of last days exclude today.",
+                "minimum": 0,
+                "maximum": 3650,
+                "examples": [
+                  30
+                ],
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "type": "boolean",
+                "description": "Should connector load today time as End Time? If not, End Time will be yesterday.",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "Last N Days",
+                "const": "last_n_days",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "From Start Date To Today",
+            "description": "Load data from Start Date to Today. Only with this option you can use incremental sync.",
+            "required": [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "type": "boolean",
+                "description": "Should connector load today date as End Date? If not, End Date will be yesterday.",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "From start date to today",
+                "const": "from_start_date_to_today",
+                "order": 2
+              }
+            }
+          }
+        ]
       },
       "client_name": {
         "description": "Client name - constant that will be used in record __clientName property",
@@ -65,7 +158,7 @@
         "examples": [
           "abcde"
         ],
-        "order": 6,
+        "order": 4,
         "default": ""
       },
       "product_name": {
@@ -75,7 +168,7 @@
         "examples": [
           "abcde"
         ],
-        "order": 7,
+        "order": 5,
         "default": ""
       },
       "custom_constants": {
@@ -86,7 +179,7 @@
           "{\"abc\": \"123\", \"cde\": \"132\"}"
         ],
         "default": "{}",
-        "order": 8
+        "order": 6
       }
     }
   }

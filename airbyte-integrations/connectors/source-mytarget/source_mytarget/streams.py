@@ -41,9 +41,10 @@ class MyTargetStream(HttpStream, ABC):
         return {"count": self.page_size, "offset": data["offset"] + self.page_size}
 
     def add_constants_to_record(self, record):
+        # TODO: Delete constants
         constants = {
-            "__productName": self.config["product_name"],
-            "__clientName": self.config["client_name"],
+            "__productName": self.config.get("product_name", "test"),
+            "__clientName": self.config.get("client_name", "test"),
         }
         constants.update(json.loads(self.config.get("custom_json", "{}")))
         record.update(constants)

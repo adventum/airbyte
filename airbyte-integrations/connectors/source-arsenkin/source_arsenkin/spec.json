@@ -5,14 +5,14 @@
     "title" : "Arsenkin Spec",
     "type" : "object",
     "required" : [
-      "token",
+      "access_token",
       "keywords",
       "device",
       "region_yandex"
     ],
     "additionalProperties" : false,
     "properties" : {
-      "token" : {
+      "access_token" : {
         "type" : "string",
         "title" : "Access Token",
         "description" : "Arsenkin API token",

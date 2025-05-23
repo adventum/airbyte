@@ -5,6 +5,7 @@
 
 import json
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
@@ -34,7 +35,6 @@ class VkAdsStream(HttpStream, ABC):
         account_id,
         date_from,
         date_to,
-        last_days,
         client_name='',
         product_name='',
         custom_json={},
@@ -47,7 +47,6 @@ class VkAdsStream(HttpStream, ABC):
         self.account_id = account_id
         self.date_from = date_from
         self.date_to = date_to
-        self.last_days = last_days
         self.client_name = client_name
         self.product_name = product_name
         self.custom_json = custom_json
@@ -137,7 +136,6 @@ class Ads(ObjectStream, HttpSubStream):
         account_id,
         date_from,
         date_to,
-        last_days,
         parent_stream_instance: Campaigns,
         client_name='',
         product_name='',
@@ -153,7 +151,6 @@ class Ads(ObjectStream, HttpSubStream):
             account_id=account_id,
             date_from=date_from,
             date_to=date_to,
-            last_days=last_days, 
             client_name=client_name, 
             product_name=product_name,
             custom_json=custom_json,
@@ -250,6 +247,7 @@ class ObjectStatisticsMixin(VkAdsStream, HttpSubStream, ABC):
 
 
 class AdsStatistics(ObjectStatisticsMixin):
+    primary_key = "ad_id"
     stat_obj_type = 'ad'
     parent_stream_class = Ads
 
@@ -266,6 +264,7 @@ class AdsStatistics(ObjectStatisticsMixin):
 
 
 class CampaignStatistics(ObjectStatisticsMixin):
+    primary_key = "campaign_id"
     stat_obj_type = 'campaign'
     parent_stream_class = Campaigns
 
@@ -286,13 +285,13 @@ class AdsLayout(Ads):
 
 class SourceVkAds(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
+        config = SourceVkAds.prepare_config_datetime(config)
         config = SourceVkAds.get_updated_default_config(config)
-        if xor(config['date_from'], config['date_to']) or (config['date_from'] and config['date_to'] and config['last_days']):
-            return False, 'You must specify either Date From and Date To or just Last Days'
+        if not (config["date_from"] and config["date_to"]):
+            return False, 'You must specify a date range'
 
-        if config['date_from'] and config['date_to']:
-            if date_to_timestamp(config['date_from']) > date_to_timestamp(config['date_to']):
-                return False, 'Date From is more than Date To'
+        if date_to_timestamp(config['date_from']) > date_to_timestamp(config['date_to']):
+            return False, 'Date From is more than Date To'
 
         if config['account_type'] == 'Client' and config.get('client_id'):
             return False, "Client IDs must be specified only for Agency Account Type. You must specify' \
@@ -348,7 +347,6 @@ class SourceVkAds(AbstractSource):
             "client_id": "",
             "date_from": "",
             "date_to": "",
-            "last_days": None,
             "client_name": '',
             "product_name": '',
             "custom_json": '{}',
@@ -372,15 +370,38 @@ class SourceVkAds(AbstractSource):
                 "Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
 
     @staticmethod
+    def prepare_config_datetime(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        date_range = config["date_range"]
+        range_type = date_range["date_range_type"]
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        date_fmt = "%Y-%m-%d"
+
+        if range_type == "custom_date":
+            date_from = date_range["date_from"]
+            date_to = date_range["date_to"]
+        elif range_type == "from_start_date_to_today":
+            date_from = date_range["date_from"]
+            date_to = today if date_range.get("should_load_today") else today - timedelta(days=1)
+        elif range_type == "last_n_days":
+            date_from = today - timedelta(days=date_range["last_days_count"])
+            date_to = today if date_range.get("should_load_today") else today - timedelta(days=1)
+        else:
+            raise ValueError("Invalid date_range_type")
+
+        if isinstance(date_from, datetime):
+            date_from = date_from.strftime(date_fmt)
+        if isinstance(date_to, datetime):
+            date_to = date_to.strftime(date_fmt)
+
+        config["date_from"] = date_from
+        config["date_to"] = date_to
+        config.pop("date_range") # Overwise we will get Type Error in streams
+        return config
+
+    @staticmethod
     def prepare_config(user_config: Mapping[str, Any]):
-        config = SourceVkAds.get_updated_default_config(user_config)
-        if not config.get("date_from") and not config.get("date_to"):
-            config["date_from"] = (
-                get_today_minus_n_days_date(config["last_days"])
-                if config.get("last_days", 0) > 0
-                else get_today_minus_n_days_date(30)
-            )
-            config["date_to"] = get_yesterday_date()
+        config = SourceVkAds.prepare_config_datetime(user_config)
+        config = SourceVkAds.get_updated_default_config(config)
 
         config['custom_json'] = json.loads(config['custom_json'])
         config['auth'] = SourceVkAds.get_auth(config)

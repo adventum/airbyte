@@ -89,7 +89,7 @@ class HuaweiAdsStream(HttpStream, ABC):
         data: Dict[str, Any] = response.json()
         print(response.request.body)
         print(response.request.url)
-        print(response.request.headers)
+        # print(response.request.headers)
         print(response.text)
         if message := data.get('message'):
             raise Exception(f"{message} (API Error code: {data.get('code')})")
@@ -135,25 +135,40 @@ class SourceHuaweiAds(AbstractSource):
             raise Exception("Invalid Auth type. Available: access_token_auth and credentials_craft_auth")
 
     def transform_config(self, config: Mapping[str, Any]) -> Mapping[str, Any]:
-        date_range_type = config["date_range"]["date_range_type"]
+        date_range_type: str = config["date_range"]["date_range_type"]
+        date_range: Dict[str, Any] = config["date_range"]
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        date_time_format: str = HuaweiAdsStream.api_datetime_format
+
         if date_range_type == 'custom_date':
             config['date_from'] = datetime.strptime(
-                config["date_range"].get("date_from"),
-                HuaweiAdsStream.api_datetime_format
+                date_range.get("date_from"),
+                date_time_format
             )
             config['date_to'] = datetime.strptime(
-                config["date_range"].get("date_to"),
-                HuaweiAdsStream.api_datetime_format
+                date_range.get("date_to"),
+                date_time_format
             )
-        elif date_range_type == 'last_n_days':
-            config['date_from'] = datetime.now().replace(
-                hour=0, minute=0, second=0, microsecond=0
-            ) - timedelta(days=config["date_range"]['last_days_count'])
-            config['date_to'] = datetime.now().replace(
-                hour=0, minute=0, second=0, microsecond=0
+        elif date_range_type == "last_n_days":
+            config["date_from"] = today - timedelta(
+                days=date_range["last_days_count"]
             )
+            if date_range.get("should_load_today", False):
+                config["date_to"] = today
+            else:
+                config["date_to"] = today - timedelta(days=1)
+        elif date_range_type == "from_start_date_to_today":
+            config['date_from'] = datetime.strptime(
+                date_range.get("date_from"),
+                date_time_format
+            )
+            if date_range["should_load_today"]:
+                config["date_to"] = today
+            else:
+                config["date_to"] = today - timedelta(days=1)
         else:
             raise Exception(f'Invalid date_range_type: {date_range_type}')
+
         return config
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
@@ -162,7 +177,7 @@ class SourceHuaweiAds(AbstractSource):
         args = dict(
             authenticator=auth,
             region=Region(config['region']),
-            time_granularity=StatTimeGranularity(config['time_granularity']),
+            time_granularity=StatTimeGranularity(config['stat_time_granularity']),
             date_from=config['date_from'],
             date_to=config['date_to'],
         )

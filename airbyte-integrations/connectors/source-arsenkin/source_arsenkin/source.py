@@ -34,7 +34,7 @@ class ArsenkinStream(HttpStream, ABC):
 
     @property
     def token(self) -> str:
-        return self.config["token"]
+        return self.config["access_token"]
 
     def request_params(self, **kwargs) -> MutableMapping[str, Any]:
         raise NotImplementedError()
@@ -129,7 +129,7 @@ class SourceArsenkin(AbstractSource):
         """
         ads_stream: ArsenkinStream = self.streams(config)[0]
         try:
-            task = ArsenkinTask(token=config["token"], request_params=ads_stream.request_params() | {
+            task = ArsenkinTask(token=config["access_token"], request_params=ads_stream.request_params() | {
                 "keywords": json.dumps(["Test"]),
                 "region_yandex": 213,
                 "device": "desktop",

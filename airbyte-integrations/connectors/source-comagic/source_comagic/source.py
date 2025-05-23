@@ -4,6 +4,7 @@
 
 
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
@@ -58,8 +59,8 @@ class ComagicStream(HttpStream, ABC):
                 "access_token": self.access_token,
                 "offset": next_page_token["offset"] if next_page_token else 0,
                 "limit": self.records_offset,
-                "date_from": self.config["start_datetime"],
-                "date_till": self.config["end_datetime"],
+                "date_from": self.config["prepared_date_range"]["date_from"],
+                "date_till": self.config["prepared_date_range"]["date_to"],
             },
         }
         return data
@@ -69,11 +70,11 @@ class ComagicStream(HttpStream, ABC):
     ) -> Iterable[Mapping]:
         try:
             return map(self.add_constants_to_record, response.json()["result"]["data"])
-        except:
+        except Exception as ex:
             print('bad_url', response.url)
             print('bad_body', response.request.body)
             print('bad_response', response.text)
-            raise Exception("AAAAAAAAA")
+            raise Exception(f"There was an error while parsing response: {ex}")
 
     def path(self, **kwargs) -> str:
         return ""
@@ -539,22 +540,46 @@ class SourceComagic(AbstractSource):
                 "params": {"login": login, "password": password},
             },
         ).json()
-        print(login_data)
         return login_data["result"]["data"]["access_token"]
+
+    @staticmethod
+    def prepare_config_datetime(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        date_range = config["date_range"]
+        range_type = config["date_range"]["date_range_type"]
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        config_date_format: str = "%Y-%m-%d"
+
+        prepared_range = {}
+        if range_type == "custom_date":
+            prepared_range["date_from"] = date_range["date_from"]
+            prepared_range["date_to"] = date_range["date_to"]
+        elif range_type == "from_start_date_to_today":
+            prepared_range["date_from"] = date_range["date_from"]
+            if date_range["should_load_today"]:
+                prepared_range["date_to"] = today
+            else:
+                prepared_range["date_to"] = today - timedelta(days=1)
+        elif range_type == "last_n_days":
+            prepared_range["date_from"] = today - timedelta(days=date_range["last_days_count"])
+            if date_range.get("should_load_today", False):
+                prepared_range["date_to"] = today
+            else:
+                prepared_range["date_to"] = today - timedelta(days=1)
+        else:
+            raise ValueError("Invalid date_range_type")
+
+        if isinstance(prepared_range["date_from"], datetime):
+            prepared_range["date_from"] = prepared_range["date_from"].strftime(config_date_format)
+
+        if isinstance(prepared_range["date_to"], datetime):
+            prepared_range["date_to"] = prepared_range["date_to"].strftime(config_date_format)
+
+        config["prepared_date_range"] = prepared_range
+        return config
 
     def transform_config(self, user_config) -> MutableMapping[str, Any]:
         config = user_config.copy()
-        if not config.get("start_datetime") and not config.get("end_datetime"):
-            if config.get("last_days", 0) > 0:
-                config["start_datetime"] = get_today_minus_n_days_date(
-                    config["last_days"]
-                )[0]
-                config["end_datetime"] = get_today_minus_n_days_date(
-                    config["last_days"]
-                )[1]
-            else:
-                config["start_datetime"] = get_today_minus_n_days_date(30)[0]
-                config["end_datetime"] = get_today_minus_n_days_date(30)[1]
+        config = self.prepare_config_datetime(config)
         if not config.get("custom_json"):
             config["custom_json"] = "{}"
         return config

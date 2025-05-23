@@ -247,6 +247,7 @@ class ObjectStatisticsMixin(VkAdsStream, HttpSubStream, ABC):
 
 
 class AdsStatistics(ObjectStatisticsMixin):
+    primary_key = "ad_id"
     stat_obj_type = 'ad'
     parent_stream_class = Ads
 
@@ -263,6 +264,7 @@ class AdsStatistics(ObjectStatisticsMixin):
 
 
 class CampaignStatistics(ObjectStatisticsMixin):
+    primary_key = "campaign_id"
     stat_obj_type = 'campaign'
     parent_stream_class = Campaigns
 
@@ -393,6 +395,7 @@ class SourceVkAds(AbstractSource):
 
         config["date_from"] = date_from
         config["date_to"] = date_to
+        config.pop("date_range") # Overwise we will get Type Error in streams
         return config
 
     @staticmethod

@@ -30,9 +30,10 @@ class YandexMarketStream(HttpStream, ABC):
         return None
 
     def add_constants_to_record(self, record):
+        # TODO: delete constants
         constants = {
-            "__productName": self.config["product_name"],
-            "__clientName": self.config["client_name"],
+            "__productName": self.config.get("product_name", "test"),
+            "__clientName": self.config.get("client_name", "test"),
         }
         constants.update(json.loads(self.config.get("custom_json", "{}")))
         record.update(constants)
@@ -122,13 +123,13 @@ class SourceYandexMarket(AbstractSource):
 
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         date_range = config.get("date_range")
-        if date_range["data_range_type"] == "last_n_days":
+        if date_range["date_range_type"] == "last_n_days":
             if date_range.get("last_days_count"):
                 if date_range.get("last_days_count") > 180:
                     return False, "Date range can't be more than 180 days"
             else:
                 return False, "Last Days Count is not specified"
-        elif date_range["data_range_type"] == "custom_date":
+        elif date_range["date_range_type"] == "custom_date":
             if date_range.get("date_from") and date_range.get("date_to"):
                 date_delta = (self.parse_date(date_range["date_to"]) - self.parse_date(date_range["date_from"])).days
                 if date_delta > 180:
@@ -147,15 +148,43 @@ class SourceYandexMarket(AbstractSource):
         return True, None
 
     def get_date_range(self, config: Mapping[str, Any]) -> Tuple[str, str]:
+        """
+        Parse and transform date format from '%Y-%m-%d' -> '%d-%m-%Y' (api requirement)
+        """
         date_range = config["date_range"]
-        if date_range["data_range_type"] == "custom_date":
-            return (date_range["date_from"], date_range["date_to"])
-        elif date_range["data_range_type"] == "last_n_days":
-            yesterday = (datetime.now() - timedelta(1)).date().strftime(self.DATE_FORMAT)
-            date_from = (datetime.now() - timedelta(date_range["last_days_count"])).date().strftime(self.DATE_FORMAT)
-            return (date_from, yesterday)
-        else:
-            raise Exception("Invalid Date Range type. Available: custom_date and last_n_days")
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).date()
+        range_type = date_range["date_range_type"]
+
+        if range_type == "custom_date":
+            date_from = datetime.strptime(
+                date_range["date_from"], "%Y-%m-%d"
+            ).strftime(self.DATE_FORMAT)
+            date_to = datetime.strptime(
+                date_range["date_to"], "%Y-%m-%d"
+            ).strftime(self.DATE_FORMAT)
+            return date_from, date_to
+
+        elif range_type == "last_n_days":
+            date_from = (
+                (today - timedelta(days=date_range["last_days_count"])).strftime(self.DATE_FORMAT)
+            )
+            date_to = (
+                today.strftime(self.DATE_FORMAT)
+                if date_range.get("should_load_today")
+                else (today - timedelta(days=1)).strftime(self.DATE_FORMAT)
+            )
+            return date_from, date_to
+
+        elif range_type == "from_start_date_to_today":
+            date_from = date_range["date_from"]
+            date_to = (
+                today.strftime(self.DATE_FORMAT)
+                if date_range.get("should_load_today")
+                else (today - timedelta(days=1)).strftime(self.DATE_FORMAT)
+            )
+            return date_from, date_to
+
+        raise ValueError("Invalid Date Range type. Available: custom_date, last_n_days, from_start_date_to_today")
 
     def get_auth(self, config: Mapping[str, Any]) -> YandexMarketAuthenticator:
         if config["credentials"]["auth_type"] == "access_token_auth":

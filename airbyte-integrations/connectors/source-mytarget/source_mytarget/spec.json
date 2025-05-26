@@ -5,7 +5,8 @@
     "title": "Mytarget Spec",
     "type": "object",
     "required": [
-      "credentials"
+      "credentials",
+      "date_range"
     ],
     "additionalProperties": true,
     "properties": {
@@ -33,7 +34,8 @@
               }
             },
             "required": [
-              "auth_type"
+              "auth_type",
+              "access_token"
             ]
           },
           {
@@ -60,7 +62,7 @@
                 "type": "string",
                 "airbyte_secret": true
               },
-              "credentials_craft_mytarget_token_id": {
+              "credentials_craft_token_id": {
                 "title": "CredentialsCraft MyTarget Token ID",
                 "desctiption": "MyTarget Token ID in CredentialsCraft",
                 "examples": [
@@ -70,35 +72,134 @@
               }
             },
             "required": [
-              "auth_type"
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
             ]
           }
         ]
       },
-      "date_from": {
-        "title": "Replication Start Date",
-        "description": "Replication start date in YYYY-MM-DD format. Statistics data will be replicated since this date including yesterday. Today statistics data will not be included because of it's incomplition",
-        "default": "2020-01-01",
+      "date_range": {
+        "title": "Date Range",
+        "type": "object",
+        "group": "date_range",
         "order": 1,
-        "type": "string"
-      },
-      "date_to": {
-        "title": "Replication End Date",
-        "description": "Replication end date in YYYY-MM-DD format. Statistics data will be replicated since date_from including this date.",
-        "default": "2020-01-01",
-        "order": 2,
-        "type": "string"
-      },
-      "last_days": {
-        "title": "Load Last Days Count",
-        "description": "Load last N days. Statistics data will be replicated since N days before including yesterday. Used in incremental (at first, load data from start date, then load data from last sync date minus last days, must be useful because of data corrections) and full refresh (start date is not used, load only last N days).",
-        "minimum": 1,
-        "maximum": 365,
-        "examples": [
-          "30"
-        ],
-        "order": 3,
-        "type": "integer"
+        "description": "Choose date period that must be loaded",
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Custom Date Range",
+            "required": [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_range_type": {
+                "type": "string",
+                "const": "custom_date",
+                "order": 0
+              },
+              "date_from": {
+                "title": "Start Date",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-05-01"
+                ],
+                "order": 1,
+                "type": "string"
+              },
+              "date_to": {
+                "title": "End Date",
+                "description": "End date in format YYYY-MM-DD.",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "order": 2,
+                "examples": [
+                  "2023-05-01"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Last N Days",
+            "required": [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_range_type": {
+                "type": "string",
+                "const": "last_n_days",
+                "order": 0
+              },
+              "last_days_count": {
+                "title": "Last Days Count",
+                "description": "Count of last days",
+                "examples": [
+                  6,
+                  30
+                ],
+                "type": "integer",
+                "order": 1,
+                "minimum": 0,
+                "maximum": 3650
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "description": "Should connector load today time as End Time? If not, End Time will be yesterday.",
+                "type": "boolean",
+                "always_show": true,
+                "order": 2,
+                "default": false
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "From Start Date To Today",
+            "description": "Load data from Start Date to Today",
+            "required": [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "type": "boolean",
+                "description": "Should connector load today date as End Date? If not, End Date will be yesterday",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "From start date to today",
+                "const": "from_start_date_to_today",
+                "order": 2
+              }
+            }
+          }
+        ]
       },
       "client_name": {
         "title": "Client Name Constant",
@@ -107,7 +208,7 @@
         "examples": [
           "abcd"
         ],
-        "order": 4,
+        "order": 2,
         "default": ""
       },
       "product_name": {
@@ -117,7 +218,7 @@
         "examples": [
           "abcd"
         ],
-        "order": 5,
+        "order": 3,
         "default": ""
       },
       "custom_json": {
@@ -127,7 +228,7 @@
         "examples": [
           "{\"abc\": \"123\", \"cde\": \"132\"}"
         ],
-        "order": 6,
+        "order": 4,
         "default": "{}"
       }
     }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom" xmlns:adriver="http://adriver.ru/ns/restapi/atom">
+  <updated>2014-05-12T13:51:58+04:00</updated>
+  <author>
+    <name>Adriver::RestAPI::Statistics</name>
+  </author>
+  <content type="text/xml">
+    <statUniqueObject xmlns="http://adriver.ru/ns/restapi/atom">
+      <object type="SLICE" id="1"/>
+      <stat>
+        <item>
+          <exp>1</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-04-12</date>
+        </item>
+        <item>
+          <exp>1</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-04-13</date>
+        </item>
+        <item>
+          <exp>0</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-04-14</date>
+        </item>
+        <item>
+          <exp>0</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-04-15</date>
+        </item>
+        <item>
+          <exp>0</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-05-09</date>
+        </item>
+        <item>
+          <exp>0</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-05-10</date>
+        </item>
+        <item>
+          <exp>0</exp>
+          <click>0</click>
+          <reach>1</reach>
+          <date>2014-05-11</date>
+        </item>
+      </stat>
+    </statUniqueObject>
+  </content>
+</entry>

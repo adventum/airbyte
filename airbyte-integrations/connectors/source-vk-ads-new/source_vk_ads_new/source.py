@@ -323,14 +323,14 @@ class SourceVkAdsNew(AbstractSource):
         if range_type == "custom_date":
             prepared_range["date_from"] = date_range["date_from"]
             prepared_range["date_to"] = date_range["date_to"]
-        elif range_type == "from_date_from_to_today":
+        elif range_type == "from_start_date_to_today":
             prepared_range["date_from"] = date_range["date_from"]
             if date_range["should_load_today"]:
                 prepared_range["date_to"] = today
             else:
                 prepared_range["date_to"] = today - timedelta(days=1)
         elif range_type == "last_n_days":
-            prepared_range["date_from"] = today - timedelta(days=date_range["last_days"])
+            prepared_range["date_from"] = today - timedelta(days=date_range["last_days_count"])
             if date_range["should_load_today"]:
                 prepared_range["date_to"] = today
             else:

@@ -64,7 +64,7 @@
               },
               "credentials_craft_token_id": {
                 "title": "CredentialsCraft VK Token ID",
-                "desctiption": "VK Token ID in CredentialsCraft",
+                "description": "VK Token ID in CredentialsCraft",
                 "examples": [
                   3345435
                 ],

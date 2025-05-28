@@ -64,7 +64,7 @@
               },
               "credentials_craft_token_id" : {
                 "title" : "ID авторизации в CredentialsCraft",
-                "desctiption" : "ID авторизации Yandex внутри CredentialsCraft",
+                "description" : "ID авторизации Yandex внутри CredentialsCraft",
                 "examples" : [
                   3345435
                 ],
@@ -109,7 +109,7 @@
               "type" : "string",
               "title" : "Шаблон",
               "always_show" : true,
-              "desctiption" : "Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/presets/presets.html",
+              "description" : "Документация: https://yandex.ru/dev/metrika/doc/api2/api_v1/presets/presets.html",
               "enum" : [
                 "Пользовательский отчёт",
                 "Источники, сводка",

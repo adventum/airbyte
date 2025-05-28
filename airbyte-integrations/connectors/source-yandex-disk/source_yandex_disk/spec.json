@@ -56,7 +56,7 @@
               },
               "credentials_craft_token_id": {
                 "title": "CredentialsCraft Yandex Token ID",
-                "desctiption": "Yandex Token ID in CredentialsCraft",
+                "description": "Yandex Token ID in CredentialsCraft",
                 "examples": [3345435],
                 "type": "integer"
               }

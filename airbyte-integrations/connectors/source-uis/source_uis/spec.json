@@ -62,7 +62,7 @@
               },
               "credentials_craft_token_id" : {
                 "title" : "ID авторизации в CredentialsCraft",
-                "desctiption" : "ID авторизации UIS внутри CredentialsCraft",
+                "description" : "ID авторизации UIS внутри CredentialsCraft",
                 "examples" : [
                   3345435
                 ],

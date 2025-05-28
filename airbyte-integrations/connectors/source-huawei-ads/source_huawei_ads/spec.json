@@ -55,7 +55,7 @@
               },
               "credentials_craft_token_id": {
                 "title": "CredentialsCraft Huawei Ads Token ID",
-                "desctiption": "Huawei Ads Token ID in CredentialsCraft",
+                "description": "Huawei Ads Token ID in CredentialsCraft",
                 "examples": [3345435],
                 "type": "integer"
               }

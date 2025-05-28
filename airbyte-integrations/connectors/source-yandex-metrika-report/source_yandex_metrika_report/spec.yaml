@@ -50,7 +50,7 @@ connectionSpecification:
               airbyte_secret: true
             credentials_craft_token_id:
               title: CredentialsCraft Yandex Token ID
-              desctiption: Yandex Token ID in CredentialsCraft
+              description: Yandex Token ID in CredentialsCraft
               examples:
                 - 3345435
               type: integer
@@ -92,7 +92,7 @@ connectionSpecification:
           preset_name:
             type: string
             title: Preset Name
-            desctiption: See https://yandex.ru/dev/metrika/doc/api2/api_v1/presets/presets.html. Leave empty for Custom Report type
+            description: See https://yandex.ru/dev/metrika/doc/api2/api_v1/presets/presets.html. Leave empty for Custom Report type
             order: 1
           metrics:
             type: array

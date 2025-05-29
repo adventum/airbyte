@@ -7,16 +7,80 @@
     "required": [],
     "additionalProperties": true,
     "properties": {
-      "login": {
-        "type": "string",
-        "description": "Comagic account login",
-        "order": 0
-      },
-      "password": {
-        "type": "string",
-        "description": "Comagic account password",
-        "airbyte_secret": true,
-        "order": 1
+      "credentials": {
+        "title": "Auth method",
+        "order": 0,
+        "type": "object",
+        "group": "auth",
+        "oneOf": [
+          {
+            "title": "Login and Password",
+            "type": "object",
+            "properties": {
+              "auth_type": {
+                "title": "Auth Type",
+                "const": "access_token_auth",
+                "order": 0,
+                "type": "string"
+              },
+              "login": {
+                "type": "string",
+                "description": "Comagic account login",
+                "order": 1
+              },
+              "password": {
+                "type": "string",
+                "description": "Comagic account password",
+                "airbyte_secret": true,
+                "order": 2
+              }
+            },
+            "required": [
+              "login",
+              "password"
+            ]
+          },
+          {
+            "title": "CredentialsCraft",
+            "type": "object",
+            "properties": {
+              "auth_type": {
+                "title": "Auth Type",
+                "const": "credentials_craft_auth",
+                "order": 0,
+                "type": "string"
+              },
+              "credentials_craft_host": {
+                "title": "CredentialsCraft Host",
+                "description": "CredentialsCraft Host Url",
+                "examples": [
+                  "https://credentialscraft.mysite.com"
+                ],
+                "type": "string"
+              },
+              "credentials_craft_token": {
+                "title": "CredentialsCraft Token",
+                "description": "Long-term CredentialsCraft Access Token",
+                "type": "string",
+                "airbyte_secret": true
+              },
+              "credentials_craft_token_id": {
+                "title": "CredentialsCraft Comagic Token ID",
+                "description": "Comagic Token Id in CredentialsCraft",
+                "examples": [
+                  3345435
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
+            ]
+          }
+        ]
       },
       "site_id": {
         "title": "Site ID",
@@ -25,13 +89,13 @@
         "examples": [
           "22334"
         ],
-        "order": 2
+        "order": 1
       },
       "date_range": {
         "title": "Date Range",
         "description": "Choose date period that must be loaded",
         "type": "object",
-        "order": 3,
+        "order": 2,
         "oneOf": [
           {
             "type": "object",
@@ -158,7 +222,7 @@
         "examples": [
           "abcde"
         ],
-        "order": 4,
+        "order": 3,
         "default": ""
       },
       "product_name": {
@@ -168,7 +232,7 @@
         "examples": [
           "abcde"
         ],
-        "order": 5,
+        "order": 4,
         "default": ""
       },
       "custom_constants": {
@@ -179,7 +243,7 @@
           "{\"abc\": \"123\", \"cde\": \"132\"}"
         ],
         "default": "{}",
-        "order": 6
+        "order": 5
       }
     }
   }

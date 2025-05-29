@@ -64,7 +64,7 @@
               },
               "credentials_craft_token_id": {
                 "title": "CredentialsCraft MyTarget Token ID",
-                "desctiption": "MyTarget Token ID in CredentialsCraft",
+                "description": "MyTarget Token ID in CredentialsCraft",
                 "examples": [
                   3345435
                 ],

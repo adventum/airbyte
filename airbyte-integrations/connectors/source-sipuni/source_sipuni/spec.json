@@ -65,7 +65,7 @@
               },
               "credentials_craft_token_id" : {
                 "title" : "CredentialsCraft Adjust Token ID",
-                "desctiption" : "Adjust Token ID in CredentialsCraft",
+                "description" : "Adjust Token ID in CredentialsCraft",
                 "examples" : [
                   123
                 ],

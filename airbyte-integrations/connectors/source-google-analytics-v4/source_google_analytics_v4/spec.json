@@ -36,7 +36,7 @@
               },
               "credentials_craft_token_id": {
                 "title": "CredentialsCraft Google Token ID",
-                "desctiption": "Google Token ID in CredentialsCraft",
+                "description": "Google Token ID in CredentialsCraft",
                 "examples": [3345435],
                 "type": "integer"
               }

@@ -5,15 +5,15 @@
 
 from abc import ABC
 from datetime import datetime, timedelta
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Dict
 
 import requests
+from .auth import CredentialsCraftAuthenticator
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
 from random import randint
 from .utils import (
-    get_today_minus_n_days_date,
     get_yesterday_datetime,
     difference_in_days_between_two_datetimes,
 )
@@ -479,17 +479,18 @@ class SourceComagic(AbstractSource):
         :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
         """
         config = self.transform_config(config)
+        date_range = config["prepared_date_range"]
 
-        if not config.get("start_datetime") or not config.get("end_datetime"):
+        if not date_range.get("date_from") or not date_range.get("date_to"):
             return (
                 False,
-                "For automatic yesterday datetimes leave start_datetime AND end_datetime blank."
+                "For automatic yesterday datetimes leave date_from AND date_to blank."
                 "You can't leave blank only one field of them.",
             )
 
         if (
             difference_in_days_between_two_datetimes(
-                config["start_datetime"], config["end_datetime"]
+                date_range["date_from"], date_range["date_to"]
             )
             > 90
         ):
@@ -497,11 +498,11 @@ class SourceComagic(AbstractSource):
 
         if (
             difference_in_days_between_two_datetimes(
-                config["start_datetime"], config["end_datetime"]
+                date_range["date_from"], date_range["date_to"]
             )
             < 0
         ):
-            return False, "You must swap start_datetime and end_datetime."
+            return False, "You must swap date_from and date_to."
 
         if config.get("custom_json"):
             try:
@@ -529,6 +530,23 @@ class SourceComagic(AbstractSource):
                 return True, None
         except Exception as e:
             return False, e
+
+    @staticmethod
+    def get_credentials(config: Mapping[str, Any]) -> Dict[str, str]:
+        credentials: Dict[str, Any] = config["credentials"]
+        auth_type: str = credentials["auth_type"]
+        if auth_type == "access_token_auth":
+            return {"login": credentials["login"], "password": credentials["password"]}
+        if auth_type == "credentials_craft_auth":
+            authenticator = CredentialsCraftAuthenticator(
+                credentials_craft_host=credentials["credentials_craft_host"],
+                credentials_craft_token=credentials["credentials_craft_token"],
+                credentials_craft_token_id=credentials["credentials_craft_token_id"]
+            )
+            token_data: Dict[str, str] = authenticator.token
+            return {"login": token_data["login"], "password": token_data["password"]}
+        else:
+            raise Exception(f"Unsupported auth type: {auth_type}")
 
     def get_access_token(self, login: str, password: str) -> str:
         login_data = requests.post(
@@ -588,7 +606,8 @@ class SourceComagic(AbstractSource):
         """
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        access_token = self.get_access_token(config["login"], config["password"])
+        credentials: Dict[str, str] = self.get_credentials(config)
+        access_token = self.get_access_token(credentials["login"], credentials["password"])
         transformed_config = self.transform_config(config)
         return [
             CallLegsReport(config=transformed_config, access_token=access_token),

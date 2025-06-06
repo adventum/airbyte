@@ -14,6 +14,23 @@ from airbyte_cdk.sources.streams.http import HttpStream
 class AdriverStream(HttpStream, ABC):
     url_base = "https://api.adriver.ru/"
 
+    @property
+    def state(self) -> MutableMapping[str, Any]:
+        """Get connector state (default from HttpStream)"""
+        cursor = self.get_cursor()
+        if cursor:
+            return cursor.get_stream_state()  # type: ignore
+        return self._state
+
+    @state.setter
+    def state(self, value: MutableMapping[str, Any]) -> None:
+        """Set empty state as in old connectors"""
+        value = {}
+        cursor = self.get_cursor()
+        if cursor:
+            cursor.set_initial_state(value)
+        self._state = value
+
     def __init__(
         self,
         user_id: str,

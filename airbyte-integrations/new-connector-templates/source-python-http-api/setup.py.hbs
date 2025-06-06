@@ -5,7 +5,9 @@
 
 from setuptools import find_packages, setup
 
-MAIN_REQUIREMENTS = ["airbyte-cdk>=4.0, <5.0", "pendulum"]
+MAIN_REQUIREMENTS = [
+    "airbyte-cdk>=4.0, <5.0",
+]
 
 TEST_REQUIREMENTS = [
     "pytest~=6.2",
@@ -14,8 +16,8 @@ TEST_REQUIREMENTS = [
 ]
 
 setup(
-    name="source_adriver",
-    description="Source implementation for Adriver.",
+    name="source_{{snakeCase name}}",
+    description="Source implementation for {{capitalCase name}}.",
     author="Airbyte",
     author_email="contact@airbyte.io",
     packages=find_packages(),

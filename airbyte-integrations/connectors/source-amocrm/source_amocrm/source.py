@@ -23,16 +23,16 @@ class AmoCrmStream(HttpStream, ABC):
         self,
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        time_from: pendulum.DateTime,
-        time_to: pendulum.DateTime,
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
     ):
         super().__init__(authenticator=None)
         self._authenticator = authenticator
         self._subdomain = config["subdomain"]
         self._limit: int = 250  # default for most AmoCrm urls
         self._query: int | str | None = None
-        self._time_from: pendulum.DateTime = time_from
-        self._time_to: pendulum.DateTime = time_to
+        self._date_from: pendulum.Date = date_from
+        self._date_to: pendulum.Date = date_to
         self._with: str = ""
         self._custom_filters: list[str] = []
 
@@ -78,8 +78,22 @@ class AmoCrmStream(HttpStream, ABC):
         # Add created date filter
         # Loading data that was created or updated in this period
         # Created_at >= updated_at
-        params["filter[updated_at][from]"] = self._time_from.timestamp()
-        params["filter[created_at][to]"] = self._time_to.timestamp()
+        params["filter[updated_at][from]"] = pendulum.DateTime(
+            year=self._date_from.year,
+            month=self._date_from.month,
+            day=self._date_from.day,
+            hour=0,
+            minute=0,
+            second=0,
+        ).timestamp()
+        params["filter[created_at][to]"] = pendulum.DateTime(
+            year=self._date_to.year,
+            month=self._date_to.month,
+            day=self._date_to.day,
+            hour=23,
+            minute=59,
+            second=59,
+        ).timestamp()
 
         return params
 
@@ -93,14 +107,7 @@ class AmoCrmStream(HttpStream, ABC):
     def parse_response(
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
-        for record in response.json()["_embedded"][self.response_data_field]:
-            created_at = record.get("created_at")
-            updated_at = record.get("updated_at")
-            if created_at and pendulum.from_timestamp(int(created_at)) > self._time_to:
-                continue
-            if updated_at and pendulum.from_timestamp(int(updated_at)) < self._time_from:
-                continue
-            yield record
+        yield from response.json()["_embedded"][self.response_data_field]
 
 
 class Contacts(AmoCrmStream):
@@ -111,10 +118,10 @@ class Contacts(AmoCrmStream):
         self,
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        time_from: pendulum.DateTime,
-        time_to: pendulum.DateTime,
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
     ):
-        super().__init__(authenticator, config, time_from, time_to)
+        super().__init__(authenticator, config, date_from, date_to)
         self._custom_filters = config.get("contacts_filters", [])
         # Add all possible with values to load full data
         self._with = ",".join(["catalog_elements", "leads", "customers"])
@@ -137,10 +144,10 @@ class Leads(AmoCrmStream):
         self,
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        time_from: pendulum.DateTime,
-        time_to: pendulum.DateTime,
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
     ):
-        super().__init__(authenticator, config, time_from, time_to)
+        super().__init__(authenticator, config, date_from, date_to)
         self._custom_filters = config.get("leads_filters", [])
         self._with = ",".join(
             [
@@ -170,10 +177,10 @@ class Events(AmoCrmStream):
         self,
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        time_from: pendulum.DateTime,
-        time_to: pendulum.DateTime,
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
     ):
-        super().__init__(authenticator, config, time_from, time_to)
+        super().__init__(authenticator, config, date_from, date_to)
         self._custom_filters = config.get("events_filters", [])
 
     def path(
@@ -195,8 +202,8 @@ class Events(AmoCrmStream):
         )
 
         # Events do not support updated_at
+        params["filter[created_at][from]"] = params["filter[updated_at][from]"]
         del params["filter[updated_at][from]"]
-        params["filter[created_at][from]"] = self._time_from.timestamp()
 
         return params
 
@@ -209,10 +216,10 @@ class Pipelines(AmoCrmStream):
         self,
         authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
         config: Mapping[str, Any],
-        time_from: pendulum.DateTime,
-        time_to: pendulum.DateTime,
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
     ):
-        super().__init__(authenticator, config, time_from, time_to)
+        super().__init__(authenticator, config, date_from, date_to)
 
     def path(
         self,
@@ -251,11 +258,11 @@ class SourceAmoCrm(AbstractSource):
     def streams(self, config: Mapping[str, Any]) -> List[AmoCrmStream]:
         config = self.transform_config(config)
         auth = get_auth(config)
-        time_from, time_to = parse_date_range(config)
+        date_from, date_to = parse_date_range(config)
 
-        contacts_stream = Contacts(auth, config, time_from, time_to)
-        leads_stream = Leads(auth, config, time_from, time_to)
-        events_stream = Events(auth, config, time_from, time_to)
-        pipelines_stream = Pipelines(auth, config, time_from, time_to)
+        contacts_stream = Contacts(auth, config, date_from, date_to)
+        leads_stream = Leads(auth, config, date_from, date_to)
+        events_stream = Events(auth, config, date_from, date_to)
+        pipelines_stream = Pipelines(auth, config, date_from, date_to)
 
         return [contacts_stream, leads_stream, events_stream, pipelines_stream]

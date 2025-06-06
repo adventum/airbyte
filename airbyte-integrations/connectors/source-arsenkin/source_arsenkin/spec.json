@@ -5,14 +5,14 @@
     "title" : "Arsenkin Spec",
     "type" : "object",
     "required" : [
-      "token",
+      "access_token",
       "keywords",
       "device",
       "region_yandex"
     ],
     "additionalProperties" : false,
     "properties" : {
-      "token" : {
+      "access_token" : {
         "type" : "string",
         "title" : "Access Token",
         "description" : "Arsenkin API token",
@@ -78,6 +78,115 @@
             "Автомобиль БУ"
           ]
         }
+      },
+      "date_range": {
+        "title": "Date Range",
+        "description": "Choose date period that must be loaded (Dates are not currently in use.)",
+        "type": "object",
+        "order": 4,
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Custom Date Range",
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "date_to": {
+                "title": "End Date",
+                "type": "string",
+                "description": "End date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples": [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor": "YYYY-MM-DD",
+                "format": "date",
+                "order": 1
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "Custom Date",
+                "const": "custom_date",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Last N Days",
+            "properties": {
+              "last_days_count": {
+                "title": "Last Days Count",
+                "type": "integer",
+                "description": "Count of last days exclude today.",
+                "minimum": 0,
+                "maximum": 3650,
+                "examples": [
+                  30
+                ],
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "type": "boolean",
+                "description": "Should connector load today time as End Time? If not, End Time will be yesterday.",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "Last N Days",
+                "const": "last_n_days",
+                "order": 2
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "From Start Date To Today",
+            "description": "Load data from Start Date to Today. Only with this option you can use incremental sync.",
+            "properties": {
+              "date_from": {
+                "title": "Start Date",
+                "type": "string",
+                "description": "Start date in format YYYY-MM-DD.",
+                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor": "YYYY-MM-DD",
+                "examples": [
+                  "2023-01-01"
+                ],
+                "format": "date",
+                "order": 0
+              },
+              "should_load_today": {
+                "title": "Load Today?",
+                "type": "boolean",
+                "description": "Should connector load today date as End Date? If not, End Date will be yesterday.",
+                "order": 1,
+                "default": false
+              },
+              "date_range_type": {
+                "type": "string",
+                "title": "Date Range Type",
+                "description": "From start date to today",
+                "const": "from_start_date_to_today",
+                "order": 2
+              }
+            }
+          }
+        ]
       }
     }
   }

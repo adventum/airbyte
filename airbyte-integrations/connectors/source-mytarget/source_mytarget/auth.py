@@ -5,17 +5,23 @@ import requests
 
 
 class CredentialsCraftAuthenticator(TokenAuthenticator):
-    def __init__(self, credentials_craft_host: str, credentials_craft_token: str, credentials_craft_mytarget_token_id: int):
+    def __init__(
+        self,
+        credentials_craft_host: str,
+        credentials_craft_token: str,
+        credentials_craft_token_id: int,
+    ):
         if credentials_craft_host.endswith("/"):
             credentials_craft_host = credentials_craft_host[:-1]
         self._cc_host = credentials_craft_host
         self._cc_token = credentials_craft_token
-        self._cc_mytarget_token_id = credentials_craft_mytarget_token_id
+        self._cc_mytarget_token_id = credentials_craft_token_id
 
     @property
     def _mytarget_access_token(self) -> Mapping[str, Any]:
         response = requests.get(
-            f"{self._cc_host}/api/v1/token/mytarget/{self._cc_mytarget_token_id}/", headers={"Authorization": f"Bearer {self._cc_token}"}
+            f"{self._cc_host}/api/v1/token/mytarget/{self._cc_mytarget_token_id}/",
+            headers={"Authorization": f"Bearer {self._cc_token}"},
         )
         try:
             return response.json()["access_token"]
@@ -34,7 +40,8 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             return False, f"Connection to {self._cc_host} timed out"
 
         token_resp = requests.get(
-            f"{self._cc_host}/api/v1/token/mytarget/{self._cc_mytarget_token_id}/", headers={"Authorization": f"Bearer {self._cc_token}"}
+            f"{self._cc_host}/api/v1/token/mytarget/{self._cc_mytarget_token_id}/",
+            headers={"Authorization": f"Bearer {self._cc_token}"},
         ).json()
         if token_resp.get("error"):
             return False, f"CredentialsCraft error: {token_resp.get('error')}"

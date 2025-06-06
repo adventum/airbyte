@@ -64,7 +64,7 @@
               },
               "credentials_craft_token_id" : {
                 "title" : "ID авторизации в CredentialsCraft",
-                "desctiption" : "ID авторизации Yandex внутри CredentialsCraft",
+                "description" : "ID авторизации Yandex внутри CredentialsCraft",
                 "examples" : [
                   3345435
                 ],

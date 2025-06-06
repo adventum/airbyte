@@ -93,8 +93,14 @@ class AmoCrmStream(HttpStream, ABC):
     def parse_response(
         self, response: requests.Response, **kwargs
     ) -> Iterable[Mapping]:
-        self.logger.info(self.__class__.__name__)
-        yield from response.json()["_embedded"][self.response_data_field]
+        for record in response.json()["_embedded"][self.response_data_field]:
+            created_at = record.get("created_at")
+            updated_at = record.get("updated_at")
+            if created_at and pendulum.from_timestamp(int(created_at)) > self._time_to:
+                continue
+            if updated_at and pendulum.from_timestamp(int(updated_at)) < self._time_from:
+                continue
+            yield record
 
 
 class Contacts(AmoCrmStream):

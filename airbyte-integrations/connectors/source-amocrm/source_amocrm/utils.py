@@ -39,6 +39,7 @@ def parse_date_range(
             raise ValueError(f"Invalid date range type: {date_range_type}")
 
     # To load data including time_to
+    # Time will be filtered in connector, since AmoCrm says nothing about timezones
     time_to = time_to.add(days=1).subtract(microseconds=1)
     return time_from, time_to
 

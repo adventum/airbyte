@@ -4,15 +4,23 @@
 
 import xml.etree.ElementTree as ET
 from abc import ABC
+from functools import lru_cache
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 import pendulum
 import requests
 from airbyte_cdk.sources.streams.http import HttpStream
+from .utils import get_auth, url_base as _url_base
 
 
 class AdriverStream(HttpStream, ABC):
-    url_base = "https://api.adriver.ru/"
+    url_base = _url_base
+
+    # XML Namespaces
+    NS = {
+        "atom": "http://www.w3.org/2005/Atom",
+        "adr": "http://adriver.ru/ns/restapi/atom",
+    }
 
     @property
     def state(self) -> MutableMapping[str, Any]:
@@ -33,6 +41,7 @@ class AdriverStream(HttpStream, ABC):
 
     def __init__(
         self,
+        config: Mapping[str, Any],
         user_id: str,
         token: str,
         start_date: pendulum.Date,
@@ -42,6 +51,7 @@ class AdriverStream(HttpStream, ABC):
     ) -> None:
         # Adriver uses custom auth
         super().__init__(authenticator=None)
+        self.config = config
         self.user_id = user_id
         self.token = token
         self.objects_ids = objects_ids
@@ -68,6 +78,25 @@ class AdriverStream(HttpStream, ABC):
         }
         return headers
 
+    def _fetch_next_page(
+        self,
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        stream_state: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
+    ) -> tuple[requests.PreparedRequest, requests.Response]:
+        # Adriver token tends to expire while processing data, so we need to renew it
+        request, response = None, None
+        attempts: int = 0
+        while attempts < 3:
+            request, response = super()._fetch_next_page(
+                stream_slice, stream_state, next_page_token
+            )
+            if response.status_code != 401:
+                break
+            self.user_id, self.token = get_auth(self.config)
+            attempts += 1
+        return request, response
+
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         for object_id in self.objects_ids:
             self.logger.info(f"Yield obj: {object_id}")
@@ -92,15 +121,9 @@ class AdriverStream(HttpStream, ABC):
         # 1. Parse XML
         root = ET.fromstring(response.text)
 
-        # 2. Namespaces
-        NS = {
-            "atom": "http://www.w3.org/2005/Atom",
-            "adr": "http://adriver.ru/ns/restapi/atom",
-        }
-
         # 3. Find <adr:item> inside <adr:stat>
         items = root.findall(
-            ".//atom:content/adr:statUniqueObject/adr:stat/adr:item", NS
+            ".//atom:content/adr:statUniqueObject/adr:stat/adr:item", self.NS
         )
 
         # 4. Parse rows
@@ -129,23 +152,36 @@ class Ads(AdriverStream):
         object_id = stream_slice["object_id"]
         return f"/stat/ads/{object_id}/unique"
 
-    def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
-        if self.load_all:
-            # Load ads from urls
-            for path in ("ads", "ads/delegated", "net_ads", "net_ads/delegated"):
+    @lru_cache()
+    def get_ads_ids(self) -> list[int]:
+        ads_ids = []
+        for path in ("ads", "ads/delegated", "net_ads", "net_ads/delegated"):
+            # Make request
+            attempts: int = 0
+            req = None
+            while attempts < 3:
                 req = requests.get(
                     f"{self.url_base}{path}", headers=self.request_headers(None)
                 )
-                root = ET.fromstring(req.text)
-                ns = {
-                    "atom": "http://www.w3.org/2005/Atom",
-                    "adr": "http://adriver.ru/ns/restapi/atom",
-                }
-                for entry in root.findall("atom:entry", ns):
-                    ad_url = entry.find("atom:id", ns).text
-                    ad_id = int(ad_url.split("/")[-1])
-                    self.logger.info(f"Yield ad: {ad_id}")
-                    yield {"object_id": ad_id}
+                if req.status_code != 401:
+                    break
+                self.user_id, self.token = get_auth(self.config)
+                attempts += 1
+
+            # Parse request
+            root = ET.fromstring(req.text)
+            for entry in root.findall("atom:entry", self.NS):
+                ad_url = entry.find("atom:id", self.NS).text
+                ad_id = int(ad_url.split("/")[-1])
+                ads_ids.append(ad_id)
+        return ads_ids
+
+    def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
+        if self.load_all:
+            # Load all with ads ids
+            for ad_id in self.get_ads_ids():
+                self.logger.info(f"Yield ad: {ad_id}")
+                yield {"object_id": ad_id}
         else:
             # Load by manually stated ids
             yield from super().stream_slices(**kwargs)
@@ -162,3 +198,61 @@ class Banners(AdriverStream):
     ) -> str:
         object_id = stream_slice["object_id"]
         return f"/stat/banners/{object_id}/unique"
+
+    def __init__(
+        self,
+        config: Mapping[str, Any],
+        user_id: str,
+        token: str,
+        start_date: pendulum.Date,
+        end_date: pendulum.Date,
+        objects_ids: list[int] | None = None,
+        load_all: bool = False,
+        ads_stream: Ads | None = None,
+    ) -> None:
+        super().__init__(
+            config, user_id, token, start_date, end_date, objects_ids, load_all
+        )
+        self.ads_stream = ads_stream
+
+    def load_banners_ids(self) -> Iterable[int]:
+        """Get banners ids as iterator"""
+        ads_ids = self.ads_stream.get_ads_ids()
+        for ad_id in ads_ids:
+            # Make request
+            attempts: int = 0
+            req = None
+            while attempts < 3:
+                req = requests.get(
+                    f"{self.url_base}/adplacements",
+                    headers=self.request_headers(None),
+                    params={"user_id": self.user_id, "ad_id": ad_id},
+                )
+                if req.status_code != 401:
+                    break
+                self.user_id, self.token = get_auth(self.config)
+                attempts += 1
+
+            # Parse data
+            root = ET.fromstring(req.text)
+            for entry in root.findall("atom:entry", self.NS):
+                banners = entry.find(
+                    "atom:content/adr:adPlacement/adr:banners", self.NS
+                )
+                if banners is None:
+                    continue
+                for href in banners.findall("adr:href", self.NS):
+                    if href.text and href.text.strip():
+                        banner_url = href.text.strip()
+                        banner_id = int(banner_url.split("/")[-1])
+                        yield banner_id
+
+    def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
+        if self.load_all:
+            # Load all with ads ids
+            for banner_id in self.load_banners_ids():
+                self.logger.info(f"Yield banner: {banner_id}")
+                yield {"object_id": banner_id}
+        else:
+            # Load by manually stated ids
+            yield from super().stream_slices(**kwargs)

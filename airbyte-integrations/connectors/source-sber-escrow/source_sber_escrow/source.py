@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Mapping, Any, List, Tuple, Optional, Union
 
 from airbyte_cdk.sources import AbstractSource
@@ -65,7 +65,7 @@ class SourceSberEscrow(AbstractSource):
             return CredentialsCraftAuthenticator(
                 host=credentials["credentials_craft_host"],
                 bearer_token=credentials["credentials_craft_token"],
-                token_id=credentials["credentials_craft_sber_token_id"],
+                token_id=credentials["credentials_craft_token_id"],
             )
 
         if auth_type == "token_auth":
@@ -82,17 +82,12 @@ class SourceSberEscrow(AbstractSource):
     @staticmethod
     def _check_config(config: Mapping[str, Any], credentials: SberCredentials) -> Tuple[IsSuccess, Optional[Message]]:
         # Check dates config
-        date_from = config.get("date_from")
-        date_to = config.get("date_to")
-        last_days = config.get("last_days")
-
-        if not (last_days or (date_from and date_to)):
-            message = "You must specify either 'Date from' and 'Date to' or just 'Load last N days' params in config."
+        date_from, date_to = SourceSberEscrow._prepare_dates(config)
+        if not date_from and date_to:
+            message = "You must specify date_range"
             return False, message
-
-        if date_from and date_to:
-            if datetime.fromisoformat(date_from) > datetime.fromisoformat(date_to):
-                return False, "'Date from' exceeds 'Date to'."
+        if date_from > date_to:
+            return False, "'Date from' exceeds 'Date to'."
 
         # Check certificates
         config_credentials = config["credentials"]
@@ -114,15 +109,40 @@ class SourceSberEscrow(AbstractSource):
         return True, None
 
     @staticmethod
-    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[Optional[StartDate], Optional[EndDate]]:
-        if last_days := config.get("last_days"):
-            date_from = date.today() - timedelta(days=last_days)
-            date_to = date.today() - timedelta(days=1)  # yesterday
-            return date_from, date_to
+    def _prepare_dates(config: Mapping[str, Any]) -> Tuple[StartDate, EndDate]:
+        date_range = config["date_range"]
+        range_type = config["date_range"]["date_range_type"]
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        config_date_format: str = "%Y-%m-%d"
 
-        default_date_from = default_date_to = date.today() - timedelta(days=1)  # yesterday
-        date_from_str = config.get("date_from")
-        date_to_str = config.get("date_to")
-        date_from = date.fromisoformat(date_from_str) if date_from_str else default_date_from
-        date_to = date.fromisoformat(date_to_str) if date_to_str else default_date_to
-        return date_from, date_to
+        if range_type == "custom_date":
+            date_from = date_range["date_from"]
+            date_to = date_range["date_to"]
+        elif range_type == "from_start_date_to_today":
+            date_from = date_range["date_from"]
+            if date_range["should_load_today"]:
+                date_to = today
+            else:
+                date_to = today - timedelta(days=1)
+        elif range_type == "last_n_days":
+            date_from = today - timedelta(
+                days=date_range["last_days_count"]
+            )
+            if date_range.get("should_load_today", False):
+                date_to = today
+            else:
+                date_to = today - timedelta(days=1)
+        else:
+            raise ValueError("Invalid date_range_type")
+
+        if isinstance(date_from, str):
+            date_from = datetime.strptime(
+                date_from, config_date_format
+            )
+
+        if isinstance(date_to, str):
+            date_to = datetime.strptime(
+                date_to, config_date_format
+            )
+
+        return date_from.date(), date_to.date()

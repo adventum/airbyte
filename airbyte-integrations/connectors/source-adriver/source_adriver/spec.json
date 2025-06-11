@@ -30,10 +30,18 @@
           "type": "integer"
         }
       },
+      "load_all_ads": {
+        "title": "Загружать все рекламные компании?",
+        "description": "Коннектор получит список всех доступных РК из api и выгрузит данные по ним. При большом числе РК значительно увеличивает время работы коннектора. ID можно не заполнять",
+        "order": 3,
+        "always_show": true,
+        "type": "boolean",
+        "default": false
+      },
       "banners_ids": {
         "title": "ID баннеров",
         "description": "ID баннеров в Adriver",
-        "order": 3,
+        "order": 4,
         "always_show": true,
         "type": "array",
         "items": {
@@ -44,7 +52,7 @@
         "title": "Диапазон дат",
         "description": "Предупреждение: коннектор загружает данные не более чем за последние 30 дней из-за специфики API. Диапазон будет отфильтрован автоматически",
         "type": "object",
-        "order": 4,
+        "order": 5,
         "oneOf": [
           {
             "type": "object",

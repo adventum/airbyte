@@ -35,9 +35,10 @@ class AdriverStream(HttpStream, ABC):
         self,
         user_id: str,
         token: str,
-        objects_ids: list[int],
         start_date: pendulum.Date,
         end_date: pendulum.Date,
+        objects_ids: list[int] | None = None,
+        load_all: bool = False,
     ) -> None:
         # Adriver uses custom auth
         super().__init__(authenticator=None)
@@ -46,6 +47,7 @@ class AdriverStream(HttpStream, ABC):
         self.objects_ids = objects_ids
         self.start_date = start_date
         self.end_date = end_date
+        self.load_all = load_all
 
     def next_page_token(
         self, response: requests.Response
@@ -68,6 +70,7 @@ class AdriverStream(HttpStream, ABC):
 
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         for object_id in self.objects_ids:
+            self.logger.info(f"Yield obj: {object_id}")
             yield {"object_id": object_id}
 
     def request_params(
@@ -85,6 +88,7 @@ class AdriverStream(HttpStream, ABC):
         **kwargs,
     ) -> Iterable[Mapping]:
         object_id = stream_slice["object_id"]
+        self.logger.info(f"Parsing obj: {object_id}")
         # 1. Parse XML
         root = ET.fromstring(response.text)
 
@@ -124,6 +128,27 @@ class Ads(AdriverStream):
     ) -> str:
         object_id = stream_slice["object_id"]
         return f"/stat/ads/{object_id}/unique"
+
+    def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
+        if self.load_all:
+            # Load ads from urls
+            for path in ("ads", "ads/delegated", "net_ads", "net_ads/delegated"):
+                req = requests.get(
+                    f"{self.url_base}{path}", headers=self.request_headers(None)
+                )
+                root = ET.fromstring(req.text)
+                ns = {
+                    "atom": "http://www.w3.org/2005/Atom",
+                    "adr": "http://adriver.ru/ns/restapi/atom",
+                }
+                for entry in root.findall("atom:entry", ns):
+                    ad_url = entry.find("atom:id", ns).text
+                    ad_id = int(ad_url.split("/")[-1])
+                    self.logger.info(f"Yield ad: {ad_id}")
+                    yield {"object_id": ad_id}
+        else:
+            # Load by manually stated ids
+            yield from super().stream_slices(**kwargs)
 
 
 class Banners(AdriverStream):

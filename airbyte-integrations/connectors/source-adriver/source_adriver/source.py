@@ -99,11 +99,12 @@ class SourceAdriver(AbstractSource):
         time_from = config["time_from_transformed"]
         time_to = config["time_to_transformed"]
         user_id, token = self.get_auth(config)
+        load_all_ads = config["load_all_ads"]
         streams = []
 
         # Add ads stream
         ads_ids: list[int] | None = config.get("ads_ids")
-        if ads_ids:
+        if ads_ids or load_all_ads:
             streams.append(
                 Ads(
                     user_id=user_id,
@@ -111,6 +112,7 @@ class SourceAdriver(AbstractSource):
                     objects_ids=ads_ids,
                     start_date=time_from,
                     end_date=time_to,
+                    load_all=load_all_ads,
                 )
             )
 
@@ -124,6 +126,7 @@ class SourceAdriver(AbstractSource):
                     objects_ids=banners_ids,
                     start_date=time_from,
                     end_date=time_to,
+                    load_all=False,
                 )
             )
         return streams

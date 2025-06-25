@@ -85,11 +85,12 @@ class SourceSmartis(AbstractSource):
         top_count: int = config.get("top_count", 10000)
         split_by_days: bool = config.get("split_by_days", False)
         attribution_spec: dict[str, Any] | None = config.get("attribution_settings")
-        attribution = (
-            attribution_spec["attribution"]
-            if attribution_spec["attribution_type"] == "attribution"
-            else None
-        )
+        # attribution = (
+        #     attribution_spec["attribution"]
+        #     if attribution_spec["attribution_type"] == "attribution"
+        #     else None
+        # )
+        attribution = None
         if project and metrics and group_by and top_count:
             streams.append(
                 Reports(

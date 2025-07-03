@@ -42,7 +42,9 @@ class SourceAppmetricaLogsApi(AbstractSource):
                     headers={"Authorization": f"OAuth {stream._token}"},
                     params=params,
                 )
-                assert response.status_code in (200, 202, 204)
+                # 429 means ok, but the Yandex server is processing previous requests,
+                # the queue for new ones is still full
+                assert response.status_code in (200, 202, 204, 429)
                 return True, None
             elif isinstance(stream, AppmetricaReportsTable):
                 next(streams[0].read_records(sync_mode=SyncMode.full_refresh))

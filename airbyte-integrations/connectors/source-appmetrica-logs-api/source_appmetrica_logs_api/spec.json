@@ -168,12 +168,22 @@
               ],
               "default" : "default"
             },
+            "event_name_list": {
+              "title": "Event Name List",
+              "description": "Used for source type 'events', here you can specify the names of events to get, the rest will be skipped",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "examples": ["view_cart", "add_to_cart", "begin_checkout", "purchase", "select_content", "screen_view"],
+              "order": 5
+            },
             "check_fields" : {
               "title" : "Validate Fields",
               "description" : "Check if field list is correct before making requests",
               "type" : "boolean",
               "default" : true,
-              "order" : 5
+              "order" : 6
             }
           }
         }

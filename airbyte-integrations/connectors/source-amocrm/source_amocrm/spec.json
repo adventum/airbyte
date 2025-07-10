@@ -194,12 +194,12 @@
             "type": "object",
             "title": "Последние N дней",
             "required": [
-              "last_days",
+              "last_days_count",
               "should_load_today",
               "date_range_type"
             ],
             "properties": {
-              "last_days": {
+              "last_days_count": {
                 "title": "Количество последних дней",
                 "type": "integer",
                 "description": "Количество последних дней, исключая сегодня.",

@@ -32,7 +32,7 @@ def parse_date_range(
             date_to = today_date
             if date_range.get("should_load_today"):
                 date_to = date_to.subtract(days=1)
-            date_from = today_date.subtract(days=date_range["last_days"])
+            date_from = today_date.subtract(days=date_range["last_days_count"])
         case _:
             raise ValueError(f"Invalid date range type: {date_range_type}")
 

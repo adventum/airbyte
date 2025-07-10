@@ -135,12 +135,20 @@ class AppmetricaLogsApi(HttpStream):
         response = self.make_request(stream_slice)
         i: int = 0
         waited_time: int = 0
-        while response.status_code == 202:
+        while response.status_code in [202, 429]:
             wait_time = min((i + 0.2) * 10, 60)
-            self.logger.info(
-                f"Stream is being prepared on yandex server: {stream_slice}. "
-                f"Already waiting: {waited_time} seconds, waiting for {wait_time} seconds more."
-            )
+            if response.status_code == 202:
+                self.logger.info(
+                    f"Stream is being prepared on yandex server: {stream_slice}. "
+                    f"Already waiting: {waited_time} seconds, waiting for {wait_time} seconds more."
+                )
+            elif response.status_code == 429:
+                self.logger.info(
+                    f"Yandex Server response: {response.text} | Status Code: 429 | "
+                    f"Waiting for the queue to be free can take a long time, "
+                    f"the connector will continue to make requests and check for free queues until the data is generated. "
+                    f"Already waiting: {waited_time} seconds, waiting for {wait_time} seconds more."
+                )
             time.sleep(wait_time)
             i += 1
             waited_time += wait_time

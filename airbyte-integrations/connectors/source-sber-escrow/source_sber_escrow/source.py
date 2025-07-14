@@ -125,9 +125,7 @@ class SourceSberEscrow(AbstractSource):
             else:
                 date_to = today - timedelta(days=1)
         elif range_type == "last_n_days":
-            date_from = today - timedelta(
-                days=date_range["last_days_count"]
-            )
+            date_from = today - timedelta(days=date_range["last_days_count"])
             if date_range.get("should_load_today", False):
                 date_to = today
             else:
@@ -136,13 +134,9 @@ class SourceSberEscrow(AbstractSource):
             raise ValueError("Invalid date_range_type")
 
         if isinstance(date_from, str):
-            date_from = datetime.strptime(
-                date_from, config_date_format
-            )
+            date_from = datetime.strptime(date_from, config_date_format)
 
         if isinstance(date_to, str):
-            date_to = datetime.strptime(
-                date_to, config_date_format
-            )
+            date_to = datetime.strptime(date_to, config_date_format)
 
         return date_from.date(), date_to.date()

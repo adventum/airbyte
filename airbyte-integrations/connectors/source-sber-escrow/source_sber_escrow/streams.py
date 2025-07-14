@@ -13,7 +13,7 @@ from source_sber_escrow.auth import TokenAuthenticator
 from source_sber_escrow.schemas.escrow_accounts_list import EscrowAccountsListReport
 from source_sber_escrow.schemas.escrow_accounts_transactions import EscrowAccountsTransactionReport
 from source_sber_escrow.types import SberCredentials, IsSuccess, Message
-from source_sber_escrow.utils import CertifiedRequests
+from source_sber_escrow.utils import CertifiedRequests, chunks
 
 
 def get_commission_object_codes(
@@ -111,22 +111,6 @@ class BaseEscrowAccountsStream(Stream):
             "x-introspect-rquid": uuid4().hex,
         }
 
-    def create_request_body(self) -> dict:
-        commisioning_object_codes = get_commission_object_codes(
-            token=self._fetch_token(),
-            client_id=self.credentials.client_id,
-            sber_client_cert=self.sber_client_cert,
-            sber_client_key=self.sber_client_key,
-            sber_ca_chain=self.sber_ca_chain,
-        )
-        return {
-            "commisioningObjectCode": commisioning_object_codes,
-            "startReportDate": self.date_from.isoformat(),
-            "endReportDate": self.date_to.isoformat(),
-            "limit": 9999,
-            "offset": 0,
-        }
-
     def get_json_schema(self) -> Mapping[str, Any]:
         return self.SCHEMA.schema()
 
@@ -137,9 +121,28 @@ class BaseEscrowAccountsStream(Stream):
         stream_slice: Mapping[str, Any] = None,
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
-        response = self._certified_request.post(url=self.URL, headers=self.get_headers(), data=self.create_request_body())
-        response.raise_for_status()
-        yield from self._parse_xml_response(resp=response.text)
+        commissioning_object_codes = get_commission_object_codes(
+            token=self._fetch_token(),
+            client_id=self.credentials.client_id,
+            sber_client_cert=self.sber_client_cert,
+            sber_client_key=self.sber_client_key,
+            sber_ca_chain=self.sber_ca_chain,
+        )
+
+        code_chunks = chunks(commissioning_object_codes, 10)
+
+        for code_chunk in code_chunks:
+            request_body = {
+                "commisioningObjectCode": code_chunk,
+                "startReportDate": self.date_from.isoformat(),
+                "endReportDate": self.date_to.isoformat(),
+                "limit": 9999,
+                "offset": 0,
+            }
+
+            response = self._certified_request.post(url=self.URL, headers=self.get_headers(), data=request_body)
+            response.raise_for_status()
+            yield from self._parse_xml_response(resp=response.text)
 
     def _parse_xml_response(self, resp: str) -> Iterable[Mapping[str, Any]]:
         raise NotImplementedError

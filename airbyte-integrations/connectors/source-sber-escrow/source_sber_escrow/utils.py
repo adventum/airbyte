@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 import tempfile
-from typing import Optional
+from typing import Optional, Generator
 
 import requests
 
@@ -57,3 +59,8 @@ class CertifiedRequests:
                 kwargs["verify"] = ca_chain_temp.name
 
             return requests.request(method=method, url=url, **kwargs)
+
+
+def chunks(lst: list | set | tuple, n: int) -> Generator:
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]

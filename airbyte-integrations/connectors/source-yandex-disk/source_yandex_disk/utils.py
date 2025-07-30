@@ -1,3 +1,5 @@
 import collections
-def find_duplicates(l: list):
-    return [item for item, count in collections.Counter(l).items() if count > 1]
+
+
+def find_duplicates(_list: list):
+    return [item for item, count in collections.Counter(_list).items() if count > 1]

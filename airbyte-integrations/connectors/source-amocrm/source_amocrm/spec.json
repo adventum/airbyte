@@ -1,80 +1,80 @@
 {
-  "documentationUrl": "https://docs.airbyte.io/connector-development",
-  "connectionSpecification": {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "Спецификация AmoCrm",
-    "type": "object",
-    "required": [
+  "documentationUrl" : "https://docs.airbyte.io/connector-development",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "Спецификация AmoCrm",
+    "type" : "object",
+    "required" : [
       "credentials",
       "date_range",
       "subdomain"
     ],
-    "additionalProperties": false,
-    "properties": {
-      "credentials": {
-        "title": "Авторизация",
-        "order": 0,
-        "type": "object",
-        "oneOf": [
+    "additionalProperties" : false,
+    "properties" : {
+      "credentials" : {
+        "title" : "Авторизация",
+        "order" : 0,
+        "type" : "object",
+        "oneOf" : [
           {
-            "title": "Токен доступа",
-            "type": "object",
-            "properties": {
-              "auth_type": {
-                "title": "Тип авторизации",
-                "const": "access_token_auth",
-                "order": 0,
-                "type": "string"
+            "title" : "Токен доступа",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "access_token_auth",
+                "order" : 0,
+                "type" : "string"
               },
-              "access_token": {
-                "title": "Токен доступа",
-                "description": "ID клиента",
-                "type": "string",
-                "airbyte_secret": true
+              "access_token" : {
+                "title" : "Токен доступа",
+                "description" : "ID клиента",
+                "type" : "string",
+                "airbyte_secret" : true
               }
             },
-            "required": [
+            "required" : [
               "auth_type",
               "access_token"
             ]
           },
           {
-            "title": "CredentialsCraft",
-            "type": "object",
-            "properties": {
-              "auth_type": {
-                "title": "Тип авторизации",
-                "const": "credentials_craft_auth",
-                "order": 0,
-                "type": "string"
+            "title" : "CredentialsCraft",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Тип авторизации",
+                "const" : "credentials_craft_auth",
+                "order" : 0,
+                "type" : "string"
               },
-              "credentials_craft_host": {
-                "title": "Хост CredentialsCraft",
-                "description": "Хост CredentialsCraft",
-                "examples": [
+              "credentials_craft_host" : {
+                "title" : "Хост CredentialsCraft",
+                "description" : "Хост CredentialsCraft",
+                "examples" : [
                   "https://credentialscraft.mysite.com"
                 ],
-                "type": "string",
-                "order": 1
+                "type" : "string",
+                "order" : 1
               },
-              "credentials_craft_token": {
-                "title": "Токен доступа CredentialsCraft",
-                "description": "Токен доступа CredentialsCraft (не статический ID токена)",
-                "type": "string",
-                "airbyte_secret": true,
-                "order": 2
+              "credentials_craft_token" : {
+                "title" : "Токен доступа CredentialsCraft",
+                "description" : "Токен доступа CredentialsCraft (не статический ID токена)",
+                "type" : "string",
+                "airbyte_secret" : true,
+                "order" : 2
               },
-              "credentials_craft_token_id": {
-                "title": "ID токена CredentialsCraft",
-                "description": "ID статического токена в CredentialsCraft",
-                "examples": [
+              "credentials_craft_token_id" : {
+                "title" : "ID токена CredentialsCraft",
+                "description" : "ID статического токена в CredentialsCraft",
+                "examples" : [
                   123
                 ],
-                "type": "integer",
-                "order": 3
+                "type" : "integer",
+                "order" : 3
               }
             },
-            "required": [
+            "required" : [
               "auth_type",
               "credentials_craft_host",
               "credentials_craft_token",
@@ -88,179 +88,199 @@
         "title" : "Поддомен AmoCrm",
         "order" : 1
       },
-      "contacts_query": {
-        "type": "string",
-        "title": "Поисковый запрос (query) для стрима контактов",
-        "description": "См. документацию API: https://www.amocrm.ru/developers/content/crm_platform/contacts-api#contacts-list",
-        "order": 2
+      "contacts_query" : {
+        "type" : "string",
+        "title" : "Поисковый запрос (query) для стрима контактов",
+        "description" : "См. документацию API: https://www.amocrm.ru/developers/content/crm_platform/contacts-api#contacts-list",
+        "order" : 2
       },
-      "contacts_filters": {
-        "type": "array",
-        "title": "Фильтры для стрима контактов",
-        "description": "Добавьте фильтры к стриму контактов согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
-        "items": {
-          "type": "string",
-          "title": "Фильтр",
-          "examples": [
+      "contacts_filters" : {
+        "type" : "array",
+        "title" : "Фильтры для стрима контактов",
+        "description" : "Добавьте фильтры к стриму контактов согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
+        "items" : {
+          "type" : "string",
+          "title" : "Фильтр",
+          "examples" : [
             "filter[custom_fields_values][111222][from]=333",
             "filter[pipeline_id][1]=123456"
           ]
         },
-        "order": 3
+        "order" : 3
       },
-      "leads_query": {
-        "type": "string",
-        "title": "Поисковый запрос (query) для стрима сделок (leads)",
-        "description": "См. документацию API: https://www.amocrm.ru/developers/content/crm_platform/leads-api#lead-detail",
-        "order": 4
+      "leads_query" : {
+        "type" : "string",
+        "title" : "Поисковый запрос (query) для стрима сделок (leads)",
+        "description" : "См. документацию API: https://www.amocrm.ru/developers/content/crm_platform/leads-api#lead-detail",
+        "order" : 4
       },
-      "leads_filters": {
-        "type": "array",
-        "title": "Фильтры для стрима сделок",
-        "description": "Добавьте фильтры к стриму сделок согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
-        "items": {
-          "type": "string",
-          "title": "Фильтр",
-          "examples": [
+      "leads_filters" : {
+        "type" : "array",
+        "title" : "Фильтры для стрима сделок",
+        "description" : "Добавьте фильтры к стриму сделок согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
+        "items" : {
+          "type" : "string",
+          "title" : "Фильтр",
+          "examples" : [
             "filter[custom_fields_values][111222][from]=333",
             "filter[pipeline_id][1]=123456"
           ]
         },
-        "order": 5
+        "order" : 5
       },
-      "events_filters": {
-        "type": "array",
-        "title": "Фильтры для стрима событий",
-        "description": "Добавьте фильтры к стриму событий согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
-        "items": {
-          "type": "string",
-          "title": "Фильтр",
-          "examples": [
+      "events_filters" : {
+        "type" : "array",
+        "title" : "Фильтры для стрима событий",
+        "description" : "Добавьте фильтры к стриму событий согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
+        "items" : {
+          "type" : "string",
+          "title" : "Фильтр",
+          "examples" : [
             "filter[custom_fields_values][111222][from]=333",
             "filter[pipeline_id][1]=123456"
           ]
         },
-        "order": 5
+        "order" : 5
       },
-      "date_range": {
-        "title": "Фильтрация объектов по времени создания",
-        "description": "Выберите период дат, который должен быть загружен (Стрим воронок Pipelines не поддерживает фильтрацию по времени)",
-        "type": "object",
-        "order": 6,
-        "oneOf": [
+      "companies_query" : {
+        "type" : "string",
+        "title" : "Поисковый запрос (query) для стрима компаний (companies)",
+        "description" : "См. документацию API: https://www.amocrm.ru/developers/content/crm_platform/companies-api#with-1bcd09db-6db3-4625-94b9-0d443e753631-params",
+        "order" : 6
+      },
+      "companies_filters" : {
+        "type" : "array",
+        "title" : "Фильтры для стрима компаний",
+        "description" : "Добавьте фильтры к стриму компаний согласно описанию API. Фильтр created_at будет использоваться из date_range. Также см. примеры. Документация: https://www.amocrm.ru/developers/content/crm_platform/filters-api",
+        "items" : {
+          "type" : "string",
+          "title" : "Фильтр",
+          "examples" : [
+            "filter[custom_fields_values][111222][from]=333",
+            "filter[pipeline_id][1]=123456"
+          ]
+        },
+        "order" : 7
+      },
+      "date_range" : {
+        "title" : "Фильтрация объектов по времени создания",
+        "description" : "Выберите период дат, который должен быть загружен (Стрим воронок Pipelines не поддерживает фильтрацию по времени)",
+        "type" : "object",
+        "order" : 8,
+        "oneOf" : [
           {
-            "type": "object",
-            "title": "Пользовательский диапазон дат",
-            "required": [
+            "type" : "object",
+            "title" : "Пользовательский диапазон дат",
+            "required" : [
               "date_from",
               "date_to",
               "date_range_type"
             ],
-            "properties": {
-              "date_from": {
-                "title": "Дата начала",
-                "type": "string",
-                "description": "Дата начала в формате YYYY-MM-DD.",
-                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-                "pattern_descriptor": "YYYY-MM-DD",
-                "examples": [
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
                   "2023-01-01"
                 ],
-                "format": "date",
-                "order": 0
+                "format" : "date",
+                "order" : 0
               },
-              "date_to": {
-                "title": "Дата конца",
-                "type": "string",
-                "description": "Дата конца в формате YYYY-MM-DD.",
-                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-                "examples": [
+              "date_to" : {
+                "title" : "Дата конца",
+                "type" : "string",
+                "description" : "Дата конца в формате YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
                   "2023-01-30"
                 ],
-                "pattern_descriptor": "YYYY-MM-DD",
-                "format": "date",
-                "order": 1
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
               },
-              "date_range_type": {
-                "type": "string",
-                "title": "Тип диапазона дат",
-                "description": "Пользовательская дата",
-                "const": "custom_date",
-                "order": 2
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Пользовательская дата",
+                "const" : "custom_date",
+                "order" : 2
               }
             }
           },
           {
-            "type": "object",
-            "title": "Последние N дней",
-            "required": [
+            "type" : "object",
+            "title" : "Последние N дней",
+            "required" : [
               "last_days_count",
               "should_load_today",
               "date_range_type"
             ],
-            "properties": {
-              "last_days_count": {
-                "title": "Количество последних дней",
-                "type": "integer",
-                "description": "Количество последних дней, исключая сегодня.",
-                "minimum": 0,
-                "maximum": 3650,
-                "examples": [
+            "properties" : {
+              "last_days_count" : {
+                "title" : "Количество последних дней",
+                "type" : "integer",
+                "description" : "Количество последних дней, исключая сегодня.",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
                   30
                 ],
-                "order": 0
+                "order" : 0
               },
-              "should_load_today": {
-                "title": "Загружать данные за сегодня?",
-                "type": "boolean",
-                "description": "Должен ли коннектор загружать данные за сегодня? Если нет, конечное время будет вчера.",
-                "order": 1,
-                "default": false
+              "should_load_today" : {
+                "title" : "Загружать данные за сегодня?",
+                "type" : "boolean",
+                "description" : "Должен ли коннектор загружать данные за сегодня? Если нет, конечное время будет вчера.",
+                "order" : 1,
+                "default" : false
               },
-              "date_range_type": {
-                "type": "string",
-                "title": "Тип диапазона дат",
-                "description": "Последние N дней",
-                "const": "last_n_days",
-                "order": 2
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Последние N дней",
+                "const" : "last_n_days",
+                "order" : 2
               }
             }
           },
           {
-            "type": "object",
-            "title": "От даты начала до сегодня",
-            "description": "Загрузка данных с даты начала до сегодняшнего дня.",
-            "required": [
+            "type" : "object",
+            "title" : "От даты начала до сегодня",
+            "description" : "Загрузка данных с даты начала до сегодняшнего дня.",
+            "required" : [
               "date_from",
               "should_load_today",
               "date_range_type"
             ],
-            "properties": {
-              "date_from": {
-                "title": "Дата начала",
-                "type": "string",
-                "description": "Дата начала в формате YYYY-MM-DD.",
-                "pattern": "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-                "pattern_descriptor": "YYYY-MM-DD",
-                "examples": [
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате YYYY-MM-DD.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
                   "2023-01-01"
                 ],
-                "format": "date",
-                "order": 0
+                "format" : "date",
+                "order" : 0
               },
-              "should_load_today": {
-                "title": "Загружать данные за сегодня?",
-                "type": "boolean",
-                "description": "Должен ли коннектор загружать сегодняшнюю дату в качестве конечной? Если нет, конечной датой будет вчера.",
-                "order": 1,
-                "default": false
+              "should_load_today" : {
+                "title" : "Загружать данные за сегодня?",
+                "type" : "boolean",
+                "description" : "Должен ли коннектор загружать сегодняшнюю дату в качестве конечной? Если нет, конечной датой будет вчера.",
+                "order" : 1,
+                "default" : false
               },
-              "date_range_type": {
-                "type": "string",
-                "title": "Тип диапазона дат",
-                "description": "От даты начала до сегодняшнего дня",
-                "const": "from_start_date_to_today",
-                "order": 2
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "От даты начала до сегодняшнего дня",
+                "const" : "from_start_date_to_today",
+                "order" : 2
               }
             }
           }

@@ -238,6 +238,32 @@ class Pipelines(AmoCrmStream):
         return {}  # No request args are supported
 
 
+class Companies(AmoCrmStream):
+    primary_key = "id"
+    response_data_field = "companies"
+
+    def __init__(
+        self,
+        authenticator: CredentialsCraftAuthenticator | AmoCrmAuthenticator,
+        config: Mapping[str, Any],
+        date_from: pendulum.Date,
+        date_to: pendulum.Date,
+    ):
+        super().__init__(authenticator, config, date_from, date_to)
+        self._custom_filters = config.get("companies_filters", [])
+        # Add all possible with values to load full data
+        self._with = ",".join(["catalog_elements", "leads", "customers", "contacts"])
+        self._query = config.get("companies_query", None)
+
+    def path(
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> str:
+        return "v4/companies"
+
+
 class SourceAmoCrm(AbstractSource):
     @staticmethod
     def transform_config(config: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -264,5 +290,6 @@ class SourceAmoCrm(AbstractSource):
         leads_stream = Leads(auth, config, date_from, date_to)
         events_stream = Events(auth, config, date_from, date_to)
         pipelines_stream = Pipelines(auth, config, date_from, date_to)
+        companies_stream = Companies(auth, config, date_from, date_to)
 
-        return [contacts_stream, leads_stream, events_stream, pipelines_stream]
+        return [contacts_stream, leads_stream, events_stream, pipelines_stream, companies_stream]

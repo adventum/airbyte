@@ -38,7 +38,6 @@ class GetintentStream(HttpStream, ABC):
         return {"token": self.access_token}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        print(response.request.url)
         yield from response.json()["data"].values()
 
 

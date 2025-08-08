@@ -1,18 +1,87 @@
 {
-  "documentationUrl": "https://docsurl.com",
-  "connectionSpecification": {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "{{capitalCase name}} Spec",
-    "type": "object",
-    "required": [
+  "documentationUrl" : "https://docsurl.com",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "Salebot Spec",
+    "type" : "object",
+    "required" : [
+      "api_key",
       "date_range"
     ],
-    "properties": {
+    "properties" : {
+      "api_key" : {
+        "title" : "Токен доступа",
+        "description" : "Токен доступа можно получить в личном каибнете по этой инструкции: https://docs.salebot.pro/api-v-konstruktore-salebot.pro/api-konstruktora#kak-sgenerirovat-api-key",
+        "type" : "string",
+        "airbyte_secret" : true,
+        "order" : 0
+      },
+      "group" : {
+        "title" : "Идентификатор группы для стрима списка подписчиков",
+        "description" : "ID группы вк, к которой привязан подписчик. Для поиска подписчиков нужно указать хотя бы группу или тег",
+        "type" : "string",
+        "order" : 1,
+        "examples" : [
+          "matematikandrei_bot"
+        ],
+        "always_show": true
+      },
+      "tag" : {
+        "title" : "Тег группы для стрима списка подписчиков",
+        "description" : "Tag, который был указан на подписочной странице. Для поиска подписчиков нужно указать хотя бы группу или тег",
+        "type" : "string",
+        "order" : 2,
+        "examples" : [
+          "воронка_аа_вк_2"
+        ],
+        "always_show": true
+      },
+      "client_type" : {
+        "title" : "Идентификатор мессенджера для стрима списка подписчиков",
+        "description" : "Идентификатор мессенджера, для которого нужно узнать список подписчиков. Если ничего не передать - выведет всех клиентов",
+        "type" : "integer",
+        "order" : 3,
+        "examples" : [
+          "воронка_аа_вк_2"
+        ],
+        "always_show": true
+      },
+      "q" : {
+        "title" : "query условия на поиск переменных",
+        "description" : "Должно быть валидной json-строкой, как в примерах. Обязательно только при использовании поиска по переменным",
+        "type" : "string",
+        "order" : 4,
+        "examples" : [
+          "{\"result\": \"ok\", \"var\": \"дом\", \"var\": \"60\"}",
+          "{\"name\": {\"_in\": [\"Joe\", \"Jane\", \"Donald\"]}}"
+        ],
+        "always_show": true
+      },
+      "search_in" : {
+        "title" : "Сущность для поиска по переменным",
+        "description" : "По переменным какой сущности искать, если не передать ищет по переменным клиента, может принимать значение order. Обязательно только при использовании поиска по переменным",
+        "type" : "string",
+        "order" : 5,
+        "enum": [
+          "client",
+          "order"
+        ],
+        "default": "client",
+        "always_show": true
+      },
+      "include_all" : {
+        "title" : "Тип выполнения условий поиска по переменным",
+        "description" : "false -- должно совпасть хоть одно условие, true -- все. Обязательно только при использовании поиска по переменным",
+        "type" : "boolean",
+        "order" : 6,
+        "default": true,
+        "always_show": true
+      },
       "date_range" : {
         "title" : "Диапазон дат",
         "description" : "Выберите период дат, который нужно загрузить",
         "type" : "object",
-        "order" : 0,
+        "order" : 7,
         "oneOf" : [
           {
             "type" : "object",

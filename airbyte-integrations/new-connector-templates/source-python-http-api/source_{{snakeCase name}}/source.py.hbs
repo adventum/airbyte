@@ -11,6 +11,7 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk import TokenAuthenticator
+from .utils import get_config_date_range
 
 """
 TODO: Most comments in this class are instructive and should be deleted after the source is implemented.
@@ -212,12 +213,21 @@ class Source{{properCase name}}(AbstractSource):
         """
         return True, None
 
+    @staticmethod
+    def transform_config(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        config["time_from_transformed"], config["time_to_transformed"] = (
+            get_config_date_range(config)
+        )
+        # For future improvements
+        return config
+
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         """
         TODO: Replace the streams below with your own streams.
 
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
+        config = self.transform_config(config)
         # TODO remove the authenticator if not required.
         auth = TokenAuthenticator(token="api_key")  # Oauth2Authenticator is also available if you need oauth support
         return [Customers(authenticator=auth), Employees(authenticator=auth)]

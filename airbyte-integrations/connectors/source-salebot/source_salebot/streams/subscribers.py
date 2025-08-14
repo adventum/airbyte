@@ -42,9 +42,9 @@ class Subscribers(SalebotStream):
         self, next_page_token: Optional[Mapping[str, Any]] = None, *args, **kwargs
     ) -> Optional[Mapping[str, Any]]:
         data = {
-            "date_from": self._time_from.timestamp(),
-            "date_to": self._time_to.timestamp(),
-            # "page": self._page_number,
+            "date_from": int(self._time_from.timestamp()),
+            "date_to": int(self._time_to.timestamp()),
+            "page": self._page_number,
         }
         if self._group:
             data["group"] = self._group
@@ -52,8 +52,6 @@ class Subscribers(SalebotStream):
             data["tag"] = self._tag
         if self._client_type:
             data["client_type"] = self._client_type
-
-        self.logger.info("PAGE %s", self._page_number)
         return data
 
     def parse_response(

@@ -40,16 +40,16 @@ class SourceSalebot(AbstractSource):
         tag = config.get("tag")
         client_type = config.get("client_type")
         streams = []
-        if group or tag:
-            subscribers_stream = Subscribers(
-                api_key=api_key,
-                time_from=time_from,
-                time_to=time_to,
-                group=group,
-                tag=tag,
-                client_type=client_type,
-            )
-            streams.append(subscribers_stream)
+
+        subscribers_stream = Subscribers(
+            api_key=api_key,
+            time_from=time_from,
+            time_to=time_to,
+            group=group,
+            tag=tag,
+            client_type=client_type,
+        )
+        streams.append(subscribers_stream)
 
         q = config.get("q")
         search_in = config.get("search_in")

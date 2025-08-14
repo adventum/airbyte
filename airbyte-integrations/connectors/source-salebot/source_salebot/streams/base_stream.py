@@ -3,7 +3,7 @@
 #
 
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Mapping, MutableMapping, Optional
 
 import pendulum
@@ -29,22 +29,6 @@ class SalebotStream(HttpStream, ABC):
         self, response: requests.Response
     ) -> Optional[Mapping[str, Any]]:
         return None
-
-    def request_params(
-        self,
-        stream_state: Mapping[str, Any],
-        stream_slice: Mapping[str, Any] = None,
-        next_page_token: Mapping[str, Any] = None,
-    ) -> MutableMapping[str, Any]:
-        return {}
-
-    @abstractmethod
-    def request_body_json(
-        self,
-        stream_state: Optional[Mapping[str, Any]],
-        stream_slice: Optional[Mapping[str, Any]] = None,
-        next_page_token: Optional[Mapping[str, Any]] = None,
-    ) -> Optional[Mapping[str, Any]]: ...
 
     @property
     def state(self) -> MutableMapping[str, Any]:

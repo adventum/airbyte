@@ -32,21 +32,18 @@ class Subscribers(SalebotStream):
     def next_page_token(
         self, response: requests.Response
     ) -> Optional[Mapping[str, Any]]:
-        # TODO: page is disabled due to broken pagination in salebot api
-        # if len(response.json()) < self.page_size:
-        #     return None
-        # self._page_number += 1
-        # # Value actually is not user
-        # return {"page_number": self._page_number}
-        return None
+        if len(response.json()) < self.page_size:
+            return None
+        self._page_number += 1
+        # Value actually is not user
+        return {"page_number": self._page_number}
 
-    def request_body_json(
+    def request_params(
         self, next_page_token: Optional[Mapping[str, Any]] = None, *args, **kwargs
     ) -> Optional[Mapping[str, Any]]:
-        # TODO: page is disabled due to broken pagination in salebot api
         data = {
-            "date_from": self._time_from.to_datetime_string(),
-            "date_to": self._time_to.to_datetime_string(),
+            "date_from": self._time_from.timestamp(),
+            "date_to": self._time_to.timestamp(),
             # "page": self._page_number,
         }
         if self._group:

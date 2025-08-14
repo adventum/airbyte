@@ -1,7 +1,6 @@
 #
 # Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
-import io
 import time
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -116,6 +115,7 @@ class AppmetricaLogsApi(HttpStream):
             self.url_base + self.path(),
             headers={"Authorization": f"OAuth {self._token}"},
             params=self.request_params(stream_slice=stream_slice),
+            stream=True,  # Needed to use chunk reading in read_records
         )
         return response
 
@@ -153,11 +153,27 @@ class AppmetricaLogsApi(HttpStream):
             i += 1
             waited_time += wait_time
             response = self.make_request(stream_slice)
-        df = pd.read_csv(io.StringIO(response.content.decode("utf-8")))
-        del response
-        df.fillna("", inplace=True)
-        for _, row in df.iterrows():
-            yield row.to_dict()
+
+        # We use the download from the direct stream provided by Yandex,
+        # and if we first download the entire file and then parse it,
+        # we will get Exit code 137 (Out of memory)
+        compression = response.headers.get("Content-Encoding")
+        for chunk in pd.read_csv(
+            response.raw,
+            compression=compression,
+            encoding='utf-8',
+            chunksize=10_000,
+            iterator=True,
+        ):
+            for col in chunk.columns:
+                # This is to remove warnings from pandas
+                if pd.api.types.is_numeric_dtype(chunk[col]):
+                    chunk[col] = chunk[col].fillna(0)
+                else:
+                    chunk[col] = chunk[col].fillna("")
+
+            for _, row in chunk.iterrows():
+                yield row.to_dict()
 
     @staticmethod
     def chunk_dates(

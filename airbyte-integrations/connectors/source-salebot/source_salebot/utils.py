@@ -33,4 +33,6 @@ def get_config_date_range(
         else:
             time_to = today_date.subtract(days=1)
 
+    time_to = time_to.replace(hour=23, minute=59, second=59, microsecond=999999)
+
     return time_from, time_to

@@ -129,7 +129,7 @@ class BaseEscrowAccountsStream(Stream):
             sber_ca_chain=self.sber_ca_chain,
         )
 
-        code_chunks = chunks(commissioning_object_codes, 10)
+        code_chunks = chunks(commissioning_object_codes, 5)
 
         for code_chunk in code_chunks:
             request_body = {

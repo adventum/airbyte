@@ -16,9 +16,14 @@ class PaginatedStream(ABC):
     items_per_page_count = 1000
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        pagination_data = response.json()['pagination']
-        if pagination_data['next_page']:
-            return {'next_page': pagination_data['next_page']}
+        body = response.json()
+        if body.get("meta", {}).get("code") == 1000:
+            return None
+        pagination = body.get("pagination") or {}
+        next_page = pagination.get("next_page")
+        if next_page:
+            return {"next_page": next_page}
+        return None
 
     def request_params(
         self,
@@ -206,7 +211,11 @@ class DateRangeCommunitiesDetailsStream(DateRangeStream, CommunitiesDetailsStrea
         *args,
         **kwargs
     ) -> Iterable[Mapping]:
-        for record in response.json()['data']['series']:
+        body = response.json()
+        if body.get("meta", {}).get("code") == 1000:
+            self.logger.info(f"Data not ready (meta.code=1000) for slice={stream_slice}; skipping.")
+            return
+        for record in body['data']['series']:
             yield self.add_constants_to_record({
                 "date": record['point']['range_a']['name'],
                 'community_cid': stream_slice['community_cid'],
@@ -303,4 +312,10 @@ class Posts(PaginatedDateRangeCommunitiesDetailsStream):
         return 'tables/posts'
 
     def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
-        yield from map(self.add_constants_to_record, response.json()['data']['a'])
+        body = response.json()
+        if body.get("meta", {}).get("code") == 1000:
+            self.logger.info("Data not ready (meta.code=1000) in Posts; skipping.")
+            return
+        records = body.get("data", {}).get("a", [])
+        for rec in records:
+            yield self.add_constants_to_record(rec)

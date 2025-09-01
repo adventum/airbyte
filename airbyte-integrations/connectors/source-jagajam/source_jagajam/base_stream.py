@@ -10,6 +10,8 @@ from typing import Any, Generator, Iterable, Mapping, MutableMapping, Optional
 
 import backoff
 import requests
+import socket
+import urllib3
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.exceptions import DefaultBackoffException
 from airbyte_cdk.sources.streams.http.rate_limiting import user_defined_backoff_handler
@@ -24,6 +26,9 @@ TRANSIENT_EXCEPTIONS = (
     exceptions.ReadTimeout,
     exceptions.ConnectionError,
     exceptions.ChunkedEncodingError,
+    requests.exceptions.RequestException,
+    urllib3.exceptions.NameResolutionError,
+    socket.gaierror,
 )
 
 
@@ -72,7 +77,7 @@ class JagajamStream(HttpStream, ABC):
             return backoff.on_exception(
                 retry_gen,
                 TRANSIENT_EXCEPTIONS,
-                jitter=None,
+                jitter=backoff.full_jitter,
                 on_backoff=log_retry_attempt,
                 giveup=should_give_up,
                 max_tries=max_tries,
@@ -135,7 +140,11 @@ class JagajamStream(HttpStream, ABC):
         }
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield from map(self.add_constants_to_record, response.json()["data"])
+        body = response.json()
+        if body.get("meta", {}).get("code") == 1000:
+            logger.info("Data not ready (meta.code=1000); skipping slice without retry.")
+            return
+        yield from map(self.add_constants_to_record, body["data"])
 
     def should_retry(self, response: requests.Response) -> bool:
         meta_status_code = response.json()["meta"]["code"]

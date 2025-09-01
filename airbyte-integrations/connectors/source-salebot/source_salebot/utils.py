@@ -33,9 +33,6 @@ def get_config_date_range(
         else:
             time_to = today_date.subtract(days=1)
 
-    # Sendsay uses datetime filters, so we will use
-    # >= 2025-01-01 00:00:00 and < 2025-01-03 00:00:00
-    # Will return in all data from 01-01 and 01-02
-    time_to = time_to.add(days=1)
+    time_to = time_to.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     return time_from, time_to

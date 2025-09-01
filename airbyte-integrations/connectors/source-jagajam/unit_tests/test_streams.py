@@ -20,8 +20,7 @@ def patch_base_class(mocker):
 def test_request_params(patch_base_class):
     stream = JagajamStream()
     # TODO: replace this with your input parameters
-    inputs = {"stream_slice": None,
-              "stream_state": None, "next_page_token": None}
+    inputs = {"stream_slice": None, "stream_state": None, "next_page_token": None}
     # TODO: replace this with your expected request parameters
     expected_params = {}
     assert stream.request_params(**inputs) == expected_params
@@ -48,8 +47,7 @@ def test_parse_response(patch_base_class):
 def test_request_headers(patch_base_class):
     stream = JagajamStream()
     # TODO: replace this with your input parameters
-    inputs = {"stream_slice": None,
-              "stream_state": None, "next_page_token": None}
+    inputs = {"stream_slice": None, "stream_state": None, "next_page_token": None}
     # TODO: replace this with your expected request headers
     expected_headers = {}
     assert stream.request_headers(**inputs) == expected_headers

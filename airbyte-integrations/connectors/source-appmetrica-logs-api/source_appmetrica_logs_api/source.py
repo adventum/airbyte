@@ -28,11 +28,17 @@ class SourceAppmetricaLogsApi(AbstractSource):
         try:
             stream = streams[0]
             if isinstance(stream, AppmetricaLogsApi):
-                stream_slices = list(stream.stream_slices(sync_mode=SyncMode.full_refresh, stream_state=None))
+                stream_slices = list(
+                    stream.stream_slices(
+                        sync_mode=SyncMode.full_refresh, stream_state=None
+                    )
+                )
                 first_slice = stream_slices[0] if stream_slices else None
                 params = {
                     "application_id": stream.application_id,
-                    "date_since": first_slice["date_from"].format(stream.datetime_format),
+                    "date_since": first_slice["date_from"].format(
+                        stream.datetime_format
+                    ),
                     "date_until": first_slice["date_to"].format(stream.datetime_format),
                     "fields": ",".join(stream.fields),
                     "date_dimension": stream.date_dimension,
@@ -50,7 +56,9 @@ class SourceAppmetricaLogsApi(AbstractSource):
                 next(streams[0].read_records(sync_mode=SyncMode.full_refresh))
                 return True, None
             else:
-                raise Exception(f"Connection check is not supported for class {stream.__class__.__name__}")
+                raise Exception(
+                    f"Connection check is not supported for class {stream.__class__.__name__}"
+                )
         except Exception as e:
             return False, str(e)
 

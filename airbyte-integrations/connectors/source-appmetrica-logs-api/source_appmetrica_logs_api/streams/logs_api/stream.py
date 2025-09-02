@@ -81,7 +81,7 @@ class AppmetricaLogsApi(HttpStream):
         return params
 
     def request_params(
-        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
+        self, stream_slice: Mapping[str, Any] = None, *args, **kwargs
     ) -> MutableMapping[str, Any]:
         params = {
             "application_id": self.application_id,
@@ -110,7 +110,7 @@ class AppmetricaLogsApi(HttpStream):
 
         return schema
 
-    def make_request(self, stream_slice: Mapping[str, any] = None) -> requests.Response:
+    def make_request(self, stream_slice: Mapping[str, Any] = None) -> requests.Response:
         response = requests.get(
             self.url_base + self.path(),
             headers={"Authorization": f"OAuth {self._token}"},
@@ -161,9 +161,11 @@ class AppmetricaLogsApi(HttpStream):
         for chunk in pd.read_csv(
             response.raw,
             compression=compression,
-            encoding='utf-8',
+            encoding="utf-8",
             chunksize=10_000,
-            iterator=True,
+            # iterator=True,
+            dtype_backend="numpy_nullable",
+            engine="c",
         ):
             for col in chunk.columns:
                 # This is to remove warnings from pandas

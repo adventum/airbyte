@@ -311,7 +311,8 @@ class Benchmarks(DateRangeCommunitiesDetailsStream):
         *args,
         **kwargs,
     ) -> Iterable[Mapping]:
-        for record in response.json()["data"]["series"]:
+        body = response.json()
+        for record in body.get("data", {}).get("series", []):
             yield self.add_constants_to_record(
                 {
                     "date": record["point"]["label"]["date1s"],

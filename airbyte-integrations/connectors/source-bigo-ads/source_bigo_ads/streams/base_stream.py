@@ -21,14 +21,6 @@ class BigoAdsStream(HttpStream, ABC):
     ) -> Optional[Mapping[str, Any]]:
         return None
 
-    # def request_headers(
-    #     self,
-    #     stream_state: Optional[Mapping[str, Any]],
-    #     stream_slice: Optional[Mapping[str, Any]] = None,
-    #     next_page_token: Optional[Mapping[str, Any]] = None,
-    # ) -> Mapping[str, Any]:
-    #     return self._authenticator.headers
-
     @abstractmethod
     def parse_response(
         self, response: requests.Response, **kwargs

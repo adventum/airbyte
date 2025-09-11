@@ -22,7 +22,7 @@ CONFIG_DATE_FORMAT = "%Y-%m-%d"
 # Basic full refresh stream
 class VkAdsNewStream(HttpStream, ABC):
     limit = 250
-    url_base = "https://ads.vk.com/api/"
+    url_base = "https://ads.vk.ru/api/"
     transformer: TypeTransformer = TypeTransformer(
         config=TransformConfig.DefaultSchemaNormalization
     )

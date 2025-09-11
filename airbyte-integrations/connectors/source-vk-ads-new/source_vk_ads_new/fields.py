@@ -1,6 +1,6 @@
 AVAILABLE_FIELDS = {
     "banners": {
-        "docs_url": "https://ads.vk.com/doc/api/object/Banner",
+        "docs_url": "https://ads.vk.ru/doc/api/object/Banner",
         "required": ["id"],
         "additional": [
             "created",
@@ -24,7 +24,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "ad_groups": {
-        "docs_url": "https://ads.vk.com/doc/api/object/AdGroup",
+        "docs_url": "https://ads.vk.ru/doc/api/object/AdGroup",
         "required": ["id"],
         "additional": [
             "created",
@@ -69,7 +69,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "ad_plans": {
-        "docs_url": "https://ads.vk.com/doc/api/object/AdPlan",
+        "docs_url": "https://ads.vk.ru/doc/api/object/AdPlan",
         "required": ["id"],
         "additional": [
             "created",
@@ -94,7 +94,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "package_pads": {
-        "docs_url": "https://ads.vk.com/doc/api/object/PackagePad",
+        "docs_url": "https://ads.vk.ru/doc/api/object/PackagePad",
         "required": ["id"],
         "additional": [
             "description",
@@ -111,7 +111,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "packages": {
-        "docs_url": "https://ads.vk.com/doc/api/object/Package",
+        "docs_url": "https://ads.vk.ru/doc/api/object/Package",
         "required": ["id"],
         "additional": [
             "banner_format_id",
@@ -156,7 +156,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "pads_trees": {
-        "docs_url": "https://ads.vk.com/doc/api/object/PadsTree",
+        "docs_url": "https://ads.vk.ru/doc/api/object/PadsTree",
         "required": ["id"],
         "additional": [
             "tree",
@@ -167,7 +167,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "packages_pads": {
-        "docs_url": "https://ads.vk.com/doc/api/object/PadsTree",
+        "docs_url": "https://ads.vk.ru/doc/api/object/PadsTree",
         "required": ["id"],
         "additional": ["eye_url", "description", "name"],
         "default": [
@@ -176,7 +176,7 @@ AVAILABLE_FIELDS = {
         ],
     },
     "packages": {
-        "docs_url": "https://ads.vk.com/doc/api/object/PadsTree",
+        "docs_url": "https://ads.vk.ru/doc/api/object/PadsTree",
         "required": ["id"],
         "additional": [
             "status",

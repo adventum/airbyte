@@ -29,7 +29,7 @@ logger = logging.getLogger("airbyte")
 # Basic full refresh stream
 class VkStream(HttpStream, ABC):
     VK_API_VERSION = "5.131"
-    url_base = "https://api.vk.com/method/"
+    url_base = "https://api.vk.ru/method/"
     transformer: TypeTransformer = TypeTransformer(
         config=TransformConfig.DefaultSchemaNormalization
     )

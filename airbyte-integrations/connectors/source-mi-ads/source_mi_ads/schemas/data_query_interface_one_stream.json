@@ -1,0 +1,206 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "accountId" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "activate" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "adCampaignId" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "adCreativeId" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "adGroupId" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "adType" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "billingType" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "city" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "click" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "close" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "cost" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "costDisplay" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "cpa" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "cpc" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "ctr" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "cvr" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "download" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "ecpm" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "end" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "expose" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "fullScreen" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "geoKey" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "half" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "installed" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "mediaType" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "parentAccountId" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "province" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "quarter" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "recordDate" : {
+      "type" : [
+        "string",
+        "null"
+      ],
+      "format" : "date-time"
+    },
+    "region" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "start" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    },
+    "tagId" : {
+      "type" : [
+        "string",
+        "null"
+      ]
+    },
+    "threeQuarter" : {
+      "type" : [
+        "integer",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties" : false
+}

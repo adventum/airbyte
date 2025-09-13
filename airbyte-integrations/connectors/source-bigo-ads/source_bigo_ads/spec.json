@@ -1,0 +1,205 @@
+{
+  "documentationUrl" : "https://docsurl.com",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "Bigo Ads Spec",
+    "type" : "object",
+    "required" : [
+      "curl",
+      "indicators",
+      "date_range"
+    ],
+    "properties" : {
+      "curl" : {
+        "type" : "string",
+        "title" : "curl Запроса",
+        "description" : "Откройте bigo ads в браузере и войдите в аккаунт. Перейдите на страницу нужной кампании. Важно, с другим запросом может не сработать! Откройте консоль разработчика и перейдите в раздел сеть (network), выберите Fetch/XHR. Обновите результаты и нажмите на любой запрос, имеющий campaign_name в названии. Кликните на него правой кнопкой мыши и выберите скопировать как curl. Вставьте полученную строку сюда",
+        "airbyte_secret" : true,
+        "order" : 0,
+        "examples" : [
+          "curl 'https://ads.bigo.sg/api/dsp/report/campaign_list' \\\n  -H 'accept: application/json, text/plain, */*' \\\n  -H 'accept-language: en' \\\n  -H 'bigo-ad-account-id: 12121212' \\\n  -H 'bigo-ads-uid: 12323424123124' \\\n  -H 'bigo-org-id: 2352341212424324' \\\n  -H 'bigo-origin-domain: ads.bigo.sg' \\\n  -H 'content-type: application/json' \\\n  -b 'bigo_ads_token=some_token=; bigo_ads_uid=21124235234235' \\\n  -H 'origin: https://ads.bigo.sg' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://ads.bigo.sg/report/static?catType=series&orgId=23523235&accountId=123123' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-origin' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  --data-raw '{\"startDate\":\"2025-08-27\",\"endDate\":\"2025-09-03\",\"indicators\":[\"totalCost\",\"campaignName\",\"impression\",\"click\",\"ctr\",\"cpc\",\"cpm\",\"real_result_conversion\",\"real_result_conversion_rate\",\"real_result_conversion_cost\",\"real_skan_conversion\",\"real_skan_conversion_rate\",\"real_skan_conversion_cost\",\"real_result_conversion_avg_monetary\",\"real_result_conversion_monetary\"],\"breakDowns\":[\"campaignCode\"],\"aggregateType\":2,\"pageSize\":10,\"pageNo\":1,\"adCode\":[],\"adsetCode\":[],\"campaignCode\":[],\"orderBy\":\"aggregateTime\"}'"
+        ]
+      },
+      "indicators" : {
+        "type" : "array",
+        "title" : "Список полей для запроса",
+        "description" : "Список полей можно получить из запроса https://ads.bigo.sg/api/dsp/report/campaign_list в панели разработчика, либо выбрать из стандартных",
+        "order" : 1,
+        "items" : {
+          "type" : "string",
+          "examples" : [
+            "totalCost",
+            "campaignName",
+            "impression",
+            "click",
+            "ctr",
+            "cpc",
+            "cpm",
+            "real_result_conversion",
+            "real_result_conversion_rate",
+            "real_result_conversion_cost",
+            "real_skan_conversion",
+            "real_skan_conversion_rate",
+            "real_skan_conversion_cost",
+            "real_result_conversion_avg_monetary",
+            "real_result_conversion_monetary"
+          ]
+        },
+        "default" : [
+          "totalCost",
+          "campaignName",
+          "impression",
+          "click",
+          "ctr",
+          "cpc",
+          "cpm",
+          "real_result_conversion",
+          "real_result_conversion_rate",
+          "real_result_conversion_cost",
+          "real_skan_conversion",
+          "real_skan_conversion_rate",
+          "real_skan_conversion_cost",
+          "real_result_conversion_avg_monetary",
+          "real_result_conversion_monetary"
+        ]
+      },
+      "campaign_codes" : {
+        "type" : "array",
+        "title" : "Идентификатор кампании",
+        "description" : "Нужно для фильтрации данных по кампании, не обязательно. Если не указано, придут значения для всех. Как правило это большое число, которое можно найти в запросах под именем campaignCode или adCode",
+        "order" : 2,
+        "items" : {
+          "type" : "string"
+        },
+        "examples" : [
+          "12345678901234567"
+        ],
+        "default" : []
+      },
+      "date_range" : {
+        "title" : "Диапазон дат",
+        "description" : "Выберите период дат, который нужно загрузить",
+        "type" : "object",
+        "order" : 3,
+        "oneOf" : [
+          {
+            "type" : "object",
+            "title" : "Произвольный диапазон дат",
+            "required" : [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "date_to" : {
+                "title" : "Дата окончания",
+                "type" : "string",
+                "description" : "Дата окончания в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Произвольная дата",
+                "const" : "custom_date",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "Последние N дней",
+            "required" : [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "last_days_count" : {
+                "title" : "Количество последних дней",
+                "type" : "integer",
+                "description" : "Количество последних дней без учёта сегодняшнего дня.",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
+                  30
+                ],
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Последние N дней",
+                "const" : "last_n_days",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "С даты начала по сегодня",
+            "description" : "Загрузка данных с даты начала по сегодняшний день. Только с этой опцией возможна инкрементальная синхронизация.",
+            "required" : [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "С даты начала по сегодня",
+                "const" : "from_start_date_to_today",
+                "order" : 2
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

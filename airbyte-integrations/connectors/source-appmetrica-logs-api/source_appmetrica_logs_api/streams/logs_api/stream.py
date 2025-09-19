@@ -144,7 +144,7 @@ class AppmetricaLogsApi(HttpStream):
                 )
             elif response.status_code == 429:
                 self.logger.info(
-                    f"Yandex Server response: {response.text} | Status Code: 429 | "
+                    f"Yandex Server Status Code: 429 | "
                     f"Waiting for the queue to be free can take a long time, "
                     f"the connector will continue to make requests and check for free queues until the data is generated. "
                     f"Already waiting: {waited_time} seconds, waiting for {wait_time} seconds more."
@@ -162,14 +162,14 @@ class AppmetricaLogsApi(HttpStream):
             response.raw,
             compression=compression,
             encoding="utf-8",
-            chunksize=10_000,
-            # iterator=True,
+            chunksize=20_000,
             dtype_backend="numpy_nullable",
             engine="c",
         ):
             for col in chunk.columns:
-                # This is to remove warnings from pandas
-                if pd.api.types.is_numeric_dtype(chunk[col]):
+                if pd.api.types.is_bool_dtype(chunk[col]):
+                    chunk[col] = chunk[col].fillna(False)
+                elif pd.api.types.is_numeric_dtype(chunk[col]):
                     chunk[col] = chunk[col].fillna(0)
                 else:
                     chunk[col] = chunk[col].fillna("")
@@ -178,37 +178,55 @@ class AppmetricaLogsApi(HttpStream):
                 yield row.to_dict()
 
     @staticmethod
-    def chunk_dates(
-        date_from: datetime, date_to: datetime, chunk_days_count: int
+    def chunk_datetimes(
+        date_from: datetime,
+        date_to: datetime,
+        chunk_days_count: int = None,
+        chunk_hours_count: int = None,
     ) -> list[dict[str, pendulum.DateTime]]:
-        """Split dates into different intervals if apply split mode"""
+        """Split interval either by days or by hours, aligning chunk end to 59:59.999999."""
+        if not chunk_days_count and not chunk_hours_count:
+            raise ValueError("Either chunk_days_count or chunk_hours_count must be provided")
+
         chunks = []
         cursor = date_from
+        if chunk_hours_count:
+            delta = timedelta(hours=chunk_hours_count)
+        else:
+            delta = timedelta(days=chunk_days_count)
+
         while cursor <= date_to:
             chunk_date_from = cursor
-            chunk_date_to = (cursor.add(days=chunk_days_count - 1)).replace(
-                hour=23, minute=59, second=59
-            )
+            chunk_date_to = cursor + delta - timedelta(seconds=1)
             if chunk_date_to > date_to:
-                chunk_date_to = date_to.replace(hour=23, minute=59, second=59)
+                chunk_date_to = date_to
+            if chunk_days_count:
+                chunk_date_to = chunk_date_to.replace(hour=23, minute=59, second=59, microsecond=999999)
+            elif chunk_hours_count:
+                chunk_date_to = chunk_date_to.replace(minute=59, second=59, microsecond=999999)
+
             chunks.append({"date_from": chunk_date_from, "date_to": chunk_date_to})
-            cursor += timedelta(days=chunk_days_count)
+            cursor = cursor + delta
+
         return chunks
 
     def stream_slices(self, *args, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         if self.chunked_logs_params["split_mode_type"] == "do_not_split_mode":
-            chunks = [
-                {
-                    "date_from": self.date_from,
-                    "date_to": self.date_to,
-                }
-            ]
-        else:
-            chunks = self.chunk_dates(
+            chunks = [{"date_from": self.date_from, "date_to": self.date_to}]
+        elif self.chunked_logs_params["split_mode_type"] == "split_days_mode":
+            chunks = self.chunk_datetimes(
                 self.date_from,
                 self.date_to,
-                self.chunked_logs_params["split_range_days_count"],
+                chunk_days_count=self.chunked_logs_params["split_range_days_count"],
             )
+        elif self.chunked_logs_params["split_mode_type"] == "split_hours_mode":
+            chunks = self.chunk_datetimes(
+                self.date_from,
+                self.date_to,
+                chunk_hours_count=self.chunked_logs_params["split_range_hours_count"],
+            )
+        else:
+            raise ValueError(f"Unknown split_mode_type: {self.chunked_logs_params['split_mode_type']}")
 
         for chunk in chunks:
             if self.event_name_list:

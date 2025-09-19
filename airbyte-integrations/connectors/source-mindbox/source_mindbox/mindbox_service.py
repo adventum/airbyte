@@ -47,7 +47,8 @@ class MindboxService:
             },
         )
 
-    def start_operation_task(self, operation: str, json_payload: dict[str, Any] = {}) -> OperationTaskStatus:
+    def start_operation_task(self, operation: str, json_payload: dict[str, Any] = None) -> OperationTaskStatus:
+        json_payload = json_payload if json_payload else {}
         self._logger.info(f"Start operation {operation} export, json_payload: {json_payload}")
         status = self._api_call(
             "operations/sync",

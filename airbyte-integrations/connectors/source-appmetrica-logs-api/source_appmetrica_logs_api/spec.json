@@ -209,11 +209,11 @@
             ]
           },
           {
-            "title" : "Split Logs",
+            "title" : "Split Logs By Days",
             "type" : "object",
             "properties" : {
               "split_mode_type" : {
-                "const" : "split_date_mode",
+                "const" : "split_days_mode",
                 "order" : 0,
                 "type" : "string"
               },
@@ -230,6 +230,30 @@
             "required" : [
               "split_mode_type",
               "split_range_days_count"
+            ]
+          },
+          {
+            "title" : "Split Logs By Hours",
+            "type" : "object",
+            "properties" : {
+              "split_mode_type" : {
+                "const" : "split_hours_mode",
+                "order" : 0,
+                "type" : "string"
+              },
+              "split_range_hours_count" : {
+                "title" : "Split Range Hours Count",
+                "description" : "E.g. if you choose 6 hours, whole logs will be split into several reports by 6 hours. It can increase replication time, so don't set too small range. Minimum - 6 or 12 (This feature allows you to split it into hours if the source produces too much data (for example, more than 5 GB in one day, which is the appmetrica limit))",
+                "minimum" : 1,
+                "maximum" : 24,
+                "type" : "integer",
+                "default" : "6",
+                "order" : 1
+              }
+            },
+            "required" : [
+              "split_mode_type",
+              "split_range_hours_count"
             ]
           }
         ]

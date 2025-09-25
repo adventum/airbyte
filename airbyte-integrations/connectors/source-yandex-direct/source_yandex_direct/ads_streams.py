@@ -6,13 +6,25 @@ from airbyte_cdk.models.airbyte_protocol import SyncMode
 from airbyte_cdk.sources.streams.http import HttpStream, HttpSubStream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from .schema_fields import AD_IMAGES_DEFAULT_FIELDS, ADS_DEFAULT_FIELDS, CAMPAIGNS_DEFAULT_FIELDS
+from .schema_fields import (
+    AD_IMAGES_DEFAULT_FIELDS,
+    ADS_DEFAULT_FIELDS,
+    CAMPAIGNS_DEFAULT_FIELDS,
+)
 
-from .utils import chunks, concat_multiple_lists, find_by_key, get_unique, log_stream_request_data
+from .utils import (
+    chunks,
+    concat_multiple_lists,
+    find_by_key,
+    get_unique,
+    log_stream_request_data,
+)
 
 
 class YandexDirectAdsStream(HttpStream, ABC):
-    transformer: TypeTransformer = TypeTransformer(config=TransformConfig.DefaultSchemaNormalization)
+    transformer: TypeTransformer = TypeTransformer(
+        config=TransformConfig.DefaultSchemaNormalization
+    )
     url_base = "https://api.direct.yandex.com/json/v5/"
     http_method = "POST"
     primary_key = "Id"
@@ -28,16 +40,25 @@ class YandexDirectAdsStream(HttpStream, ABC):
     ):
         HttpStream.__init__(self, authenticator=auth)
         self.client_login = client_login
-        self.user_defined_fields_params = kwargs[self.__class__.__name__.lower() + "_fields_params"]
+        self.user_defined_fields_params = kwargs[
+            self.__class__.__name__.lower() + "_fields_params"
+        ]
 
     def request_params(self, *args, **kwargs) -> MutableMapping[str, Any]:
         return {}
 
     @staticmethod
-    def paginate(data: Mapping[str, Any], next_page_token: Mapping[str, Any] = None, limit_size: int = 10_000) -> Mapping[str, Any]:
+    def paginate(
+        data: Mapping[str, Any],
+        next_page_token: Mapping[str, Any] = None,
+        limit_size: int = 10_000,
+    ) -> Mapping[str, Any]:
         data["params"].update(
             {
-                "Page": {"Limit": limit_size, "Offset": next_page_token.get("Offset") if next_page_token else 0},
+                "Page": {
+                    "Limit": limit_size,
+                    "Offset": next_page_token.get("Offset") if next_page_token else 0,
+                },
             }
         )
         return data
@@ -60,7 +81,9 @@ class YandexDirectAdsStream(HttpStream, ABC):
             for key in self.user_defined_fields_params:
                 if key == "FieldNames":
                     for top_level_field in self.user_defined_fields_params[key]:
-                        schema["properties"][top_level_field] = default_schema_properties[top_level_field]
+                        schema["properties"][top_level_field] = (
+                            default_schema_properties[top_level_field]
+                        )
                     continue
                 key = key.replace("FieldNames", "")
 
@@ -69,22 +92,31 @@ class YandexDirectAdsStream(HttpStream, ABC):
                 except:
                     continue
 
-                schema["properties"][key] = {"type": ["null", "object"], "properties": {}}
-                for inner_level_field in self.user_defined_fields_params[key + "FieldNames"]:
-                    schema["properties"][key]["properties"][inner_level_field] = default_schema_properties[key]["properties"][
-                        inner_level_field
-                    ]
+                schema["properties"][key] = {
+                    "type": ["null", "object"],
+                    "properties": {},
+                }
+                for inner_level_field in self.user_defined_fields_params[
+                    key + "FieldNames"
+                ]:
+                    schema["properties"][key]["properties"][inner_level_field] = (
+                        default_schema_properties[key]["properties"][inner_level_field]
+                    )
         else:
             schema["properties"] = default_schema_properties
 
         return schema
 
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
         data = response.json()
         if data.get("LimitedBy"):
             return {"Offset": data.get("LimitedBy")}
 
-    def parse_response(self, response: requests.Response, *args, **kwargs) -> Iterable[Mapping]:
+    def parse_response(
+        self, response: requests.Response, *args, **kwargs
+    ) -> Iterable[Mapping]:
         data = response.json()
 
         if "result" not in data.keys():
@@ -117,7 +149,9 @@ class Campaigns(YandexDirectAdsStream):
     use_cache = True
     default_fields_names = CAMPAIGNS_DEFAULT_FIELDS
 
-    def request_body_json(self, next_page_token: Mapping[str, Any] = None, *args, **kwargs) -> Optional[Mapping]:
+    def request_body_json(
+        self, next_page_token: Mapping[str, Any] = None, *args, **kwargs
+    ) -> Optional[Mapping]:
         request_object = {
             "method": "get",
             "params": {"SelectionCriteria": {}, **self.request_fields_object},
@@ -128,15 +162,9 @@ class Campaigns(YandexDirectAdsStream):
         )
 
         # logging request body and url
+        log_stream_request_data(stream_name="Campaigns", data=body, section="body")
         log_stream_request_data(
-            stream_name="Campaigns",
-            data=body,
-            section="body"
-        )
-        log_stream_request_data(
-            stream_name="Campaigns",
-            data=f"{self.url_base}{self.path()}",
-            section="url"
+            stream_name="Campaigns", data=f"{self.url_base}{self.path()}", section="url"
         )
 
         return body
@@ -156,12 +184,19 @@ class Ads(YandexDirectAdsStream, DependsOnParentIdsSubStream):
         return "ads"
 
     def request_body_json(
-        self, stream_slice: Mapping[str, Any] = {}, next_page_token: Mapping[str, Any] = None, *args, **kwargs
+        self,
+        stream_slice: Mapping[str, Any] = {},
+        next_page_token: Mapping[str, Any] = None,
+        *args,
+        **kwargs,
     ) -> Optional[Mapping]:
         current_campaign_ids = stream_slice.get("parent_records_ids", [])
         request_object = {
             "method": "get",
-            "params": {"SelectionCriteria": {"CampaignIds": current_campaign_ids}, **self.request_fields_object},
+            "params": {
+                "SelectionCriteria": {"CampaignIds": current_campaign_ids},
+                **self.request_fields_object,
+            },
         }
         body = self.paginate(
             request_object,
@@ -169,15 +204,9 @@ class Ads(YandexDirectAdsStream, DependsOnParentIdsSubStream):
         )
 
         # logging request body and url
+        log_stream_request_data(stream_name="Ads", data=body, section="body")
         log_stream_request_data(
-            stream_name="Ads",
-            data=body,
-            section="body"
-        )
-        log_stream_request_data(
-            stream_name="Ads",
-            data=f"{self.url_base}{self.path()}",
-            section="url"
+            stream_name="Ads", data=f"{self.url_base}{self.path()}", section="url"
         )
 
         return body
@@ -196,12 +225,21 @@ class AdImages(YandexDirectAdsStream, DependsOnParentIdsSubStream):
         return "adimages"
 
     def request_body_json(
-        self, stream_slice: Mapping[str, Any] = {}, next_page_token: Mapping[str, Any] = None, *args, **kwargs
+        self,
+        stream_slice: Mapping[str, Any] = {},
+        next_page_token: Mapping[str, Any] = None,
+        *args,
+        **kwargs,
     ) -> Optional[Mapping]:
-        current_ad_image_hashes = stream_slice.get("parent_records_ids", []) if stream_slice else []
+        current_ad_image_hashes = (
+            stream_slice.get("parent_records_ids", []) if stream_slice else []
+        )
         request_object = {
             "method": "get",
-            "params": {"SelectionCriteria": {"AdImageHashes": current_ad_image_hashes}, **self.request_fields_object},
+            "params": {
+                "SelectionCriteria": {"AdImageHashes": current_ad_image_hashes},
+                **self.request_fields_object,
+            },
         }
         if self.use_simple_loader:
             request_object["params"]["SelectionCriteria"] = {}
@@ -211,27 +249,36 @@ class AdImages(YandexDirectAdsStream, DependsOnParentIdsSubStream):
         )
 
         # logging request body and url
+        log_stream_request_data(stream_name="AdImages", data=body, section="body")
         log_stream_request_data(
-            stream_name="AdImages",
-            data=body,
-            section="body"
-        )
-        log_stream_request_data(
-            stream_name="AdImages",
-            data=f"{self.url_base}{self.path()}",
-            section="url"
+            stream_name="AdImages", data=f"{self.url_base}{self.path()}", section="url"
         )
 
         return body
 
     def stream_slices(
-        self, *, sync_mode: SyncMode = None, cursor_field: List[str] = None, stream_state: Mapping[str, Any] = None
+        self,
+        *,
+        sync_mode: SyncMode = None,
+        cursor_field: List[str] = None,
+        stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         if self.use_simple_loader:
             yield from [{}]
             return
-        parent_records = [record["parent"] for record in HttpSubStream.stream_slices(self, sync_mode, cursor_field, stream_state)]
-        ad_image_hashes = [list(find_by_key(record, "AdImageHash")) for record in parent_records]
-        ad_image_hashes_not_null = [[hash for hash in hashes if hash] for hashes in ad_image_hashes]
-        for ad_images_hashes_chunk in chunks(get_unique(concat_multiple_lists(ad_image_hashes_not_null)), 10):
+        parent_records = [
+            record["parent"]
+            for record in HttpSubStream.stream_slices(
+                self, sync_mode, cursor_field, stream_state
+            )
+        ]
+        ad_image_hashes = [
+            list(find_by_key(record, "AdImageHash")) for record in parent_records
+        ]
+        ad_image_hashes_not_null = [
+            [hash for hash in hashes if hash] for hashes in ad_image_hashes
+        ]
+        for ad_images_hashes_chunk in chunks(
+            get_unique(concat_multiple_lists(ad_image_hashes_not_null)), 10
+        ):
             yield {"parent_records_ids": ad_images_hashes_chunk}

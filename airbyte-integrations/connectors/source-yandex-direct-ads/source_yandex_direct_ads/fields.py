@@ -65,7 +65,15 @@ ADS_DEFAULT_FIELDS = {
 }
 
 AD_IMAGES_DEFAULT_FIELDS = {
-    "FieldNames": ["AdImageHash", "OriginalUrl", "PreviewUrl", "Name", "Type", "Subtype", "Associated"],
+    "FieldNames": [
+        "AdImageHash",
+        "OriginalUrl",
+        "PreviewUrl",
+        "Name",
+        "Type",
+        "Subtype",
+        # "Associated"  # TODO: temporarily disabled due to a bug in ya.direct api
+    ],
 }
 
 CAMPAIGNS_DEFAULT_FIELDS = {

@@ -4,7 +4,9 @@ import string
 from typing import Iterable, Tuple, Any, Literal, Union
 from datetime import datetime, timedelta
 from airbyte_cdk import logger as airbyte_logger
-from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabilityStrategy as _HttpAvailabilityStrategy
+from airbyte_cdk.sources.streams.http.availability_strategy import (
+    HttpAvailabilityStrategy as _HttpAvailabilityStrategy,
+)
 
 
 logger = airbyte_logger.AirbyteLogger()
@@ -16,10 +18,14 @@ class HttpAvailabilityStrategy(_HttpAvailabilityStrategy):
 
 
 def random_name(n: int) -> str:
-    return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    return "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
+    )
 
 
-def split_date_by_chunks(date_from: datetime, date_to: datetime, chunk_size_in_days: int) -> Iterable[Tuple[str, str]]:
+def split_date_by_chunks(
+    date_from: datetime, date_to: datetime, chunk_size_in_days: int
+) -> Iterable[Tuple[str, str]]:
     print("split_date_by_chunks,", date_from, date_to)
     cursor = date_from
     delta = timedelta(days=chunk_size_in_days)
@@ -32,12 +38,17 @@ def split_date_by_chunks(date_from: datetime, date_to: datetime, chunk_size_in_d
 
 
 def last_n_days_dates(last_n_days: int) -> Tuple[datetime, datetime]:
-    yesterday = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+    yesterday = datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0
+    ) - timedelta(days=1)
     return (yesterday - timedelta(days=last_n_days), yesterday)
 
 
 def yesterday():
-    return (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)).date()
+    return (
+        datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        - timedelta(days=1)
+    ).date()
 
 
 def today():
@@ -67,18 +78,22 @@ def get_unique(list1):
     return list(set(list1))
 
 
-
 def hide_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Uses in streams logging
     Change sensitive values to [REDACTED]
     """
     sensitive_keys = [
-        "authorization", "x-api-key", "access_token", "api_key", "token", "password", "secret"
+        "authorization",
+        "x-api-key",
+        "access_token",
+        "api_key",
+        "token",
+        "password",
+        "secret",
     ]
     return {
-        k: ("[REDACTED]" if k.lower() in sensitive_keys else v)
-        for k, v in data.items()
+        k: ("[REDACTED]" if k.lower() in sensitive_keys else v) for k, v in data.items()
     }
 
 

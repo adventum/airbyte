@@ -12,7 +12,9 @@ from source_yandex_direct.source import IncrementalYandexDirectStream
 def patch_incremental_base_class(mocker):
     # Mock abstract methods to enable instantiating abstract class
     mocker.patch.object(IncrementalYandexDirectStream, "path", "v0/example_endpoint")
-    mocker.patch.object(IncrementalYandexDirectStream, "primary_key", "test_primary_key")
+    mocker.patch.object(
+        IncrementalYandexDirectStream, "primary_key", "test_primary_key"
+    )
     mocker.patch.object(IncrementalYandexDirectStream, "__abstractmethods__", set())
 
 

@@ -102,7 +102,12 @@ ADS_DEFAULT_FIELDS = {
         "TurboPageModeration",
         "BusinessId",
     ],
-    "TextAdPriceExtensionFieldNames": ["Price", "OldPrice", "PriceCurrency", "PriceQualifier"],
+    "TextAdPriceExtensionFieldNames": [
+        "Price",
+        "OldPrice",
+        "PriceCurrency",
+        "PriceQualifier",
+    ],
     "MobileAppAdFieldNames": [
         "AdImageHash",
         "AdImageModeration",
@@ -123,12 +128,27 @@ ADS_DEFAULT_FIELDS = {
         "VCardModeration",
         "AdExtensions",
     ],
-    "TextImageAdFieldNames": ["AdImageHash", "Href", "TurboPageId", "TurboPageModeration"],
+    "TextImageAdFieldNames": [
+        "AdImageHash",
+        "Href",
+        "TurboPageId",
+        "TurboPageModeration",
+    ],
     "MobileAppImageAdFieldNames": ["AdImageHash", "TrackingUrl"],
-    "TextAdBuilderAdFieldNames": ["Creative", "Href", "TurboPageId", "TurboPageModeration"],
+    "TextAdBuilderAdFieldNames": [
+        "Creative",
+        "Href",
+        "TurboPageId",
+        "TurboPageModeration",
+    ],
     "MobileAppAdBuilderAdFieldNames": ["Creative", "TrackingUrl"],
     "MobileAppCpcVideoAdBuilderAdFieldNames": ["Creative", "TrackingUrl"],
-    "CpcVideoAdBuilderAdFieldNames": ["Creative", "Href", "TurboPageId", "TurboPageModeration"],
+    "CpcVideoAdBuilderAdFieldNames": [
+        "Creative",
+        "Href",
+        "TurboPageId",
+        "TurboPageModeration",
+    ],
     "CpmBannerAdBuilderAdFieldNames": [
         "Creative",
         "Href",
@@ -154,7 +174,7 @@ AD_IMAGES_DEFAULT_FIELDS = {
         "Name",
         "Type",
         "Subtype",
-        "Associated",
+        # "Associated"  # TODO: temporarily disabled due to a bug in ya.direct api
     ],
 }
 
@@ -184,7 +204,7 @@ CAMPAIGNS_DEFAULT_FIELDS = {
         "PackageBiddingStrategy",
         "CanBeUsedAsPackageBiddingStrategySource",
         "NegativeKeywordSharedSetIds",
-    ]
+    ],
 }
 
 

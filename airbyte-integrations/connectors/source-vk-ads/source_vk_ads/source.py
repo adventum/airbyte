@@ -23,7 +23,7 @@ from .utils import chunks, date_to_timestamp, get_today_minus_n_days_date, get_y
 
 # Basic full refresh stream
 class VkAdsStream(HttpStream, ABC):
-    url_base = "https://api.vk.com/method/"
+    url_base = "https://api.vk.ru/method/"
     transformer: TypeTransformer = TypeTransformer(
         config=TransformConfig.DefaultSchemaNormalization)
 
@@ -310,7 +310,7 @@ class SourceVkAds(AbstractSource):
 
         params = {'access_token': auth._token, 'v': '5.131'}
 
-        accounts_url = 'https://api.vk.com/method/ads.getAccounts'
+        accounts_url = 'https://api.vk.ru/method/ads.getAccounts'
         accounts_resp = requests.get(accounts_url, params=params).json()
 
         if accounts_resp.get('error'):
@@ -323,7 +323,7 @@ class SourceVkAds(AbstractSource):
             return False, 'Account Id is invalid'
 
         if config['account_type'] == 'Agency':
-            clients_url = 'https://api.vk.com/method/ads.getClients'
+            clients_url = 'https://api.vk.ru/method/ads.getClients'
             params.update({'account_id': config['account_id']})
             clients_resp = requests.get(clients_url, params=params).json()
 

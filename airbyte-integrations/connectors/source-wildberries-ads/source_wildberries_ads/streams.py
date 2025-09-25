@@ -22,9 +22,9 @@ from source_wildberries_ads.utils import chunks
 
 def check_ads_stream_connection(credentials: WildberriesCredentials, campaign_id: int | None) -> tuple[IsSuccess, Optional[Message]]:
     if campaign_id:
-        url = f"https://advert-api.wb.ru/adv/v1/stat/words?id={campaign_id}"
+        url = f"https://advert-api.wildberries.ru/adv/v1/stat/words?id={campaign_id}"
     else:
-        url = "https://advert-api.wb.ru/adv/v1/promotion/count"
+        url = "https://advert-api.wildberries.ru/adv/v1/promotion/count"
     headers = {"Authorization": credentials["api_key"]}
     try:
         response = requests.get(url, headers=headers)
@@ -46,7 +46,7 @@ def get_campaign_ids(headers: dict, only_campaign_type: int = None) -> Iterator[
     attempts_count = 0
     while attempts_count < 3:
         try:
-            response = requests.get("https://advert-api.wb.ru/adv/v1/promotion/count", headers=headers)
+            response = requests.get("https://advert-api.wildberries.ru/adv/v1/promotion/count", headers=headers)
         except ChunkedEncodingError:
             time.sleep(20)
             continue
@@ -160,13 +160,13 @@ class AdsStream(Stream, ABC):
 
 class WordsStatStream(AdsStream):
     SCHEMA: Type[AdsWordsStat] = AdsWordsStat
-    URL: str = "https://advert-api.wb.ru/adv/v1/stat/words"
+    URL: str = "https://advert-api.wildberries.ru/adv/v1/stat/words"
     RATE_LIMIT: int = 240
 
 
 class FullStatStream(AdsStream):
     SCHEMA: Type[AdsFullStat] = AdsFullStat
-    URL: str = "https://advert-api.wb.ru/adv/v2/fullstats"
+    URL: str = "https://advert-api.wildberries.ru/adv/v2/fullstats"
     RATE_LIMIT: int = 1
     CAMPAIGNS_PER_REQUEST: int = 50  # -1 – все кампании в 1 запросе; 100 – MAX(?)
 
@@ -243,7 +243,7 @@ class FullStatStream(AdsStream):
 
 class AutoStatStream(AdsStream):
     SCHEMA: Type[AdsAutoStat] = AdsAutoStat
-    URL: str = "https://advert-api.wb.ru/adv/v1/auto/stat"
+    URL: str = "https://advert-api.wildberries.ru/adv/v1/auto/stat"
     RATE_LIMIT: int = 10
 
     def _get_campaigns(self) -> None:
@@ -253,13 +253,13 @@ class AutoStatStream(AdsStream):
 
 class SeaCatStatStream(AdsStream):
     SCHEMA: Type[AdsSeaCatStat] = AdsSeaCatStat
-    URL: str = "https://advert-api.wb.ru/adv/v1/seacat/stat"
+    URL: str = "https://advert-api.wildberries.ru/adv/v1/seacat/stat"
     RATE_LIMIT: int = 60
 
 
 class AdsCampaignStream(Stream):
     SCHEMA: Type[AdsCampaign] = AdsCampaign
-    URL: str = "https://advert-api.wb.ru/adv/v1/promotion/adverts"
+    URL: str = "https://advert-api.wildberries.ru/adv/v1/promotion/adverts"
 
     def __init__(self, credentials: WildberriesCredentials):
         self.credentials = credentials
@@ -318,7 +318,7 @@ class AdsCampaignStream(Stream):
 
 class AdsCostHistoryStream(Stream):
     SCHEMA: Type[AdsCostHistoryStat] = AdsCostHistoryStat
-    URL: str = "https://advert-api.wb.ru/adv/v1/upd"
+    URL: str = "https://advert-api.wildberries.ru/adv/v1/upd"
 
     def __init__(self, credentials: WildberriesCredentials, date_from: date, date_to: date):
         self.credentials = credentials

@@ -1,0 +1,206 @@
+{
+  "documentationUrl" : "https://docsurl.com",
+  "connectionSpecification" : {
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "title" : "Mi Ads Spec",
+    "type" : "object",
+    "required" : [
+      "app_id",
+      "app_key",
+      "ad_type_query_stream",
+      "dimensions_query_stream",
+      "date_range"
+    ],
+    "properties" : {
+      "app_id" : {
+        "title" : "App id",
+        "type" : "string",
+        "order" : 0,
+        "description" : "Идентификатор приложения для доступа к API"
+      },
+      "app_key" : {
+        "title" : "App key",
+        "type" : "string",
+        "order" : 1,
+        "description" : "Ключ приложения для доступа к API",
+        "airbyte_secret" : true
+      },
+      "ad_type_query_stream" : {
+        "title" : "Тип рекламы для запроса стрима отчетов (обязательно для этого стрима)",
+        "type" : "string",
+        "order" : 2,
+        "description" : "Описание можно найти в документации, параметр adType: https://global.e.mi.com/doc/reporting_api_guide.html#iii-data-query",
+        "enum" : [
+          "Effect",
+          "Brand"
+        ]
+      },
+      "dimensions_query_stream" : {
+        "title" : "Выгружаемые поля для стрима отчетов (обязательно для этого стрима)",
+        "type" : "array",
+        "order" : 3,
+        "description" : "Описание можно найти в документации, параметр dimensions: https://global.e.mi.com/doc/reporting_api_guide.html#iii-data-query",
+        "items" : {
+          "type" : "string",
+          "enum" : [
+            "Campaign",
+            "AdGroup",
+            "Ad",
+            "Country/Region",
+            "Date",
+            "AdPlacement",
+            "Publisher"
+          ]
+        }
+      },
+      "account_ids_query_stream" : {
+        "title" : "Идентификаторы аккаунтов для запроса стрима отчетов (необязательно для этого стрима)",
+        "type" : "array",
+        "order" : 4,
+        "description" : "Если не указать, загрузит данные для всех аккаунтов. Описание можно найти в документации, параметр accountIds: https://global.e.mi.com/doc/reporting_api_guide.html#iii-data-query",
+        "items" : {
+          "type" : "integer"
+        },
+        "examples" : [
+          12345
+        ]
+      },
+      "ad_campaign_ids_query_stream" : {
+        "title" : "Идентификаторы рекламных кампаний запроса стрима отчетов (необязательно для этого стрима)",
+        "type" : "array",
+        "order" : 5,
+        "description" : "Если не указать, загрузит данные для всех кампаний. Описание можно найти в документации, параметр adCampaignIds: https://global.e.mi.com/doc/reporting_api_guide.html#iii-data-query",
+        "items" : {
+          "type" : "integer"
+        },
+        "examples" : [
+          123456
+        ]
+      },
+      "date_range" : {
+        "title" : "Диапазон дат",
+        "description" : "Выберите период дат, который нужно загрузить",
+        "type" : "object",
+        "order" : 6,
+        "oneOf" : [
+          {
+            "type" : "object",
+            "title" : "Произвольный диапазон дат",
+            "required" : [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "date_to" : {
+                "title" : "Дата окончания",
+                "type" : "string",
+                "description" : "Дата окончания в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Произвольная дата",
+                "const" : "custom_date",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "Последние N дней",
+            "required" : [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "last_days_count" : {
+                "title" : "Количество последних дней",
+                "type" : "integer",
+                "description" : "Количество последних дней без учёта сегодняшнего дня.",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
+                  30
+                ],
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Последние N дней",
+                "const" : "last_n_days",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "С даты начала по сегодня",
+            "description" : "Загрузка данных с даты начала по сегодняшний день. Только с этой опцией возможна инкрементальная синхронизация.",
+            "required" : [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "С даты начала по сегодня",
+                "const" : "from_start_date_to_today",
+                "order" : 2
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

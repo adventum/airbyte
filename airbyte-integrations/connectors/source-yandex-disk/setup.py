@@ -6,11 +6,9 @@
 from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
-    # "airbyte-cdk~=0.1.56",
-    "airbyte-cdk~=0.2",
-    "pandas~=1.5.0",
-    "openpyxl~=3.0.10",
-    # "pyyaml~=5.3.1",
+    "airbyte-cdk~=0.58.8",
+    "pandas~=2.3.3",
+    "openpyxl~=3.1.5",
 ]
 
 TEST_REQUIREMENTS = [

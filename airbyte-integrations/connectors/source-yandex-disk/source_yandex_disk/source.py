@@ -10,6 +10,7 @@ import logging
 import re
 from abc import ABC
 from datetime import datetime
+from functools import lru_cache
 from typing import (
     Any,
     Dict,
@@ -91,6 +92,7 @@ class YandexDiskResource(HttpStream, ABC):
     def name(self) -> str:
         return self.stream_name
 
+    @lru_cache(maxsize=None)
     def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(
             package_name_from_class(self.__class__)

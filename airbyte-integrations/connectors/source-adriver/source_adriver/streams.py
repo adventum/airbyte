@@ -78,6 +78,20 @@ class AdriverStream(HttpStream, ABC):
         }
         return headers
 
+    @staticmethod
+    def _extract_numeric_id(raw_identifier: str | None, entity: str) -> int:
+        if not raw_identifier or not raw_identifier.strip():
+            raise ValueError(
+                f"Received empty identifier for {entity}. Raw value: {raw_identifier!r}"
+            )
+        candidate = raw_identifier.strip().rsplit("/", 1)[-1]
+        candidate = candidate.rsplit(":", 1)[-1]
+        if not candidate.isdigit():
+            raise ValueError(
+                f"Failed to extract numeric id from {entity} identifier '{raw_identifier}'. Expected trailing digits."
+            )
+        return int(candidate)
+
     def _fetch_next_page(
         self,
         stream_slice: Optional[Mapping[str, Any]] = None,
@@ -161,7 +175,9 @@ class Ads(AdriverStream):
             req = None
             while attempts < 3:
                 req = requests.get(
-                    f"{self.url_base}{path}", headers=self.request_headers(None)
+                    f"{self.url_base}{path}",
+                    headers=self.request_headers(None),
+                    params={"user_id": self.user_id},
                 )
                 if req.status_code != 401:
                     break
@@ -171,8 +187,9 @@ class Ads(AdriverStream):
             # Parse request
             root = ET.fromstring(req.text)
             for entry in root.findall("atom:entry", self.NS):
-                ad_url = entry.find("atom:id", self.NS).text
-                ad_id = int(ad_url.split("/")[-1])
+                ad_element = entry.find("atom:id", self.NS)
+                raw_ad_id = ad_element.text if ad_element is not None else None
+                ad_id = self._extract_numeric_id(raw_ad_id, "ad")
                 ads_ids.append(ad_id)
         return ads_ids
 
@@ -243,8 +260,7 @@ class Banners(AdriverStream):
                     continue
                 for href in banners.findall("adr:href", self.NS):
                     if href.text and href.text.strip():
-                        banner_url = href.text.strip()
-                        banner_id = int(banner_url.split("/")[-1])
+                        banner_id = self._extract_numeric_id(href.text, "banner")
                         yield banner_id
 
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:

@@ -58,6 +58,7 @@ class AdriverStream(HttpStream, ABC):
         self.start_date = start_date
         self.end_date = end_date
         self.load_all = load_all
+        self.user_id, self.token = get_auth(self.config)
 
     def next_page_token(
         self, response: requests.Response
@@ -99,21 +100,42 @@ class AdriverStream(HttpStream, ABC):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> tuple[requests.PreparedRequest, requests.Response]:
         # Adriver token tends to expire while processing data, so we need to renew it
-        request, response = None, None
-        attempts: int = 0
-        while attempts < 3:
-            request, response = super()._fetch_next_page(
-                stream_slice, stream_state, next_page_token
-            )
-            if response.status_code != 401:
-                break
-            self.user_id, self.token = get_auth(self.config)
-            attempts += 1
-        return request, response
+        # Look at super()._fetch_next_page
+        return self.make_request(
+            path=self.path(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            params=self.request_params(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            headers=self.request_headers(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            request_kwargs=self.request_kwargs(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            request_json=self.request_body_json(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+            request_data=self.request_body_data(
+                stream_state=stream_state,
+                stream_slice=stream_slice,
+                next_page_token=next_page_token,
+            ),
+        )
 
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         for object_id in self.objects_ids:
-            self.logger.info(f"Yield obj: {object_id}")
             yield {"object_id": object_id}
 
     def request_params(
@@ -124,6 +146,51 @@ class AdriverStream(HttpStream, ABC):
     ) -> MutableMapping[str, Any]:
         return {}
 
+    def make_request(
+        self,
+        path: str,
+        params: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
+        request_kwargs: Mapping[str, Any] | None = None,
+        request_json: Mapping[str, Any] | None = None,
+        request_data: Mapping[str, Any] | None = None,
+    ) -> tuple[requests.PreparedRequest, requests.Response]:
+        """Make response with retry and update token if needed"""
+        attempts: int = 0
+        request, response = None, None
+        self.logger.info(f"Starting request {path}")
+        while attempts < 3:
+            try:
+                time_start = pendulum.now()
+                request, response = self._http_client.send_request(
+                    http_method=self.http_method,
+                    url=self._join_url(self.url_base, path),
+                    request_kwargs=request_kwargs or {},
+                    headers=headers or {},
+                    params=params or {},
+                    json=request_json or {},
+                    data=request_data or {},
+                    dedupe_query_params=True,
+                    log_formatter=self.get_log_formatter(),
+                    exit_on_rate_limit=self.exit_on_rate_limit,
+                )
+                time_end = pendulum.now()
+                if response.status_code != 401:
+                    self.logger.info(
+                        f"Completed request {path} in {(time_end - time_start).total_seconds()} seconds"
+                    )
+                    return request, response
+                self.user_id, self.token = get_auth(self.config)
+                attempts += 1
+            except Exception as e:
+                self.logger.info(f"Failed to make response with retry failed: {e}")
+                attempts += 1
+        raise ValueError(
+            "Failed to update token or get response",
+            response.status_code if response else None,
+            response.text if response else None,
+        )
+
     def parse_response(
         self,
         response: requests.Response,
@@ -131,7 +198,6 @@ class AdriverStream(HttpStream, ABC):
         **kwargs,
     ) -> Iterable[Mapping]:
         object_id = stream_slice["object_id"]
-        self.logger.info(f"Parsing obj: {object_id}")
         # 1. Parse XML
         root = ET.fromstring(response.text)
 
@@ -166,38 +232,29 @@ class Ads(AdriverStream):
         object_id = stream_slice["object_id"]
         return f"/stat/ads/{object_id}/unique"
 
-    @lru_cache()
+    @lru_cache(maxsize=None)
     def get_ads_ids(self) -> list[int]:
         ads_ids = []
         for path in ("ads", "ads/delegated", "net_ads", "net_ads/delegated"):
             # Make request
-            attempts: int = 0
-            req = None
-            while attempts < 3:
-                req = requests.get(
-                    f"{self.url_base}{path}",
-                    headers=self.request_headers(None),
-                    params={"user_id": self.user_id},
-                )
-                if req.status_code != 401:
-                    break
-                self.user_id, self.token = get_auth(self.config)
-                attempts += 1
+            request, response = self.make_request(
+                path, {"user_id": self.user_id}, headers=self.request_headers(None)
+            )
 
             # Parse request
-            root = ET.fromstring(req.text)
+            root = ET.fromstring(response.text)
             for entry in root.findall("atom:entry", self.NS):
                 ad_element = entry.find("atom:id", self.NS)
                 raw_ad_id = ad_element.text if ad_element is not None else None
                 ad_id = self._extract_numeric_id(raw_ad_id, "ad")
                 ads_ids.append(ad_id)
+            del response
         return ads_ids
 
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         if self.load_all:
             # Load all with ads ids
             for ad_id in self.get_ads_ids():
-                self.logger.info(f"Yield ad: {ad_id}")
                 yield {"object_id": ad_id}
         else:
             # Load by manually stated ids
@@ -237,21 +294,14 @@ class Banners(AdriverStream):
         ads_ids = self.ads_stream.get_ads_ids()
         for ad_id in ads_ids:
             # Make request
-            attempts: int = 0
-            req = None
-            while attempts < 3:
-                req = requests.get(
-                    f"{self.url_base}/adplacements",
-                    headers=self.request_headers(None),
-                    params={"user_id": self.user_id, "ad_id": ad_id},
-                )
-                if req.status_code != 401:
-                    break
-                self.user_id, self.token = get_auth(self.config)
-                attempts += 1
+            request, response = self.make_request(
+                "adplacements",
+                {"user_id": self.user_id, "ad_id": ad_id},
+                headers=self.request_headers(None),
+            )
 
             # Parse data
-            root = ET.fromstring(req.text)
+            root = ET.fromstring(response.text)
             for entry in root.findall("atom:entry", self.NS):
                 banners = entry.find(
                     "atom:content/adr:adPlacement/adr:banners", self.NS
@@ -262,12 +312,12 @@ class Banners(AdriverStream):
                     if href.text and href.text.strip():
                         banner_id = self._extract_numeric_id(href.text, "banner")
                         yield banner_id
+            del response
 
     def stream_slices(self, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         if self.load_all:
             # Load all with ads ids
             for banner_id in self.load_banners_ids():
-                self.logger.info(f"Yield banner: {banner_id}")
                 yield {"object_id": banner_id}
         else:
             # Load by manually stated ids

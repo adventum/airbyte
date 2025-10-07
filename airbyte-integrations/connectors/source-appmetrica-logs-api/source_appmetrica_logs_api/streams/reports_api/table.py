@@ -50,8 +50,7 @@ class AppmetricaReportsTable(HttpStream):
     def url_base(self) -> str:
         if self.api_version == "v1":
             return "https://api.appmetrica.yandex.ru/"
-        else:
-            return "https://api.appmetrica.yandex.ru/v2/"
+        return "https://api.appmetrica.yandex.ru/v2/"
 
     @property
     def name(self) -> str:
@@ -93,7 +92,7 @@ class AppmetricaReportsTable(HttpStream):
         return schema
 
     def request_params(
-        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
+        self, stream_slice: Mapping[str, Any] = None, *args, **kwargs
     ) -> MutableMapping[str, Any]:
         params = {
             "date1": self.date_from.format(self.datetime_format),

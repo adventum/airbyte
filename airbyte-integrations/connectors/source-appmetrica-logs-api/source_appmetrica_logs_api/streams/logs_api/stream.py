@@ -40,6 +40,7 @@ class AppmetricaLogsApi(HttpStream):
         filters: list[Mapping[str, str]] = None,
         date_dimension: str = "default",
         event_name_list: list[str] = None,
+        skip_unavailable_shards: bool = False,
     ):
         # setting source after super().__init__ will break name property
         self.source = source
@@ -56,6 +57,7 @@ class AppmetricaLogsApi(HttpStream):
         self.fields = fields if fields else AVAILABLE_FIELDS[source]["fields"].keys()
         self.filters = filters
         self.date_dimension = date_dimension
+        self.skip_unavailable_shards = skip_unavailable_shards
 
     def path(self, *args, **kwargs) -> str:
         return f"logs/v1/export/{self.source}.csv"
@@ -94,6 +96,8 @@ class AppmetricaLogsApi(HttpStream):
             params["event_name"] = stream_slice.get("event_name")
         if self.filters:
             params.update(self.filters_into_request_params(self.filters))
+        if self.skip_unavailable_shards:
+            params["skip_unavailable_shards"] = True
         return params
 
     @lru_cache(maxsize=None)
@@ -186,7 +190,9 @@ class AppmetricaLogsApi(HttpStream):
     ) -> list[dict[str, pendulum.DateTime]]:
         """Split interval either by days or by hours, aligning chunk end to 59:59.999999."""
         if not chunk_days_count and not chunk_hours_count:
-            raise ValueError("Either chunk_days_count or chunk_hours_count must be provided")
+            raise ValueError(
+                "Either chunk_days_count or chunk_hours_count must be provided"
+            )
 
         chunks = []
         cursor = date_from
@@ -201,9 +207,13 @@ class AppmetricaLogsApi(HttpStream):
             if chunk_date_to > date_to:
                 chunk_date_to = date_to
             if chunk_days_count:
-                chunk_date_to = chunk_date_to.replace(hour=23, minute=59, second=59, microsecond=999999)
+                chunk_date_to = chunk_date_to.replace(
+                    hour=23, minute=59, second=59, microsecond=999999
+                )
             elif chunk_hours_count:
-                chunk_date_to = chunk_date_to.replace(minute=59, second=59, microsecond=999999)
+                chunk_date_to = chunk_date_to.replace(
+                    minute=59, second=59, microsecond=999999
+                )
 
             chunks.append({"date_from": chunk_date_from, "date_to": chunk_date_to})
             cursor = cursor + delta
@@ -226,7 +236,9 @@ class AppmetricaLogsApi(HttpStream):
                 chunk_hours_count=self.chunked_logs_params["split_range_hours_count"],
             )
         else:
-            raise ValueError(f"Unknown split_mode_type: {self.chunked_logs_params['split_mode_type']}")
+            raise ValueError(
+                f"Unknown split_mode_type: {self.chunked_logs_params['split_mode_type']}"
+            )
 
         for chunk in chunks:
             if self.event_name_list:

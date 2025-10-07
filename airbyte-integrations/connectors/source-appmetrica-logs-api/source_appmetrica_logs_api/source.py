@@ -108,6 +108,9 @@ class SourceAppmetricaLogsApi(AbstractSource):
                     filters=source.get("filters", []),
                     date_dimension=source.get("date_dimension", "default"),
                     event_name_list=source.get("event_name_list"),
+                    skip_unavailable_shards=source.get(
+                        "skip_unavailable_shards", False
+                    ),
                 )
             )
 

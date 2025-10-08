@@ -56,13 +56,13 @@ class JagajamStream(HttpStream, ABC):
         auth_token: str,
         client_name: str | None = None,
         product_name: str | None = None,
-        custom_constants: Mapping[str, Any] = {},
+        custom_constants: Mapping[str, Any] | None = None,
     ):
         HttpStream.__init__(self, authenticator=None)
         self.auth_token = auth_token
         self.client_name = client_name
         self.product_name = product_name
-        self.custom_constants = custom_constants
+        self.custom_constants = custom_constants if custom_constants else {}
 
     def _send_request(
         self, request: requests.PreparedRequest, request_kwargs: Mapping[str, Any]

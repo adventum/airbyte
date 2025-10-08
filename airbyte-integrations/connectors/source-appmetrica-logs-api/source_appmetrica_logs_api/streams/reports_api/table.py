@@ -45,7 +45,7 @@ class AppmetricaReportsTable(HttpStream):
         self.dimensions = dimensions if dimensions is not None else []
         self.filters = filters
         self.event_names = event_names if event_names is not None else []
-        self.metrics = self.format_metrics(metrics)
+        self.metrics = list(set(self.format_metrics(metrics)))
 
     @property
     def url_base(self) -> str:
@@ -94,7 +94,6 @@ class AppmetricaReportsTable(HttpStream):
                     result.append(metric.replace("EVENT_NAME", event_name))
             else:
                 result.append(metric)
-        self.logger.info(result)
         return result
 
     @lru_cache(maxsize=None)

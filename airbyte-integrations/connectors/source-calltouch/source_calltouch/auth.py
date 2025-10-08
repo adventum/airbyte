@@ -60,7 +60,6 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
             headers={"Authorization": f"Bearer {self._cc_token}"},
         )
         data: dict[str, Any] = response.json()
-        print("data", data)
         return data["token_data"]["access_token"]
 
     def get_auth_header(self) -> Mapping[str, Any]:

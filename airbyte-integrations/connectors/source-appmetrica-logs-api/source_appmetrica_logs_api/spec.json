@@ -92,13 +92,13 @@
         "description" : "During maintenance, some data shards may be temporarily unavailable. If exact timing is important and minor data inaccuracies are acceptable, the API will return data only from the shards that are accessible when this option is enabled",
         "default" : false,
         "order" : 2,
-        "always_show": true
+        "always_show" : true
       },
       "sources" : {
         "title" : "Sources",
         "order" : 3,
         "description" : "Sources of data",
-        "always_show": true,
+        "always_show" : true,
         "type" : "array",
         "items" : {
           "type" : "object",
@@ -176,15 +176,22 @@
               ],
               "default" : "default"
             },
-            "event_name_list": {
-              "title": "Event Name List",
-              "description": "Used for source type 'events', here you can specify the names of events to get, the rest will be skipped",
-              "type": "array",
-              "items": {
-                "type": "string"
+            "event_name_list" : {
+              "title" : "Event Name List",
+              "description" : "Used for source type 'events', here you can specify the names of events to get, the rest will be skipped",
+              "type" : "array",
+              "items" : {
+                "type" : "string"
               },
-              "examples": ["view_cart", "add_to_cart", "begin_checkout", "purchase", "select_content", "screen_view"],
-              "order": 5
+              "examples" : [
+                "view_cart",
+                "add_to_cart",
+                "begin_checkout",
+                "purchase",
+                "select_content",
+                "screen_view"
+              ],
+              "order" : 5
             },
             "check_fields" : {
               "title" : "Validate Fields",
@@ -266,22 +273,22 @@
           }
         ]
       },
-      "tables_api_version": {
-        "title": "Api version for Reports stream",
-        "order": 5,
-        "always_show": true,
-        "description": "Use official v1 api or undocumented api v2 (experimental, https://api.appmetrica.yandex.ru/v2/user/acquisition)",
-        "type": "string",
-        "enum": [
+      "tables_api_version" : {
+        "title" : "Api version for Reports stream",
+        "order" : 5,
+        "always_show" : true,
+        "description" : "Use official v1 api or undocumented api v2 (experimental, https://api.appmetrica.yandex.ru/v2/user/acquisition)",
+        "type" : "string",
+        "enum" : [
           "v1",
           "v2"
         ],
-        "default": "v1"
+        "default" : "v1"
       },
       "tables" : {
         "title" : "Reports streams",
         "order" : 6,
-        "always_show": true,
+        "always_show" : true,
         "description" : "Each stream corresponds one table of this api: https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/data",
         "type" : "array",
         "items" : {
@@ -299,11 +306,11 @@
             },
             "metrics" : {
               "title" : "Metrics",
-              "description" : "One or more metrics, allowed in api . Some metrics may be incompatible with each other. (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/metrics/mainmetr)",
+              "description" : "One or more metrics, allowed in api. Some metrics may be incompatible with each other. You can also pair metrics with event names: EVENT_NAME string will be converted to all event names, EVENT_NAME_1 only to first one and so on. Examples: eventsDevices{'[\"EVENT_NAME\"]'} paired with event names [\"ЛК. Оплата заказа. Успешная оплата\", \"ЛК. Оплата заказа. Оплата не удалась\"] results in 2 metrics: [eventsDevices{'[\"ЛК. Оплата заказа. Успешная оплата\"]'}, eventsDevices{'[\"ЛК. Оплата заказа. Оплата не удалась\"]'}]. eventsDevices{'[\"EVENT_NAME_1\"]'} creates only one metric with first event name in list. API docs: (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/metrics/mainmetr)",
               "type" : "array",
               "order" : 1,
-              "items": {
-                "type": "string"
+              "items" : {
+                "type" : "string"
               },
               "examples" : [
                 "ym:ce:users",
@@ -315,8 +322,8 @@
               "description" : "List of report (table) dimensions (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/attributes/mobmet_events/app)",
               "type" : "array",
               "order" : 2,
-              "items": {
-                "type": "string"
+              "items" : {
+                "type" : "string"
               },
               "examples" : [
                 "ym:ce:screenResolution==1920x1080  (for api v1)",
@@ -328,8 +335,8 @@
               "description" : "List of report (table) event names. May be required for some requests. Check if api request from appmetrica cabinet uses them",
               "type" : "array",
               "order" : 2,
-              "items": {
-                "type": "string"
+              "items" : {
+                "type" : "string"
               },
               "examples" : [
                 "app_start  (for api v2)"

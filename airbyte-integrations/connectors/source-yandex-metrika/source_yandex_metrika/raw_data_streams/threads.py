@@ -1,9 +1,11 @@
 import logging
 import os
 import queue
+import time
 from queue import Queue
 from threading import Lock, Thread
-from typing import Mapping, TypeVar, Iterable
+from typing import Mapping, TypeVar, Iterable, Any
+import queue as _queue
 
 import pandas as pd
 from airbyte_cdk.models import SyncMode
@@ -44,7 +46,7 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
     def __init__(
         self,
         name: str,
-        stream_slice: Mapping[str, any],
+        stream_slice: Mapping[str, Any],
         stream_instance: YandexMetrikaRawDataStream,
         lock: Lock,
         completed_chunks_observer: "YandexMetrikaRawSliceMissingChunksObserver",
@@ -58,24 +60,18 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
         self.completed_chunks_observer = completed_chunks_observer
         self.filename: str | None = None
 
-    def records_generator(self) -> Iterable[Mapping[str, any]]:
+    def records_generator(self) -> Iterable[Mapping[str, Any]]:
         try:
             with open(self.filename, "r") as input_f:
                 df_reader = pd.read_csv(input_f, chunksize=5000, delimiter="\t")
                 for chunk in df_reader:
-                    with self.lock:
-                        records: list[dict] = [
-                            data for data in chunk.to_dict("records")
-                        ]
-                        for record in records:
-                            self.stream_instance.replace_keys(record)
-                            # Replace Nan values
-                            record = {
-                                key: value if not pd.isna(value) else None
-                                for key, value in record.items()
-                            }
-                            self.records_count += 1
-                            yield record
+                    # векторная замена NaN на None
+                    chunk = chunk.where(pd.notna(chunk), None)
+                    records = chunk.to_dict("records")
+                    for record in records:
+                        self.stream_instance.replace_keys(record)
+                        self.records_count += 1
+                        yield record
             del input_f
             del df_reader
         except AirbyteTracedException as e:
@@ -131,7 +127,7 @@ _T = TypeVar("_T")
 
 class CustomQueue(Queue):
     def get(self, block: bool = True, timeout: float | None = None) -> _T:
-        logger.info("current_queue_items", list(self.queue))
+        logger.info("current_queue_items", len(self.queue))
         return super().get(block, timeout)
 
 
@@ -139,8 +135,8 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
     def __init__(
         self,
         stream_instance: YandexMetrikaRawDataStream,
-        preprocessed_slices_batch: list[Mapping[str, any]],
-        raw_slice: Mapping[str, any],
+        preprocessed_slices_batch: list[Mapping[str, Any]],
+        raw_slice: Mapping[str, Any],
         completed_chunks_observer: "YandexMetrikaRawSliceMissingChunksObserver",
         multithreading_threads_count: int = 1,
     ):
@@ -167,23 +163,31 @@ class PreprocessedSlicePartThreadsController(LogMessagesPoolConsumer):
 
     def process_threads(self):
         threads_queue = queue.Queue()
-
         for thread in self.threads:
             threads_queue.put(thread)
 
-        running_threads = []
-        while not threads_queue.empty() or len(running_threads) > 0:
-            for thread in running_threads:
-                if not thread.is_alive():
-                    running_threads.remove(thread)
+        running_threads: list[Thread] = []
 
-            if (
-                len(running_threads) < self.multithreading_threads_count
-                and not threads_queue.empty()
-            ):
-                thread: Thread = threads_queue.get()
+        while True:
+            # добираем до лимита параллелизма
+            while len(running_threads) < self.multithreading_threads_count:
+                try:
+                    thread = threads_queue.get_nowait()
+                except _queue.Empty:
+                    break
                 thread.start()
                 running_threads.append(thread)
 
-        for thread in self.threads:
-            thread.join()
+            # чистим завершившиеся
+            running_threads = [t for t in running_threads if t.is_alive()]
+
+            # условие выхода: нет живых и очередь пуста
+            if not running_threads and threads_queue.empty():
+                break
+
+            # НЕ даём циклу крутиться впустую
+            time.sleep(0.05)
+
+        # на всякий случай (обычно уже не нужно)
+        for t in self.threads:
+            t.join()

@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Mapping, Any
 
 import pendulum
 
@@ -71,9 +71,9 @@ def partition_list(lst, n):
 
 
 def get_config_date_range(
-    config: Mapping[str, any],
+    config: Mapping[str, Any],
 ) -> tuple[pendulum.DateTime, pendulum.DateTime]:
-    date_range: Mapping[str, any] = config.get("date_range", {})
+    date_range: Mapping[str, Any] = config.get("date_range", {})
     date_range_type: str = date_range.get("date_range_type")
 
     time_from: pendulum.DateTime | None = None

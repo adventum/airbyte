@@ -1,5 +1,6 @@
 import logging
 from abc import ABC
+from typing import Any
 
 import requests
 from airbyte_cdk.sources.streams.http import HttpStream
@@ -17,14 +18,14 @@ class YandexMetrikaStream(HttpStream, ABC):
         super().__init__(authenticator=None)
         self.field_name_map: dict[str, str] = field_name_map
 
-    def replace_keys(self, data: dict[str, any]) -> None:
+    def replace_keys(self, data: dict[str, Any]) -> None:
         """Replace all keys by field_name_map in given dict"""
         for key, value in self.field_name_map.items():
             if key in data:
                 data[value] = data.pop(key)
 
     def make_test_request(self):
-        test_params = self.request_params()
+        test_params = self.request_params(stream_state=None)
         test_params["limit"] = 1
         headers = self._authenticator.get_auth_header()
         return requests.get(

@@ -6,7 +6,7 @@
 import logging
 import shutil
 from datetime import datetime
-from typing import Iterator, Mapping, MutableMapping
+from typing import Iterator, Mapping, MutableMapping, Any
 
 from airbyte_cdk.models import AirbyteMessage
 from airbyte_cdk.models import (
@@ -40,9 +40,9 @@ class SourceYandexMetrika(AbstractSource):
     @staticmethod
     def preprocess_raw_stream_slice(
         stream_instance: YandexMetrikaRawDataStream,
-        stream_slice: Mapping[str, any],
+        stream_slice: Mapping[str, Any],
         check_log_request_ability: bool = False,
-    ) -> tuple[list[Mapping[str, any]], str]:
+    ) -> tuple[list[Mapping[str, Any]], str]:
         logger.info(
             f"Preprocessing raw stream slice {stream_slice} for stream {stream_instance.name}..."
         )
@@ -88,9 +88,9 @@ class SourceYandexMetrika(AbstractSource):
     def read(
         self,
         logger: logging.Logger,
-        config: Mapping[str, any],
+        config: Mapping[str, Any],
         catalog: ConfiguredAirbyteCatalog,
-        state: MutableMapping[str, any] = None,
+        state: MutableMapping[str, Any] = None,
     ) -> Iterator[AirbyteMessage]:
         yield from super().read(logger, config, catalog, state)
 
@@ -174,7 +174,7 @@ class SourceYandexMetrika(AbstractSource):
                 logger, stream_instance, configured_stream, internal_config
             )
 
-    def check_connection(self, logger, config) -> tuple[bool, any]:
+    def check_connection(self, logger, config) -> tuple[bool, Any]:
         """Check connection"""
 
         """Check auth"""
@@ -224,7 +224,7 @@ class SourceYandexMetrika(AbstractSource):
 
         return True, None
 
-    def transform_config(self, raw_config: dict[str, any]) -> Mapping[str, any]:
+    def transform_config(self, raw_config: dict[str, Any]) -> Mapping[str, Any]:
         date_from, date_to = get_config_date_range(raw_config)
 
         raw_config["prepared_date_range"] = {
@@ -236,7 +236,7 @@ class SourceYandexMetrika(AbstractSource):
         raw_config["counter_id"] = int(raw_config["counter_id"])
         return raw_config
 
-    def get_auth(self, config: Mapping[str, any]) -> TokenAuthenticator:
+    def get_auth(self, config: Mapping[str, Any]) -> TokenAuthenticator:
         if config["credentials"]["auth_type"] == "access_token_auth":
             return TokenAuthenticator(
                 config["credentials"]["access_token"], auth_method="OAuth"
@@ -260,7 +260,7 @@ class SourceYandexMetrika(AbstractSource):
 
     @staticmethod
     def format_field_name_map(
-        field_name_map_old_format: list[dict[str, any]] | None,
+        field_name_map_old_format: list[dict[str, Any]] | None,
     ) -> dict[str, str]:
         """Get values that needs to be replaced and their replacements"""
         return (
@@ -270,7 +270,7 @@ class SourceYandexMetrika(AbstractSource):
         )
 
     def streams(
-        self, config: Mapping[str, any], init_for_test: bool = False
+        self, config: Mapping[str, Any], init_for_test: bool = False
     ) -> list[Stream]:
         """Get streams"""
 

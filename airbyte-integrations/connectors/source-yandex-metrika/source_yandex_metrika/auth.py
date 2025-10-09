@@ -44,11 +44,11 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
         error = None
         try:
             requests.get(self._cc_host, timeout=15)
-        except Exception:
+        except Exception as _:
             error = f"CredentialsCraft - Время ожидания подключения к {self._cc_host} истекло. Возможно, отсутствует подключение к сети или отключен VPN."
 
         if not error:
-            token_resp: dict[str, any] = requests.get(
+            token_resp: dict[str, Any] = requests.get(
                 self._url, headers={"Authorization": f"Bearer {self._cc_token}"}
             ).json()
             if token_resp.get("error"):

@@ -8,7 +8,7 @@ import os
 import typing
 from abc import ABC
 from datetime import datetime
-from typing import Iterable, Mapping, MutableMapping, Optional, Tuple
+from typing import Iterable, Mapping, MutableMapping, Optional, Tuple, Any
 
 import requests
 from airbyte_cdk.sources.streams.core import package_name_from_class
@@ -40,7 +40,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     def __init__(
         self,
-        stream_config: dict[str, any],
+        stream_config: dict[str, Any],
         authenticator: TokenAuthenticator,
         counter_id: int,
         date_from: datetime,
@@ -102,7 +102,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
         if any(f not in self.fields for f in field_manager.get_required_fields_names()):
             raise ConfigInvalidError(
-                f'Сырые отчёты - источник {log_source} должен содержать поля {", ".join(field_manager.get_required_fields_names())}. Предоставленные поля: {", ".join(self.fields)}'
+                f"Сырые отчёты - источник {log_source} должен содержать поля {', '.join(field_manager.get_required_fields_names())}. Предоставленные поля: {', '.join(self.fields)}"
             )
 
         if self.primary_key in self.field_name_map.keys():
@@ -137,7 +137,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
             name += f"_{self._name}"
         return name
 
-    def get_json_schema(self) -> Mapping[str, any]:
+    def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(
             package_name_from_class(self.__class__)
         ).get_schema("yandex_metrika_raw_data_stream")
@@ -149,8 +149,8 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     def path(
         self,
-        next_page_token: Mapping[str, any] = None,
-        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
         *args,
         **kwargs,
     ) -> str:
@@ -164,12 +164,12 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         # Custom stream used custom read that fails to check it
         return True, None
 
-    def next_page_token(self, *args, **kwargs) -> Mapping[str, any] | None:
+    def next_page_token(self, *args, **kwargs) -> Mapping[str, Any] | None:
         return None
 
     def request_params(
-        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
-    ) -> MutableMapping[str, any]:
+        self, stream_slice: Mapping[str, Any] = None, *args, **kwargs
+    ) -> MutableMapping[str, Any]:
         return {
             "date1": datetime.strftime(stream_slice["date_from"], "%Y-%m-%d"),
             "date2": datetime.strftime(stream_slice["date_to"], "%Y-%m-%d"),
@@ -177,7 +177,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
             "source": self.log_source,
         }
 
-    def request_headers(self, stream_state=None, *args, **kwargs) -> Mapping[str, any]:
+    def request_headers(self, stream_state=None, *args, **kwargs) -> Mapping[str, Any]:
         headers = super().request_headers(stream_state, *args, **kwargs)
         headers.update({"Content-Type": "application/x-yametrika+json"})
         return headers
@@ -204,7 +204,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         logger.info("end of parse_response")
         return [filename]
 
-    def stream_slices(self, *args, **kwargs) -> Iterable[Mapping[str, any] | None]:
+    def stream_slices(self, *args, **kwargs) -> Iterable[Mapping[str, Any] | None]:
         if not self.split_range_days_count:
             slices = [{"date_from": self.date_from, "date_to": self.date_to}]
         elif self.split_range_days_count:

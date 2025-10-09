@@ -6,7 +6,7 @@
 import logging
 from abc import ABC
 from datetime import datetime
-from typing import Iterable, Mapping, MutableMapping, NamedTuple
+from typing import Iterable, Mapping, MutableMapping, NamedTuple, Any
 
 import requests
 from airbyte_cdk.sources.streams.core import package_name_from_class
@@ -53,11 +53,11 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
     def __init__(
         self,
         authenticator: TokenAuthenticator,
-        stream_config: dict[str, any],
+        stream_config: dict[str, Any],
         counter_id: int,
         date_from: datetime,
         date_to: datetime,
-        field_name_map: dict[str, any],
+        field_name_map: dict[str, Any],
     ):
         super().__init__(field_name_map)
         self.counter_id = counter_id
@@ -80,7 +80,7 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         self.dimensions = stream_config.get("dimensions")
 
         # Caching explicitly json schema because read_records uses get_json_schema that makes extra requests
-        self.stream_schema_json: dict[str, any] | None = None
+        self.stream_schema_json: dict[str, Any] | None = None
 
     @property
     def name(self) -> str:
@@ -91,13 +91,13 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
     def path(self, *args, **kwargs) -> str:
         return ""
 
-    def next_page_token(self, response: requests.Response) -> Mapping[str, any] | None:
+    def next_page_token(self, response: requests.Response) -> Mapping[str, Any] | None:
         data = response.json()
         if len(data["data"]) < self.limit:
             return None
         return {"next_offset": data["query"]["offset"] + self.limit}
 
-    def get_json_schema(self) -> Mapping[str, any]:
+    def get_json_schema(self) -> Mapping[str, Any]:
         # Caching schema For better performance on record validation
         # Airbyte may call multiple get_json_schema() with multiple test requests
         if not self.stream_schema_json:
@@ -126,8 +126,8 @@ class AggregateDataYandexMetrikaReport(YandexMetrikaStream, ABC):
         return self.stream_schema_json
 
     def request_params(
-        self, next_page_token: Mapping[str, any] | None = None, *args, **kwargs
-    ) -> MutableMapping[str, any]:
+        self, next_page_token: Mapping[str, Any] | None = None, *args, **kwargs
+    ) -> MutableMapping[str, Any]:
         params = {
             "ids": self.counter_id,
             "limit": self.limit,

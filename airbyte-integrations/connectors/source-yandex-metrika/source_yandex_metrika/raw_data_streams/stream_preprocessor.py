@@ -63,11 +63,24 @@ class YandexMetrikaStreamPreprocessor:
     def create_log_request(self, stream_slice: Mapping[str, Any]) -> int:
         url = self.url_base + f"counter/{self.counter_id}/logrequests"
         logger.info(f"Create log request for slice {stream_slice}: {url}")
+        headers = self.authorized_request_headers(stream_slice)
+        params = self.request_params(stream_slice=stream_slice)
+        logger.info(
+            "Отправляем запрос на создание лог-запроса: url=%s, параметры=%s, заголовки=%s",
+            url,
+            params,
+            headers,
+        )
         try:
             create_log_request_response = self.session.post(
                 url,
-                headers=self.authorized_request_headers(stream_slice),
-                params=self.request_params(stream_slice=stream_slice),
+                headers=headers,
+                params=params,
+            )
+            logger.info(
+                "Получен ответ на создание лог-запроса: статус=%s, тело=%s",
+                create_log_request_response.status_code,
+                create_log_request_response.text,
             )
             create_log_request_response_data = create_log_request_response.json()
         except Exception:
@@ -102,6 +115,14 @@ class YandexMetrikaStreamPreprocessor:
         date_from_to_check, date_to_to_check = params["date1"], params["date2"]
         source_to_check = params["source"]
 
+        logger.info(
+            "Ищем уже готовый лог-запрос на сервере: даты=%s-%s, источник=%s, поля=%s",
+            date_from_to_check,
+            date_to_to_check,
+            source_to_check,
+            fields_to_check,
+        )
+
         for log_request in available_log_requests:
             if (
                 fields_to_check == sorted(log_request["fields"])
@@ -109,18 +130,34 @@ class YandexMetrikaStreamPreprocessor:
                 and date_to_to_check == log_request["date2"]
                 and source_to_check == log_request["source"]
             ):
+                logger.info(
+                    "Найден готовый лог-запрос на сервере: request_id=%s, статус=%s",
+                    log_request["request_id"],
+                    log_request.get("status"),
+                )
                 return True, log_request["request_id"]
+        logger.info("Подходящий лог-запрос на сервере не найден")
         return False, None
 
     def wait_for_log_request_processed(self, log_request_id: str, stream_slice: str):
         processed_parts = []
         current_status = None
         invalid_api_requests_counter = 0
+        logger.info(
+            "Ожидаем готовности лог-запроса %s для среза %s",
+            log_request_id,
+            stream_slice,
+        )
         while current_status != "processed":
             url = (
                 self.url_base + f"counter/{self.counter_id}/logrequest/{log_request_id}"
             )
             headers = self.authorized_request_headers()
+            logger.info(
+                "Отправляем запрос статуса лог-запроса: url=%s, заголовки=%s",
+                url,
+                headers,
+            )
             check_log_request_status_response = self.session.get(
                 url,
                 headers=headers,
@@ -147,10 +184,20 @@ class YandexMetrikaStreamPreprocessor:
                 processed_parts = log_request.get("parts")
             current_status = log_request["status"]
             logger.info(f"Log request {url} current status: {current_status}")
+            logger.info(
+                "Текущий прогресс лог-запроса %s: частей готово=%s",
+                log_request_id,
+                len(processed_parts),
+            )
             if current_status == "processed":
                 break
             sleep(30)
         logger.info(f"Processed parts for slice {processed_parts}")
+        logger.info(
+            "Лог-запрос %s завершён. Всего частей получено: %s",
+            log_request_id,
+            len(processed_parts),
+        )
         return {
             **stream_slice,
             "processed_parts": processed_parts,
@@ -160,9 +207,24 @@ class YandexMetrikaStreamPreprocessor:
     def get_available_log_requests(self):
         url = self.url_base + f"counter/{self.counter_id}/logrequests"
         headers = self.authorized_request_headers()
+        logger.info(
+            "Запрашиваем список доступных лог-запросов: url=%s, заголовки=%s",
+            url,
+            headers,
+        )
         response_data = self.session.get(url, headers=headers)
+        logger.info(
+            "Получен ответ списка лог-запросов: статус=%s, тело=%s",
+            response_data.status_code,
+            response_data.text,
+        )
         try:
-            return response_data.json()["requests"]
+            requests_json = response_data.json()["requests"]
+            logger.info(
+                "Найдено лог-запросов: %s",
+                len(requests_json),
+            )
+            return requests_json
         except Exception:
             raise Exception(
                 f"API Error on get_available_log_requests (URL: {url} Headers: {headers}): {response_data.text}",
@@ -172,6 +234,10 @@ class YandexMetrikaStreamPreprocessor:
         logger.info("Clean All Log Requests")
 
         available_log_requests = self.get_available_log_requests()
+        logger.info(
+            "Начинаем очистку лог-запросов, всего кандидатов: %s",
+            len(available_log_requests),
+        )
         for log_request in available_log_requests:
             if log_request["status"] not in [
                 "cleaned_by_user",
@@ -179,8 +245,19 @@ class YandexMetrikaStreamPreprocessor:
                 "canceled",
                 "processing_failed",
             ]:
+                logger.info(
+                    "Лог-запрос %s в статусе %s — требуется очистка",
+                    log_request["request_id"],
+                    log_request.get("status"),
+                )
                 cleaned_log_request = self.clean_log_request(log_request["request_id"])
                 logger.info(f"Cleaned log request: {cleaned_log_request}")
+            else:
+                logger.info(
+                    "Пропускаем лог-запрос %s со статусом %s — очистка не требуется",
+                    log_request["request_id"],
+                    log_request.get("status"),
+                )
 
     def check_log_request_ability(
         self, stream_slice: Mapping[str, Any]
@@ -192,6 +269,12 @@ class YandexMetrikaStreamPreprocessor:
         for i in range(5):
             try:
                 resp = self.session.get(url, headers=headers, params=params)
+                logger.info(
+                    "Проверяем допустимость лог-запроса: попытка=%s, статус=%s, ответ=%s",
+                    i,
+                    resp.status_code,
+                    resp.text,
+                )
                 resp_data = resp.json()
                 eval = resp_data.get("log_request_evaluation", {})
                 if not eval.get("possible"):
@@ -215,7 +298,12 @@ class YandexMetrikaStreamPreprocessor:
 
     def check_stream_slices_ability(self) -> tuple[bool, Any]:
         available_log_requests = self.get_available_log_requests()
-        for raw_stream_slice in self.stream_instance.stream_slices():
+        stream_slices = list(self.stream_instance.stream_slices())
+        logger.info(
+            "Проверяем возможность формирования лог-запросов для всех срезов: всего срезов=%s",
+            len(stream_slices),
+        )
+        for raw_stream_slice in stream_slices:
             is_already_on_server, on_server_log_request_id = (
                 self.check_if_log_request_already_on_server(
                     stream_slice=raw_stream_slice,
@@ -243,4 +331,16 @@ class YandexMetrikaStreamPreprocessor:
             + f"counter/{self.counter_id}/logrequest/{log_request_id}/clean"
         )
         logger.info(f"Clean log request {url}...")
-        return self.session.post(url, headers=self.authorized_request_headers()).json()
+        headers = self.authorized_request_headers()
+        logger.info(
+            "Отправляем запрос на очистку лог-запроса: url=%s, заголовки=%s",
+            url,
+            headers,
+        )
+        response = self.session.post(url, headers=headers).json()
+        logger.info(
+            "Ответ сервера на очистку лог-запроса %s: %s",
+            log_request_id,
+            response,
+        )
+        return response

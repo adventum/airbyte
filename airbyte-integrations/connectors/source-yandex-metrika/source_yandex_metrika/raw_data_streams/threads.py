@@ -10,10 +10,34 @@ import queue as _queue
 import pandas as pd
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+from requests.exceptions import Timeout
 
 from ..source import YandexMetrikaRawDataStream
 
 logger = logging.getLogger("airbyte")
+
+
+# Env-based approach used by one of clients, do not remove
+MAX_TIMEOUT_RETRIES_ENV_VAR = "YANDEX_METRIKA_CHUNK_TIMEOUT_RETRIES"
+RETRY_SLEEP_SECONDS_ENV_VAR = "YANDEX_METRIKA_CHUNK_TIMEOUT_RETRY_DELAY_SECONDS"
+
+MAX_TIMEOUT_RETRIES = 3
+RETRY_SLEEP_SECONDS = 30
+try:
+    MAX_TIMEOUT_RETRIES = int(os.getenv(MAX_TIMEOUT_RETRIES_ENV_VAR, "3"))
+except ValueError:
+    logger.info(
+        "Некорректное значение переменной окружения %s, используем значение по умолчанию 3",
+        MAX_TIMEOUT_RETRIES_ENV_VAR,
+    )
+
+try:
+    RETRY_SLEEP_SECONDS = int(os.getenv(RETRY_SLEEP_SECONDS_ENV_VAR, "30"))
+except ValueError:
+    logger.info(
+        "Некорректное значение переменной окружения %s, используем значение по умолчанию 30",
+        RETRY_SLEEP_SECONDS_ENV_VAR,
+    )
 
 
 class LogMessagesPoolConsumer:
@@ -89,27 +113,63 @@ class PreprocessedSlicePartProcessorThread(Thread, LogMessagesPoolConsumer):
                 ) from e
             raise e
         finally:
-            logger.info(f"Remove file {self.filename} for slice {self.stream_slice}")
-            os.remove(self.filename)
+            if self.filename:
+                logger.info(
+                    f"Remove file {self.filename} for slice {self.stream_slice}"
+                )
+                try:
+                    os.remove(self.filename)
+                except FileNotFoundError:
+                    logger.info(
+                        "Файл уже удалён или недоступен для slice %s: %s",
+                        self.stream_slice,
+                        self.filename,
+                    )
+                except OSError as remove_error:
+                    logger.info(
+                        "Не удалось удалить файл %s для slice %s: %s",
+                        self.filename,
+                        self.stream_slice,
+                        remove_error,
+                    )
             logger.info(f"Finished syncing {self.stream_instance.name}")
 
     def process_log_request(self):
-        try:
-            filename = next(
-                self.stream_instance.read_records(
-                    sync_mode=SyncMode.full_refresh,
-                    stream_slice=self.stream_slice,
+        for attempt in range(1, MAX_TIMEOUT_RETRIES + 1):
+            try:
+                filename = next(
+                    self.stream_instance.read_records(
+                        sync_mode=SyncMode.full_refresh,
+                        stream_slice=self.stream_slice,
+                    )
                 )
-            )
-        except Exception:
-            logger.info(
-                f"Failed to get file for stream slice {self.stream_slice.values()}"
-            )
-            return
-
-        self.filename = filename
-        self.completed_chunks_observer.add_actually_loaded_chunk_id(
-            self.stream_slice["part"]["part_number"]
+                self.filename = filename
+                self.completed_chunks_observer.add_actually_loaded_chunk_id(
+                    self.stream_slice["part"]["part_number"]
+                )
+                return
+            except Timeout as timeout_error:
+                logger.info(
+                    "Таймаут при скачивании части %s (попытка %s/%s): %s",
+                    self.stream_slice,
+                    attempt,
+                    MAX_TIMEOUT_RETRIES,
+                    timeout_error,
+                )
+                logger.info(
+                    "Повторная попытка скачивания части через %s секунд",
+                    RETRY_SLEEP_SECONDS,
+                )
+                time.sleep(RETRY_SLEEP_SECONDS)
+            except Exception:
+                logger.info(
+                    f"Failed to get file for stream slice {self.stream_slice.values()}"
+                )
+                return
+        # Failed to get to return statement
+        logger.info(
+            "Исчерпаны попытки скачивания части %s после таймаутов",
+            self.stream_slice,
         )
 
     def run(self):

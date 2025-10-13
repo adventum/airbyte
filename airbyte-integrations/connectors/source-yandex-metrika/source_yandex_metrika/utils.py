@@ -38,7 +38,7 @@ def today_minus_n_days_date(n_days: int) -> str:
 
 
 def random_output_filename() -> str:
-    return f"output/{random_str(20)}.csv"
+    return f"/tmp/output/{random_str(20)}.csv"
 
 
 def random_str(n: int) -> str:

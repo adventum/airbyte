@@ -59,6 +59,16 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         self.log_source = log_source
         self.preprocessor = YandexMetrikaStreamPreprocessor(stream_instance=self)
         self.created_for_test = created_for_test
+        # Env variables are used by one of clients, do not remove!
+        timeout_env = os.getenv("YANDEX_METRIKA_CHUNK_DOWNLOAD_TIMEOUT_SECONDS")
+        try:
+            self.chunk_download_timeout = int(timeout_env) if timeout_env else 180
+        except ValueError:
+            logger.info(
+                "Некорректное значение переменной окружения YANDEX_METRIKA_CHUNK_DOWNLOAD_TIMEOUT_SECONDS=%s, используем значение по умолчанию 180",
+                timeout_env,
+            )
+            self.chunk_download_timeout = 180
 
         self._name = stream_config.get("name")
         self.split_range_days_count = stream_config.get("split_range_days_count", False)
@@ -182,6 +192,20 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         headers.update({"Content-Type": "application/x-yametrika+json"})
         return headers
 
+    def request_kwargs(
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> Mapping[str, Any]:
+        kwargs = super().request_kwargs(
+            stream_state=stream_state,
+            stream_slice=stream_slice,
+            next_page_token=next_page_token,
+        )
+        kwargs["timeout"] = self.chunk_download_timeout
+        return kwargs
+
     def should_retry(self, response: requests.Response) -> bool:
         return response.status_code in [429, 400] or 500 <= response.status_code < 600
 
@@ -193,14 +217,37 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         **kwargs,
     ) -> Iterable:
         logger.info(f"parse_response {response.url}")
-        try:
-            os.mkdir("output")
-        except FileExistsError:
-            pass
+        logger.info(
+            "Получен ответ Logs API: request_id=%s, часть=%s, статус=%s",
+            stream_slice.get("log_request_id"),
+            (stream_slice.get("part") or {}).get("part_number"),
+            response.status_code,
+        )
         filename = random_output_filename()
+        output_dir = os.path.dirname(filename)
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except OSError as e:
+            logger.info(
+                "Не удалось создать каталог для сохранения данных: путь=%s, ошибка=%s",
+                output_dir,
+                e,
+            )
+            raise
         logger.info(f"Save slice {stream_slice} data to {filename}")
+        content = response.content
+        logger.info(
+            "Сохраняем данные лога: размер=%s байт, Content-Length=%s",
+            len(content),
+            response.headers.get("Content-Length"),
+        )
         with open(filename, "wb") as f:
-            f.write(response.content)
+            f.write(content)
+        logger.info(
+            "Файл с частью логов сохранён: путь=%s, размер=%s байт",
+            filename,
+            len(content),
+        )
         logger.info("end of parse_response")
         return [filename]
 

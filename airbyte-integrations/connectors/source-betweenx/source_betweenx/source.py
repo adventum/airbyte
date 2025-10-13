@@ -74,16 +74,16 @@ class SourceBetweenx(AbstractSource):
         Returns: token
         """
         # Get cookies
-        cookie_response: Response = requests.post(
+        token_response: Response = requests.post(
             url=f"https://api.betweendigital.com/system/auth/login",
             headers=base_headers,
             json={
                 "lang":"ru-RU", "email": email, "password": password
             },
         )
-        cookie_response.raise_for_status()
+        token_response.raise_for_status()
 
-        token: str = cookie_response.json()["data"]["token"]
+        token: str = token_response.json()["data"]["token"]
         return token
 
     def streams(self, config: Mapping[str, Any]) -> List[HttpStream]:

@@ -431,6 +431,10 @@ visits_fields: list[YandexMetrikaSourceField] = [
     YandexMetrikaSourceField(
         field_name="ym:s:<attribution>Messenger", field_type="string"
     ),
+    # https://yandex.ru/support/varioqub/ru/unload-data
+    YandexMetrikaSourceField(
+        field_name="ym:s:testids", field_type="string"
+    ),
 ]
 
 hits_fields_manager: YandexMetrikaFieldsManager = YandexMetrikaFieldsManager(

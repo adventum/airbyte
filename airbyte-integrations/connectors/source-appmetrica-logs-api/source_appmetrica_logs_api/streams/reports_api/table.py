@@ -38,7 +38,7 @@ class AppmetricaReportsTable(HttpStream):
         self.api_version = api_version
         self.table_name = table_name
         super().__init__(authenticator)
-        self._token = authenticator._token
+        self._token = authenticator.token
         self.application_id = application_id
         self.date_from = date_from
         self.date_to = date_to

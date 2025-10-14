@@ -45,7 +45,7 @@ class AppmetricaLogsApi(HttpStream):
         # setting source after super().__init__ will break name property
         self.source = source
         super().__init__(authenticator)
-        self._token = authenticator._token
+        self._token = authenticator.token
         self.application_id = application_id
         self.date_from = date_from
         self.date_to = date_to
@@ -117,7 +117,7 @@ class AppmetricaLogsApi(HttpStream):
     def make_request(self, stream_slice: Mapping[str, Any] = None) -> requests.Response:
         response = requests.get(
             self.url_base + self.path(),
-            headers={"Authorization": f"OAuth {self._token}"},
+            headers={"Authorization": self._token},
             params=self.request_params(stream_slice=stream_slice),
             stream=True,  # Needed to use chunk reading in read_records
         )

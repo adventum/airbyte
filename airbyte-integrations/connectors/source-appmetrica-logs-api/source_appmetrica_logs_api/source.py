@@ -65,7 +65,9 @@ class SourceAppmetricaLogsApi(AbstractSource):
     @staticmethod
     def get_auth(config: Mapping[str, Any]) -> TokenAuthenticator:
         if config["credentials"]["auth_type"] == "access_token_auth":
-            return TokenAuthenticator(config["credentials"]["access_token"])
+            return TokenAuthenticator(
+                token=config["credentials"]["access_token"]
+            )
         elif config["credentials"]["auth_type"] == "credentials_craft_auth":
             return CredentialsCraftAuthenticator(
                 credentials_craft_host=config["credentials"]["credentials_craft_host"],

@@ -42,16 +42,18 @@ class SourceAppmetricaLogsApi(AbstractSource):
                     "date_until": first_slice["date_to"].format(stream.datetime_format),
                     "fields": ",".join(stream.fields),
                     "date_dimension": stream.date_dimension,
+                    "skip_unavailable_shards": True
                 }
                 response = requests.get(
                     url=stream.url_base + stream.path(),
-                    headers={"Authorization": f"OAuth {stream._token}"},
+                    headers={"Authorization": stream._token},
                     params=params,
                 )
                 # 429 means ok, but the Yandex server is processing previous requests,
                 # the queue for new ones is still full
-                assert response.status_code in (200, 202, 204, 429)
-                return True, None
+                if response.status_code in (200, 202, 204, 429):
+                    return True, None
+                raise ValueError(f"Appmetrica api responded with code {response.status_code}. Check your connection configuration")
             elif isinstance(stream, AppmetricaReportsTable):
                 next(streams[0].read_records(sync_mode=SyncMode.full_refresh))
                 return True, None

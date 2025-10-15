@@ -205,6 +205,7 @@ CAMPAIGNS_DEFAULT_FIELDS = {
         "PackageBiddingStrategy",
         "CanBeUsedAsPackageBiddingStrategySource",
         "NegativeKeywordSharedSetIds",
+        "TrackingParams",
     ],
     "TextCampaignSearchStrategyPlacementTypesFieldNames": [
         "SearchResults",

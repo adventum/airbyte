@@ -139,6 +139,12 @@
             "string",
             "null"
           ]
+        },
+        "TrackingParams": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },

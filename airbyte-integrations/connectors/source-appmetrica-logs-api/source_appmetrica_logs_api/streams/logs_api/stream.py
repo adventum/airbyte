@@ -97,7 +97,7 @@ class AppmetricaLogsApi(HttpStream):
         if self.filters:
             params.update(self.filters_into_request_params(self.filters))
         if self.skip_unavailable_shards:
-            params["skip_unavailable_shards"] = True
+            params["skip_unavailable_shards"] = "true"
         return params
 
     @lru_cache(maxsize=None)

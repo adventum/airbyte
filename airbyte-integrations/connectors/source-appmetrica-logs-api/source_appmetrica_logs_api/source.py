@@ -42,7 +42,7 @@ class SourceAppmetricaLogsApi(AbstractSource):
                     "date_until": first_slice["date_to"].format(stream.datetime_format),
                     "fields": ",".join(stream.fields),
                     "date_dimension": stream.date_dimension,
-                    "skip_unavailable_shards": True
+                    "skip_unavailable_shards": "true"
                 }
                 response = requests.get(
                     url=stream.url_base + stream.path(),

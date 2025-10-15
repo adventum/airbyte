@@ -1,4 +1,5 @@
 import logging
+import pendulum
 import requests
 
 from typing import Any, Iterable, List, Mapping, Optional
@@ -18,8 +19,8 @@ class ReportStatistics(BetweenxStream):
     def __init__(
         self,
         token: str,
-        date_from: str,
-        date_to: str,
+        date_from: pendulum.DateTime,
+        date_to: pendulum.DateTime,
         is_group_by_date: bool,
         user_id: str | int,
         group_by_field: str | None = None,

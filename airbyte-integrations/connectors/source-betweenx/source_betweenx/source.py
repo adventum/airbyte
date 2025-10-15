@@ -101,8 +101,8 @@ class SourceBetweenx(AbstractSource):
                 user_id=user_id,
                 date_from=config["time_from_transformed"],
                 date_to=config["time_to_transformed"],
-                group_by_field=config["group_by_field"],
-                is_group_by_date=config["is_group_by_date"],
+                group_by_field=config.get("group_by_field", None),
+                is_group_by_date=config.get("is_group_by_date", False),
                 campaign_ids=config["campaign_ids"],
             ),
         ]

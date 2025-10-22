@@ -18,6 +18,7 @@ CUSTOM_SCHEMA_FIELDS = {
     "Bounces": "string",
     "CampaignId": "string",
     "CampaignName": "string",
+    "CampaignUrlPath": "string",
     "CampaignType": "string",
     "CarrierType": "string",
     "Clicks": "string",

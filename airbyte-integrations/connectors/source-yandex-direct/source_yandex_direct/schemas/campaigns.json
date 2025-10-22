@@ -79,6 +79,340 @@
         "string",
         "null"
       ]
+    },
+    "TextCampaign": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "CounterIds": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "RelevantKeywords": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Settings": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "BiddingStrategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "PriorityGoals": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "AttributionModel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "PackageBiddingStrategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "CanBeUsedAsPackageBiddingStrategySource": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "NegativeKeywordSharedSetIds": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "TrackingParams": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "TextCampaignSearchStrategyPlacementTypes": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "SearchResults": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ProductGallery": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "DynamicPlaces": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "MobileAppCampaign": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "BiddingStrategy": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "Settings": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "PackageBiddingStrategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "CanBeUsedAsPackageBiddingStrategySource": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "NegativeKeywordSharedSetIds": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "DynamicTextCampaignSearchStrategyPlacementTypes": {
+      "type" : [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "SearchResults" : {
+          "type" : [
+            "object",
+            "null"
+          ]
+        },
+        "ProductGallery" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "DynamicPlaces" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "CpmBannerCampaign": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "CounterIds" : {
+          "type" : [
+            "object",
+            "null"
+          ]
+        },
+        "FrequencyCap" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "VideoTarget" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "Settings" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "BiddingStrategy" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "UnifiedCampaign": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "CounterIds" : {
+          "type" : [
+            "object",
+            "null"
+          ]
+        },
+        "Settings" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "BiddingStrategy" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "PriorityGoals" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "TrackingParams" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "AttributionModel" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "PackageBiddingStrategy" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "CanBeUsedAsPackageBiddingStrategySource" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "UnifiedCampaignSearchStrategyPlacementTypes": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "SearchResults" : {
+          "type" : [
+            "object",
+            "null"
+          ]
+        },
+        "ProductGallery" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "DynamicPlaces" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "Maps" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "SearchOrganizationList" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "UnifiedCampaignPackageBiddingStrategyPlatforms": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties" : {
+        "SearchResult" : {
+          "type" : [
+            "object",
+            "null"
+          ]
+        },
+        "ProductGallery" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "Maps" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "SearchOrganizationList" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "Network" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        },
+        "DynamicPlaces" : {
+          "type" : [
+            "string",
+            "null"
+          ]
+        }
+      }
     }
   }
 }

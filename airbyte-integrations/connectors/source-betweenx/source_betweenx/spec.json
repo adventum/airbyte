@@ -1,0 +1,251 @@
+{
+  "documentationUrl": "https://docsurl.com",
+  "connectionSpecification": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Betweenx Spec",
+    "type": "object",
+    "required": [
+      "credentials",
+      "user_id",
+      "campaign_ids",
+      "date_range"
+    ],
+    "properties": {
+      "credentials" : {
+        "title" : "Метод авторизации",
+        "default" : {},
+        "order" : 0,
+        "type" : "object",
+        "oneOf" : [
+          {
+            "title" : "Авторизация через Логин/Пароль",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Auth Type",
+                "const" : "login_password_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "account_email" : {
+                "title" : "Email аккаунта",
+                "description" : "Email Аккаунта",
+                "type" : "string"
+              },
+              "account_password" : {
+                "title" : "Пароль аккаунта",
+                "description" : "Пароль аккаунта",
+                "airbyte_secret" : true,
+                "type" : "string"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "account_email",
+              "account_password"
+            ]
+          },
+          {
+            "title" : "CredentialsCraft Auth",
+            "type" : "object",
+            "properties" : {
+              "auth_type" : {
+                "title" : "Auth Type",
+                "const" : "credentials_craft_auth",
+                "order" : 0,
+                "type" : "string"
+              },
+              "credentials_craft_host" : {
+                "title" : "CredentialsCraft Host",
+                "description" : "CredentialsCraft Host.",
+                "examples" : [
+                  "https://credentialscraft.mysite.com"
+                ],
+                "type" : "string"
+              },
+              "credentials_craft_token" : {
+                "title" : "CredentialsCraft Token",
+                "description" : "Long-term CredentialsCraft Access Token.",
+                "type" : "string",
+                "airbyte_secret" : true
+              },
+              "credentials_craft_token_id" : {
+                "title" : "CredentialsCraft Yandex Token ID",
+                "description" : "Yandex Token ID in CredentialsCraft",
+                "examples" : [
+                  3345435
+                ],
+                "type" : "integer"
+              }
+            },
+            "required" : [
+              "auth_type",
+              "credentials_craft_host",
+              "credentials_craft_token",
+              "credentials_craft_token_id"
+            ]
+          }
+        ]
+      },
+      "user_id": {
+        "title": "ID пользователя",
+        "description": "Введите ID пользователя, его можно получить, перейдя в личном кабинете в раздел 'Профиль' -> 'Информация' -> 'ID'",
+        "type": "string",
+        "order": 1
+      },
+      "campaign_ids": {
+        "title": "ID кампаний",
+        "description": "Введите ID кампаний, по которым нужно выгрузить данные. Их можно найти зайдя в 'Агенство' -> 'Статистика' -> 'Отчёт' -> 'Кампания', в начале каждого элемента выпадающего списка будет он",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "order": 2
+      },
+      "is_group_by_date": {
+        "title": "Группировать записи по дате?",
+        "description": "Например, диапазон дат - месяц, значение = False, тогда придёт одна строка с общим кол-вом показов, кликов и т.д. Если же True - тогда придут записи за каждый день",
+        "type": "boolean",
+        "order": 3,
+        "default": false
+      },
+      "group_by_field": {
+        "title": "Группировка записей по выбранному полю",
+        "description": "Группировки: campaign_id - Кампания, creative_id - Креатив, device_type - Тип устройства, city - Город, detected_domain - Домен, line_item_id - Линии",
+        "enum" : [
+          "campaign_id",
+          "creative_id",
+          "device_type",
+          "city",
+          "detected_domain",
+          "line_item_id"
+        ],
+        "order": 4
+      },
+      "date_range" : {
+        "title" : "Диапазон дат",
+        "description" : "Выберите период дат, который нужно загрузить",
+        "type" : "object",
+        "order" : 5,
+        "oneOf" : [
+          {
+            "type" : "object",
+            "title" : "Произвольный диапазон дат",
+            "required" : [
+              "date_from",
+              "date_to",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "date_to" : {
+                "title" : "Дата окончания",
+                "type" : "string",
+                "description" : "Дата окончания в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "examples" : [
+                  "2023-01-30"
+                ],
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "format" : "date",
+                "order" : 1
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Произвольная дата",
+                "const" : "custom_date",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "Последние N дней",
+            "required" : [
+              "last_days_count",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "last_days_count" : {
+                "title" : "Количество последних дней",
+                "type" : "integer",
+                "description" : "Количество последних дней без учёта сегодняшнего дня.",
+                "minimum" : 0,
+                "maximum" : 3650,
+                "examples" : [
+                  30
+                ],
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "Последние N дней",
+                "const" : "last_n_days",
+                "order" : 2
+              }
+            }
+          },
+          {
+            "type" : "object",
+            "title" : "С даты начала по сегодня",
+            "description" : "Загрузка данных с даты начала по сегодняшний день. Только с этой опцией возможна инкрементальная синхронизация.",
+            "required" : [
+              "date_from",
+              "should_load_today",
+              "date_range_type"
+            ],
+            "properties" : {
+              "date_from" : {
+                "title" : "Дата начала",
+                "type" : "string",
+                "description" : "Дата начала в формате ГГГГ-ММ-ДД.",
+                "pattern" : "^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                "pattern_descriptor" : "YYYY-MM-DD",
+                "examples" : [
+                  "2023-01-01"
+                ],
+                "format" : "date",
+                "order" : 0
+              },
+              "should_load_today" : {
+                "title" : "Загружать сегодня?",
+                "type" : "boolean",
+                "description" : "Следует ли загружать данные за сегодняшний день в качестве даты окончания? Если нет, датой окончания будет вчерашний день.",
+                "order" : 1,
+                "default" : false
+              },
+              "date_range_type" : {
+                "type" : "string",
+                "title" : "Тип диапазона дат",
+                "description" : "С даты начала по сегодня",
+                "const" : "from_start_date_to_today",
+                "order" : 2
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

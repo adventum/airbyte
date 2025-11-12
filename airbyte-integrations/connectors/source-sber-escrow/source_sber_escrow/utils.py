@@ -34,6 +34,11 @@ class CertifiedRequests:
         return self._make_request("PATCH", url, **kwargs)
 
     def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
+        # Remove User-Agent header
+        headers = kwargs.get("headers", {})
+        headers["User-Agent"] = "adventum"
+        kwargs["headers"] = headers
+
         # Certificates are installed on the system level
         if os.environ.get("REQUESTS_CA_BUNDLE"):
             return requests.request(method=method, url=url, **kwargs)

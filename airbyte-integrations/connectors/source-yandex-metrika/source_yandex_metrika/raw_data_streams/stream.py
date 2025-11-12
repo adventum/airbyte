@@ -8,7 +8,7 @@ import os
 import typing
 from abc import ABC
 from datetime import datetime
-from typing import Iterable, Mapping, MutableMapping, Optional, Tuple
+from typing import Iterable, Mapping, MutableMapping, Optional, Tuple, Any
 
 import requests
 from airbyte_cdk.sources.streams.core import package_name_from_class
@@ -40,7 +40,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     def __init__(
         self,
-        stream_config: dict[str, any],
+        stream_config: dict[str, Any],
         authenticator: TokenAuthenticator,
         counter_id: int,
         date_from: datetime,
@@ -59,6 +59,16 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         self.log_source = log_source
         self.preprocessor = YandexMetrikaStreamPreprocessor(stream_instance=self)
         self.created_for_test = created_for_test
+        # Env variables are used by one of clients, do not remove!
+        timeout_env = os.getenv("YANDEX_METRIKA_CHUNK_DOWNLOAD_TIMEOUT_SECONDS")
+        try:
+            self.chunk_download_timeout = int(timeout_env) if timeout_env else 180
+        except ValueError:
+            logger.info(
+                "Некорректное значение переменной окружения YANDEX_METRIKA_CHUNK_DOWNLOAD_TIMEOUT_SECONDS=%s, используем значение по умолчанию 180",
+                timeout_env,
+            )
+            self.chunk_download_timeout = 180
 
         self._name = stream_config.get("name")
         self.split_range_days_count = stream_config.get("split_range_days_count", False)
@@ -102,7 +112,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
         if any(f not in self.fields for f in field_manager.get_required_fields_names()):
             raise ConfigInvalidError(
-                f'Сырые отчёты - источник {log_source} должен содержать поля {", ".join(field_manager.get_required_fields_names())}. Предоставленные поля: {", ".join(self.fields)}'
+                f"Сырые отчёты - источник {log_source} должен содержать поля {', '.join(field_manager.get_required_fields_names())}. Предоставленные поля: {', '.join(self.fields)}"
             )
 
         if self.primary_key in self.field_name_map.keys():
@@ -137,7 +147,7 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
             name += f"_{self._name}"
         return name
 
-    def get_json_schema(self) -> Mapping[str, any]:
+    def get_json_schema(self) -> Mapping[str, Any]:
         schema = ResourceSchemaLoader(
             package_name_from_class(self.__class__)
         ).get_schema("yandex_metrika_raw_data_stream")
@@ -149,8 +159,8 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
 
     def path(
         self,
-        next_page_token: Mapping[str, any] = None,
-        stream_slice: Mapping[str, any] = None,
+        next_page_token: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
         *args,
         **kwargs,
     ) -> str:
@@ -164,12 +174,12 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         # Custom stream used custom read that fails to check it
         return True, None
 
-    def next_page_token(self, *args, **kwargs) -> Mapping[str, any] | None:
+    def next_page_token(self, *args, **kwargs) -> Mapping[str, Any] | None:
         return None
 
     def request_params(
-        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
-    ) -> MutableMapping[str, any]:
+        self, stream_slice: Mapping[str, Any] = None, *args, **kwargs
+    ) -> MutableMapping[str, Any]:
         return {
             "date1": datetime.strftime(stream_slice["date_from"], "%Y-%m-%d"),
             "date2": datetime.strftime(stream_slice["date_to"], "%Y-%m-%d"),
@@ -177,10 +187,24 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
             "source": self.log_source,
         }
 
-    def request_headers(self, stream_state=None, *args, **kwargs) -> Mapping[str, any]:
+    def request_headers(self, stream_state=None, *args, **kwargs) -> Mapping[str, Any]:
         headers = super().request_headers(stream_state, *args, **kwargs)
         headers.update({"Content-Type": "application/x-yametrika+json"})
         return headers
+
+    def request_kwargs(
+        self,
+        stream_state: Mapping[str, Any] = None,
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> Mapping[str, Any]:
+        kwargs = super().request_kwargs(
+            stream_state=stream_state,
+            stream_slice=stream_slice,
+            next_page_token=next_page_token,
+        )
+        kwargs["timeout"] = self.chunk_download_timeout
+        return kwargs
 
     def should_retry(self, response: requests.Response) -> bool:
         return response.status_code in [429, 400] or 500 <= response.status_code < 600
@@ -193,18 +217,41 @@ class YandexMetrikaRawDataStream(YandexMetrikaStream, ABC):
         **kwargs,
     ) -> Iterable:
         logger.info(f"parse_response {response.url}")
-        try:
-            os.mkdir("output")
-        except FileExistsError:
-            pass
+        logger.info(
+            "Получен ответ Logs API: request_id=%s, часть=%s, статус=%s",
+            stream_slice.get("log_request_id"),
+            (stream_slice.get("part") or {}).get("part_number"),
+            response.status_code,
+        )
         filename = random_output_filename()
+        output_dir = os.path.dirname(filename)
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except OSError as e:
+            logger.info(
+                "Не удалось создать каталог для сохранения данных: путь=%s, ошибка=%s",
+                output_dir,
+                e,
+            )
+            raise
         logger.info(f"Save slice {stream_slice} data to {filename}")
+        content = response.content
+        logger.info(
+            "Сохраняем данные лога: размер=%s байт, Content-Length=%s",
+            len(content),
+            response.headers.get("Content-Length"),
+        )
         with open(filename, "wb") as f:
-            f.write(response.content)
+            f.write(content)
+        logger.info(
+            "Файл с частью логов сохранён: путь=%s, размер=%s байт",
+            filename,
+            len(content),
+        )
         logger.info("end of parse_response")
         return [filename]
 
-    def stream_slices(self, *args, **kwargs) -> Iterable[Mapping[str, any] | None]:
+    def stream_slices(self, *args, **kwargs) -> Iterable[Mapping[str, Any] | None]:
         if not self.split_range_days_count:
             slices = [{"date_from": self.date_from, "date_to": self.date_to}]
         elif self.split_range_days_count:

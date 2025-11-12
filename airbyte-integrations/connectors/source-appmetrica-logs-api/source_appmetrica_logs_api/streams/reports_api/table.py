@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
+import re
 from functools import lru_cache
 from typing import Any, Mapping, Optional, MutableMapping, Iterable, Literal
 
@@ -37,21 +38,20 @@ class AppmetricaReportsTable(HttpStream):
         self.api_version = api_version
         self.table_name = table_name
         super().__init__(authenticator)
-        self._token = authenticator._token
+        self._token = authenticator.token
         self.application_id = application_id
         self.date_from = date_from
         self.date_to = date_to
-        self.metrics = metrics
         self.dimensions = dimensions if dimensions is not None else []
         self.filters = filters
         self.event_names = event_names if event_names is not None else []
+        self.metrics = list(set(self.format_metrics(metrics)))
 
     @property
     def url_base(self) -> str:
         if self.api_version == "v1":
             return "https://api.appmetrica.yandex.ru/"
-        else:
-            return "https://api.appmetrica.yandex.ru/v2/"
+        return "https://api.appmetrica.yandex.ru/v2/"
 
     @property
     def name(self) -> str:
@@ -68,6 +68,33 @@ class AppmetricaReportsTable(HttpStream):
     ) -> Optional[Mapping[str, Any]]:
         # Actually supported, but has no real use
         return None
+
+    def format_metrics(self, metrics: list[str]) -> list[str]:
+        """
+        Process custom regexp for metrics
+        EVENT_NAME string will be converted to all event names, EVENT_NAME_1 only to first one and so on.
+        Examples: eventsDevices{'["EVENT_NAME"]'} paired with event names ["ЛК. Оплата заказа. Успешная оплата", "ЛК. Оплата заказа. Оплата не удалась"]
+        results in 2 metrics: [eventsDevices{'["ЛК. Оплата заказа. Успешная оплата"]'}, eventsDevices{'["ЛК. Оплата заказа. Оплата не удалась"]'}].
+        eventsDevices{'["EVENT_NAME_1"]'} creates only one metric with first event name in list. API docs: (https://appmetrica.yandex.com/docs/en/mobile-api/api_v1/metrics/mainmetr)",
+        """
+        result: list[str] = []
+        for metric in metrics:
+            # Indexed metrics (like EVENT_NAME_1)
+            if res := re.search(r"EVENT_NAME_\d+", metric):
+                match = res.group()
+                idx = int(match.split("EVENT_NAME_")[1]) - 1
+                if idx >= len(self.event_names):
+                    raise ValueError(
+                        f"Event name with idx {match} ({idx + 1}) is out of event names range"
+                    )
+                result.append(metric.replace(match, self.event_names[idx]))
+            # Matric for all event names (like EVENT_NAME)
+            elif "EVENT_NAME" in metric:
+                for event_name in self.event_names:
+                    result.append(metric.replace("EVENT_NAME", event_name))
+            else:
+                result.append(metric)
+        return result
 
     @lru_cache(maxsize=None)
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -93,9 +120,9 @@ class AppmetricaReportsTable(HttpStream):
         return schema
 
     def request_params(
-        self, stream_slice: Mapping[str, any] = None, *args, **kwargs
+        self, stream_slice: Mapping[str, Any] = None, *args, **kwargs
     ) -> MutableMapping[str, Any]:
-        params = {
+        params: dict[str, Any] = {
             "date1": self.date_from.format(self.datetime_format),
             "date2": self.date_to.format(self.datetime_format),
             "metrics": ",".join(self.metrics),

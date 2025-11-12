@@ -14,20 +14,24 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
         self._cc_host = credentials_craft_host
         self._cc_token = credentials_craft_token
         self._cc_token_id = credentials_craft_token_id
+        self._auth_method = "Bearer"
 
     @property
     def _url(self) -> str:
         return f"{self._cc_host}/api/v1/token/yandex/{self._cc_token_id}/"
 
     @property
-    def _service_access_token(self) -> Mapping[str, Any]:
-        resp = requests.get(
-            self._url, headers={"Authorization": f"Bearer {self._cc_token}"}
-        ).json()
-        return resp.get("access_token")
+    def token(self) -> str:
+        response = requests.get(
+            self._url,
+            headers={"Authorization": f"Bearer {self._cc_token}"},
+        )
+        response.raise_for_status()
+        data: dict[str, Any] = response.json()
+        return f"{self._auth_method} {data['access_token']}"
 
     def get_auth_header(self) -> Mapping[str, Any]:
-        super().__init__(self._service_access_token, "Bearer", "Authorization")
+        super().__init__(self.token, "Bearer", "Authorization")
         return super().get_auth_header()
 
     def check_connection(self):

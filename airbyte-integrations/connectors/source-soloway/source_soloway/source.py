@@ -10,10 +10,10 @@ import requests
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
+from airbyte_cdk import TokenAuthenticator
+from .utils import get_config_date_range
 
 
-# Basic full refresh stream
 class SolowayStream(HttpStream, ABC):
     url_base = "https://pb.soloway.ru/api/"
 
@@ -21,16 +21,37 @@ class SolowayStream(HttpStream, ABC):
         return None
 
     def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         return {}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield {}
 
+    @property
+    def state(self) -> MutableMapping[str, Any]:
+        """Get connector state (default from HttpStream)"""
+        cursor = self.get_cursor()
+        if cursor:
+            return cursor.get_stream_state()  # type: ignore
+        return self._state
+
+    @state.setter
+    def state(self, value: MutableMapping[str, Any]) -> None:
+        """Set empty state as in old connectors"""
+        value = {}
+        cursor = self.get_cursor()
+        if cursor:
+            cursor.set_initial_state(value)
+        self._state = value
+
 
 class Customers(SolowayStream):
+    """
+    TODO: Change class name to match the table/data source this stream corresponds to.
+    """
 
+    # TODO: Fill in the primary key. Required. This is usually a unique field in the stream, like an ID or a timestamp.
     primary_key = "customer_id"
 
     def path(
@@ -90,7 +111,7 @@ class Employees(IncrementalSolowayStream):
         """
         return "employees"
 
-    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
+    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         """
         TODO: Optionally override this method to define this stream's slices. If slicing is not needed, delete this method.
 
@@ -115,7 +136,7 @@ class Employees(IncrementalSolowayStream):
 
 # Source
 class SourceSoloway(AbstractSource):
-    def check_connection(self, logger, config) -> Tuple[bool, any]:
+    def check_connection(self, logger, config) -> Tuple[bool, Any]:
         """
         TODO: Implement a connection check to validate that the user-provided config can be used to connect to the underlying API
 
@@ -124,9 +145,17 @@ class SourceSoloway(AbstractSource):
 
         :param config:  the user-input config object conforming to the connector's spec.yaml
         :param logger:  logger object
-        :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
+        :return Tuple[bool, Any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
         """
         return True, None
+
+    @staticmethod
+    def transform_config(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        config["time_from_transformed"], config["time_to_transformed"] = (
+            get_config_date_range(config)
+        )
+        # For future improvements
+        return config
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         """
@@ -134,6 +163,7 @@ class SourceSoloway(AbstractSource):
 
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
+        config = self.transform_config(config)
         # TODO remove the authenticator if not required.
         auth = TokenAuthenticator(token="api_key")  # Oauth2Authenticator is also available if you need oauth support
         return [Customers(authenticator=auth), Employees(authenticator=auth)]

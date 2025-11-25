@@ -15,17 +15,16 @@ from airbyte_cdk.sources.streams.http.exceptions import (
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 
-from .schema_fields import CUSTOM_SCHEMA_FIELDS, build_goal_fields
-from .utils import (
+from ..schema_fields import CUSTOM_SCHEMA_FIELDS, build_goal_fields
+from ..utils import (
     HttpAvailabilityStrategy,
     random_name,
     split_date_by_chunks,
     log_stream_request_data,
 )
+from http.client import HTTPConnection
 
 logger = airbyte_logger.AirbyteLogger()
-
-from http.client import HTTPConnection
 
 HTTPConnection._http_vsn_str = "HTTP/1.0"
 
@@ -37,6 +36,7 @@ class YandexDirectStream(HttpStream, ABC):
     url_base = "https://api.direct.yandex.com/json/v5/reports"
     http_method = "POST"
     availability_strategy = HttpAvailabilityStrategy
+    page_size = 100_000
 
     def __init__(
         self,
@@ -63,6 +63,10 @@ class YandexDirectStream(HttpStream, ABC):
         self.date_range = date_range
         self.split_range_days_count = split_range_days_count
         self.replace_keys_config = replace_keys_config
+
+        # for pagination
+        self.total_loaded = 0
+        self.last_loaded = 0
 
     @property
     def name(self) -> str:
@@ -119,11 +123,6 @@ class YandexDirectStream(HttpStream, ABC):
         kwargs.update({"stream": True})
         return kwargs
 
-    def next_page_token(
-        self, response: requests.Response
-    ) -> Optional[Mapping[str, Any]]:
-        return None
-
     def replace_record_key(self, key: str) -> str:
         if self.replace_keys_config:
             key_replace_config = next(
@@ -132,6 +131,15 @@ class YandexDirectStream(HttpStream, ABC):
             if key_replace_config:
                 return key_replace_config["new_key"]
         return key
+
+    def next_page_token(
+        self, response: requests.Response
+    ) -> Optional[Mapping[str, Any]]:
+        if self.last_loaded < self.page_size:
+            return None
+        self.logger.info({"total_loaded": self.total_loaded})
+        # just show that there is still some records to load
+        return {"total_loaded": self.total_loaded}
 
     def parse_response(
         self,
@@ -142,7 +150,7 @@ class YandexDirectStream(HttpStream, ABC):
         # parse raw TSV data to list of named dicts
         raw_data_lines = response.iter_lines(delimiter=b"\n")
         header = []
-        records_counter = 0
+        self.last_loaded = 0
         for line_n, line in enumerate(raw_data_lines):
             line_values = line.decode().split("\t")
 
@@ -160,14 +168,12 @@ class YandexDirectStream(HttpStream, ABC):
             header = list(map(self.replace_record_key, header))
             for value_n, value in enumerate(line_values):
                 data_item[header[value_n]] = value
-            records_counter += 1
-            if records_counter == 1_000_000:
-                self.logger.warn(
-                    f"Reached 1.000.000th record on stream_slice {stream_slice}. It can be Direct Reports API restriction of 1 million records per report."
-                )
+            self.last_loaded += 1
+            self.total_loaded += 1
             yield data_item
+
         self.logger.info(
-            f"Loaded {records_counter} records for stream_slice {stream_slice}"
+            f"Loaded {self.total_loaded} records for stream_slice {stream_slice}"
         )
 
 
@@ -180,8 +186,11 @@ class CustomReport(YandexDirectStream):
         return self.fields[0]
 
     def request_body_json(
-        self, stream_slice: Mapping[str, Any], *args, **kwargs
-    ) -> Optional[Mapping]:
+        self,
+        stream_state: Optional[Mapping[str, Any]],
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        next_page_token: Optional[Mapping[str, Any]] = None,
+    ) -> Optional[Mapping[str, Any]]:
         date_range = stream_slice["transformed_date_range"]
         params = {
             "params": {
@@ -190,12 +199,13 @@ class CustomReport(YandexDirectStream):
                     "DateTo": datetime.strftime(date_range["date_to"], "%Y-%m-%d"),
                 },
                 "FieldNames": self.fields + self.additional_fields,
-                "ReportName": stream_slice["report_name"],
+                "ReportName": random_name(10),
                 "ReportType": "CUSTOM_REPORT",
                 "DateRangeType": "CUSTOM_DATE",
                 "Format": "TSV",
                 "IncludeVAT": "NO",
                 "IncludeDiscount": "NO",
+                "Page": {"Limit": self.page_size, "Offset": self.total_loaded},
             }
         }
 
@@ -274,7 +284,6 @@ class CustomReport(YandexDirectStream):
             slices = [
                 {
                     "transformed_date_range": self.date_range,
-                    "report_name": random_name(10),
                 }
             ]
             yield from slices
@@ -292,5 +301,4 @@ class CustomReport(YandexDirectStream):
                         "date_from": str(date_from.date()),
                         "date_to": str(date_to.date()),
                     },
-                    "report_name": random_name(10),
                 }

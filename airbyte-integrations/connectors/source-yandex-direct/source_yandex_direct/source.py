@@ -13,21 +13,20 @@ from airbyte_cdk import logger as airbyte_logger
 from airbyte_cdk.models import ConnectorSpecification
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
-from source_yandex_direct.ads_streams import (
+from .streams.ads_streams import (
     AdImages,
     Ads,
     Campaigns,
     YandexDirectAdsStream,
 )
-from source_yandex_direct.report_streams import CustomReport
+from .streams.report_streams import CustomReport
 
 from .auth import CredentialsCraftAuthenticator
 from .schema_fields import CUSTOM_SCHEMA_FIELDS
 from .utils import HttpAvailabilityStrategy, random_name
+from http.client import HTTPConnection
 
 logger = airbyte_logger.AirbyteLogger()
-
-from http.client import HTTPConnection
 
 HTTPConnection._http_vsn_str = "HTTP/1.0"
 
@@ -50,7 +49,7 @@ class SourceYandexDirect(AbstractSource):
         for stream_class, spec_field_name in spec_fields_names_for_streams:
             try:
                 json.loads(config.get(spec_field_name, "{}"))
-            except:
+            except Exception:
                 return False, f"Invalid JSON in {spec_field_name}. See example."
             if not config.get(spec_field_name):
                 continue

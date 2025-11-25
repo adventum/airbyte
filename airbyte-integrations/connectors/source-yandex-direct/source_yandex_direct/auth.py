@@ -33,7 +33,7 @@ class CredentialsCraftAuthenticator(TokenAuthenticator):
     def check_connection(self):
         try:
             requests.get(self._cc_host, timeout=15)
-        except:
+        except Exception:
             return False, f"Connection to {self._cc_host} timed out"
 
         token_resp = requests.get(

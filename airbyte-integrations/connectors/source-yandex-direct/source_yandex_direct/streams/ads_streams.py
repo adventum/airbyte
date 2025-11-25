@@ -6,13 +6,13 @@ from airbyte_cdk.models.airbyte_protocol import SyncMode
 from airbyte_cdk.sources.streams.http import HttpStream, HttpSubStream
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from .schema_fields import (
+from ..schema_fields import (
     AD_IMAGES_DEFAULT_FIELDS,
     ADS_DEFAULT_FIELDS,
     CAMPAIGNS_DEFAULT_FIELDS,
 )
 
-from .utils import (
+from ..utils import (
     chunks,
     concat_multiple_lists,
     find_by_key,
@@ -89,7 +89,7 @@ class YandexDirectAdsStream(HttpStream, ABC):
 
                 try:
                     default_schema_properties[key]
-                except:
+                except Exception:
                     continue
 
                 schema["properties"][key] = {

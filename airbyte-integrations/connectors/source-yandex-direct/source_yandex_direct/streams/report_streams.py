@@ -36,7 +36,7 @@ class YandexDirectStream(HttpStream, ABC):
     url_base = "https://api.direct.yandex.com/json/v5/reports"
     http_method = "POST"
     availability_strategy = HttpAvailabilityStrategy
-    page_size = 100_000
+    page_size = 250_000  # default limit if 1_000_000
 
     def __init__(
         self,

@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": ["null", "string"]
+    },
+    "objectName": {
+      "type": ["null", "string"]
+    },
+    "incomingPhone": {
+      "type": ["null", "string"]
+    },
+    "internalPhone": {
+      "type": ["null", "string"]
+    },
+    "waitDuration": {
+      "type": ["null", "string"]
+    },
+    "callDuration": {
+      "type": ["null", "string"]
+    },
+    "revenue": {
+      "type": ["null", "number"]
+    },
+    "objectType": {
+      "type": ["null", "string"]
+    },
+    "campaignTariff": {
+      "type": ["null", "string"]
+    },
+    "clientTariff": {
+      "type": ["null", "string"]
+    }
+  }
+}
